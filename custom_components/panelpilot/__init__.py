@@ -7,7 +7,6 @@ from pathlib import Path
 import voluptuous as vol
 
 from homeassistant.components import frontend, panel_custom
-from homeassistant.components.http import StaticPathConfig
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, ServiceCall, callback
 from homeassistant.exceptions import ServiceValidationError
@@ -16,7 +15,7 @@ from homeassistant.helpers.typing import ConfigType
 
 from . import websocket
 from .const import CONF_SIDEBAR, DOMAIN, EDITOR_PATH, PLATFORMS, STATIC_URL, VERSION
-from .http import PairView
+from .http import PairView, StaticView
 from .hub import Hub
 
 CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
@@ -28,7 +27,7 @@ _TARGET = {vol.Optional("device_id"): vol.All(cv.ensure_list, [cv.string])}
 async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
     websocket.async_register(hass)
     hass.http.register_view(PairView())
-    await hass.http.async_register_static_paths([StaticPathConfig(STATIC_URL, str(FRONTEND), False)])
+    hass.http.register_view(StaticView(STATIC_URL, FRONTEND))
 
     def targets(call: ServiceCall) -> tuple[Hub, list[str]]:
         hub = hass.data.get(DOMAIN)

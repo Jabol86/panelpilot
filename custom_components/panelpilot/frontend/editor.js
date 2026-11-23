@@ -63,7 +63,7 @@ class PanelPilotEditor extends HTMLElement {
     if (this._unsub) return;
     const v = import.meta.url.split('?')[1] || '';
     this.shadowRoot.replaceChildren(h('link', { rel: 'stylesheet', href: new URL('editor.css?' + v, BASE).href }), h('p', { style: 'padding:24px' }, 'Ładowanie edytora…'));
-    this.frame = h('iframe', { title: 'Podgląd panelu', src: new URL('index.html?preview', BASE).href });
+    this.frame = h('iframe', { title: 'Podgląd panelu', src: new URL('index.html?preview&' + v, BASE).href });
     this._unsub = this.hass.connection.subscribeMessage(d => this.onData(d), { type: 'panelpilot/admin/subscribe' });
     this._unsub.catch(e => this.shadowRoot.replaceChildren(h('p', { style: 'padding:24px' }, 'Integracja PanelPilot nie odpowiada: ' + (e.message || e.code))));
   }

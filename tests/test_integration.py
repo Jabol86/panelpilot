@@ -188,7 +188,16 @@ async def test_webrtc(hass, entry, hass_ws_client, aioclient_mock):
 async def test_static_and_unload(hass, entry, hass_client_no_auth):
     http = await hass_client_no_auth()
     for name in ("index.html", "editor.js", "ui.js", "samples.js", "panel.js"):
-        assert (await http.get(f"/panelpilot_static/{name}")).status == 200
+        r = await http.get(f"/panelpilot_static/{name}")
+        assert r.status == 200
+        assert r.headers["Cache-Control"] == "no-cache"
+    # Odnośniki do własnych plików mają numer wersji, żeby przeglądarka nie brała starych kopii.
+    html = await (await http.get("/panelpilot_static/index.html")).text()
+    assert 'src="widgets.js?v=' in html and 'href="panel.css?v=' in html
+    js = await (await http.get("/panelpilot_static/editor.js")).text()
+    assert "from './ui.js?v=" in js
+    assert (await http.get("/panelpilot_static/../manifest.json")).status == 404
+    assert (await http.get("/panelpilot_static/brak.js")).status == 404
     assert "panelpilot" in hass.data["frontend_panels"]
     assert await hass.config_entries.async_unload(entry.entry_id)
     assert "panelpilot" not in hass.data["frontend_panels"]
