@@ -196,7 +196,11 @@ async def test_static_and_unload(hass, entry, hass_client_no_auth):
     assert 'src="widgets.js?v=' in html and 'href="panel.css?v=' in html
     js = await (await http.get("/panelpilot_static/editor.js")).text()
     assert "from './ui.js?v=" in js
-    assert (await http.get("/panelpilot_static/../manifest.json")).status == 404
+    from custom_components.panelpilot import FRONTEND
+    from custom_components.panelpilot.http import StaticView
+
+    view = StaticView("/panelpilot_static", FRONTEND)
+    assert view._find("../manifest.json") is None and view._find("panel.js") is not None
     assert (await http.get("/panelpilot_static/brak.js")).status == 404
     assert "panelpilot" in hass.data["frontend_panels"]
     assert await hass.config_entries.async_unload(entry.entry_id)
