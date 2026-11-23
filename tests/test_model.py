@@ -73,6 +73,8 @@ class Other(unittest.TestCase):
         self.assertEqual(d["gestures"]["left"], {"kind": "default"})
         self.assertEqual(d["gestures"]["right"], {"kind": "default"})
         self.assertEqual(d["saver"]["alerts"], ["binary_sensor.drzwi"])
+        s = model.clean_dashboard({"pages": [{"tiles": []}], "saver": {"icons": {"weather.dom": "sun", "zle": "x"}, "size": "XXXL"}})["saver"]
+        self.assertEqual((s["icons"], s["size"]), ({"weather.dom": "sun"}, "M"))
         self.assertTrue(model.clean_dashboard({"pages": [{"tiles": []}]})["nav"])
 
 

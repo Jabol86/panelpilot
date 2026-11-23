@@ -63,6 +63,12 @@ Fakty o NSPanel Pro 120: Android 8.1, 750×1334 przy 240 dpi. Czujniki światła
 7. Domofon: furtka, brama, rozmowa → przyciski z trybem `hold`/`tap`, szybkie „+ Furtka/+ Brama”, opis, że rozmowa wymaga go2rtc.
 8. Edytor nie w menu bocznym → opcja integracji „Pokaż edytor w menu bocznym” (domyślnie wyłączona), link w „Konfiguruj”, `configuration_url` urządzenia, powiadomienie HA przy parowaniu.
 
+### v0.1.4 i v0.1.5
+
+- Punkt 3 wyjaśniony: chodziło o układ treści kafelka, nie ucinanie. v0.1.4: układ (`layout` row/center), wielkość ikony (`iconSize`), styl włączonego kafelka (`theme.onStyle = outline`). Wzór właściciela: ciemny kafelek, cienka żółta ramka, **poświata na zewnątrz** (bez żółtego środka; poprawione w 0.1.5).
+- v0.1.5: zakładka „Panele i jasność” nie zapisuje od razu, tylko przyciskiem Zapisz (`pEdits`); przytrzymanie wygaszacza zbliżeniem najwyżej 3 min (u właściciela wygaszacz nie włączał się wcale; nie wiadomo, czy czujnik utknął na „blisko”); osobna zakładka Gesty; kafelki, które się nie mieszczą: wybór, × usuwa, „Przenieś na nową stronę”, „Wstaw w największe wolne miejsce”; wygaszacz: ikona i podpis każdej pozycji, wielkość, pogoda (ikona, temperatura, opis).
+- Edytor otwiera się na zakładce paneli, gdy jakiś panel czeka na kod.
+
 ## Instalacja przez HACS
 
 Właściciel chce instalować PanelPilot z GitHuba przez HACS. To **integracja**, nie dodatek Supervisora. HACS nie widzi prywatnych repozytoriów. Kiedy właściciel się zgodzi:

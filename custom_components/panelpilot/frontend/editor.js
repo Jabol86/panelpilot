@@ -13,7 +13,7 @@ class PanelPilotEditor extends HTMLElement {
     super();
     this.attachShadow({ mode: 'open' });
     this.tab = 'tiles'; this.fmt = 'portrait'; this.page = 0; this.sel = null;
-    this.undo = []; this.redo = []; this.dirty = false; this.bellDirty = false;
+    this.undo = []; this.redo = []; this.dirty = false; this.bellDirty = false; this.pEdits = {};
   }
 
   set hass(hass) {
@@ -32,11 +32,13 @@ class PanelPilotEditor extends HTMLElement {
     }, 500);
   }
   get hass() { return this._hass; }
+  /** Coś czeka na przycisk Zapisz: pulpit, domofon albo ustawienia paneli. */
+  get unsaved() { return this.dirty || this.bellDirty || Object.keys(this.pEdits).length > 0; }
   set panel(p) { this._panel = p; }
   set narrow(v) { this._narrow = v; }
 
   connectedCallback() {
-    this._leave = e => { if (this.dirty || this.bellDirty) { e.preventDefault(); e.returnValue = ''; } };
+    this._leave = e => { if (this.unsaved) { e.preventDefault(); e.returnValue = ''; } };
     this._keys = e => this.onKey(e);
     this._size = () => this.fit();
     addEventListener('beforeunload', this._leave);
@@ -119,6 +121,11 @@ class PanelPilotEditor extends HTMLElement {
         if (JSON.stringify(this.doc) === before) this.dirty = false;
       }
       if (this.bellDirty) { await this.hass.callWS({ type: 'panelpilot/admin/doorbell_save', data: this.bell }); this.bellDirty = false; }
+      for (const [id, data] of Object.entries(this.pEdits)) {
+        if (this.data.panels[id]) await this.hass.callWS({ type: 'panelpilot/admin/panel_save', device_id: id, data });
+        delete this.pEdits[id];
+      }
+      if (this.tab === 'panels') this.renderBody();
       this.header(); this.toast('Zapisano. Panele już mają nową wersję.');
     } catch (e) {
       if (e.code === 'conflict') this.dialog('Ten pulpit zmieniono w innym oknie', h('p', {}, 'Możesz zapisać swoją wersję na wierzch albo wczytać tamtą i stracić swoje zmiany.'),
@@ -165,7 +172,7 @@ class PanelPilotEditor extends HTMLElement {
 
   header() {
     if (!this._ready) return;
-    const dashes = Object.entries(this.data.dashboards), waiting = this.data.pairing.length, mode = this.doc.mode || 'tiles', dirty = this.dirty || this.bellDirty;
+    const dashes = Object.entries(this.data.dashboards), waiting = this.data.pairing.length, mode = this.doc.mode || 'tiles', dirty = this.unsaved;
     this.headEl.replaceChildren(
       h('button', { class: 'icon', 'aria-label': 'Menu Home Assistant', onclick: () => this.dispatchEvent(new CustomEvent('hass-toggle-menu', { bubbles: true, composed: true })) }, '☰'),
       select(this.dashId, dashes.map(([id, d]) => [id, id === this.dashId ? this.doc.name : d.name]), id => this.guard(() => this.openDash(id), () => this.header())),
@@ -177,7 +184,7 @@ class PanelPilotEditor extends HTMLElement {
       h('button', { class: 'primary', disabled: !dirty, onclick: () => this.save() }, dirty ? 'Zapisz' : 'Zapisane'));
     const tiles = mode === 'tiles';
     if (!tiles && this.tab === 'tiles') this.tab = 'code';
-    const tabs = [tiles && ['tiles', 'Kafelki'], ['look', 'Wygląd'], ['saver', 'Wygaszacz'], ['bell', 'Domofon'], ['code', tiles ? 'CSS i JS' : 'Kod'], ['json', 'Eksport'], ['panels', 'Panele i jasność']].filter(Boolean);
+    const tabs = [tiles && ['tiles', 'Kafelki'], ['look', 'Wygląd'], ['gestures', 'Gesty'], ['saver', 'Wygaszacz'], ['bell', 'Domofon'], ['code', tiles ? 'CSS i JS' : 'Kod'], ['json', 'Eksport'], ['panels', 'Panele i jasność']].filter(Boolean);
     this.tabsEl.replaceChildren(...tabs.map(([id, name]) => h('button', { role: 'tab', 'aria-selected': String(this.tab === id), onclick: () => { this.tab = id; this.sel = null; this.header(); this.renderBody(); this.refresh(); } }, name, id === 'panels' && waiting ? h('span', { class: 'badge' }, String(waiting)) : null)));
   }
 
@@ -251,8 +258,20 @@ class PanelPilotEditor extends HTMLElement {
     const lines = h('div', { class: 'gridlines', style: this.css({ x: 0, y: 0, w: f.cols, h: f.rows }, g) + ';grid-template:repeat(' + f.rows + ',1fr)/repeat(' + f.cols + ',1fr);gap:' + GAP * this.k + 'px' }, Array.from({ length: f.cols * f.rows }, () => h('i')));
     this.over.replaceChildren(lines, ...placed.map(p => h('div', { class: 'box' + (p.tile.id === this.sel ? ' sel' : ''), style: this.css(p, g), 'data-id': p.tile.id }, h('div', { class: 'hd' }))));
     if (!this.tiles.length) this.over.append(h('div', { class: 'empty' }, h('b', {}, 'Pusta strona'), h('span', {}, 'Przeciągnij kafelek z lewej albo'), h('button', { class: 'primary', onclick: () => this.wizard(), onpointerdown: e => e.stopPropagation() }, 'Wybierz, co pokazać')));
-    const hidden = this.tiles.filter(t => t.l[this.fmt] === false), chip = t => h('button', { onclick: () => { this.sel = t.id; this.renderSides(); this.drawOver(); } }, this.label(t));
-    this.tray.replaceChildren(...(overflow.length ? [h('span', { class: 'dim' }, 'Nie mieszczą się tutaj (na panelu trafią na dodatkową stronę):'), ...overflow.map(chip)] : []), ...(hidden.length ? [h('span', { class: 'dim' }, 'Ukryte w tym formacie:'), ...hidden.map(chip)] : []));
+    const hidden = this.tiles.filter(t => t.l[this.fmt] === false);
+    // Kliknięcie nazwy otwiera ustawienia kafelka (tam jest rozmiar i „Usuń”), × usuwa od razu.
+    const chip = t => h('span', { class: 'chip' + (t.id === this.sel ? ' sel' : '') },
+      h('button', { type: 'button', title: 'Ustawienia kafelka', onclick: () => { this.sel = t.id; this.renderSides(); this.drawOver(); } }, this.label(t)),
+      h('button', { type: 'button', 'aria-label': 'Usuń ' + this.label(t), title: 'Usuń kafelek', onclick: () => this.remove(t.id) }, '×'));
+    const toNewPage = () => this.commit(() => {
+      const moving = overflow.map(t => t.tile || t);
+      this.doc.pages[this.page].tiles = this.tiles.filter(t => !moving.includes(t));
+      moving.forEach(t => { t.l = {}; });
+      this.doc.pages.splice(this.page + 1, 0, { name: this.doc.pages[this.page].name + ' 2', tiles: moving });
+    });
+    this.tray.replaceChildren(
+      ...(overflow.length ? [h('span', { class: 'dim' }, 'Nie mieszczą się na tej stronie (na panelu trafią na dodatkową stronę):'), ...overflow.map(chip), h('button', { type: 'button', onclick: toNewPage }, 'Przenieś na nową stronę')] : []),
+      ...(hidden.length ? [h('span', { class: 'dim' }, 'Ukryte w tym formacie:'), ...hidden.map(chip)] : []));
   }
 
   ename(id) { const s = this.hass.states[id]; return s && s.attributes.friendly_name || id; }
@@ -347,7 +366,7 @@ class PanelPilotEditor extends HTMLElement {
   onKey(e) {
     if (!this._ready) return;
     const inField = e.composedPath().some(n => n.matches && n.matches('input,textarea,select')), ctrl = e.ctrlKey || e.metaKey, k = e.key.toLowerCase();
-    if (ctrl && k === 's') { e.preventDefault(); if (this.dirty || this.bellDirty) this.save(); return; }
+    if (ctrl && k === 's') { e.preventDefault(); if (this.unsaved) this.save(); return; }
     if (k === 'escape') { const m = this.shadowRoot.querySelector('.modal'); if (m) m.remove(); return; }
     if (inField || this.shadowRoot.querySelector('.modal,.pop')) return;
     if (ctrl && k === 'z') { e.preventDefault(); return e.shiftKey ? this.back(this.redo, this.undo) : this.back(this.undo, this.redo); }
@@ -388,7 +407,7 @@ class PanelPilotEditor extends HTMLElement {
 
   renderSides() {
     if (!this.win || !this._ready) return;
-    const tabs = { look: () => this.lookTab(), saver: () => this.saverTab(), bell: () => this.bellTab(), code: () => this.codeTab() };
+    const tabs = { look: () => this.lookTab(), gestures: () => this.gestureTab(), saver: () => this.saverTab(), bell: () => this.bellTab(), code: () => this.codeTab() };
     let kids = [];
     if (this.tab === 'tiles') { this.palette(); const t = this.sel && this.tile(this.sel); kids = t ? this.inspector(t) : this.pageSettings(); }
     else if (tabs[this.tab]) kids = tabs[this.tab]();
@@ -457,11 +476,26 @@ class PanelPilotEditor extends HTMLElement {
       ...(tap.kind === 'service' ? this.serviceFields(tap, setTap) : []),
       w.confirmable || tap.kind === 'service' || tap.kind === 'toggle' ? check('Pytaj o potwierdzenie', t.confirm, v => set('confirm', v)) : null,
       h('h3', {}, 'Położenie: ' + f.name.toLowerCase()),
+      !p && t.l[this.fmt] !== false ? h('div', { class: 'st' }, h('p', { class: 'dim', style: 'margin:0 0 6px' }, 'Ten kafelek nie mieści się na tej stronie.'),
+        h('button', { onclick: () => this.fitIn(t) }, 'Wstaw w największe wolne miejsce')) : null,
       h('div', { class: 'row4' }, num('Kol.', 0), num('Wiersz', 1), num('Szer.', 2), num('Wys.', 3)),
       check('Pokazuj w tym formacie', t.l[this.fmt] !== false, v => this.commit(() => { if (v) delete t.l[this.fmt]; else { this.pin(); t.l[this.fmt] = false; } })),
       this.doc.pages.length > 1 ? field('Na stronie', select(String(this.page), this.doc.pages.map((x, i) => [String(i), x.name]), v => this.commit(() => { this.doc.pages[this.page].tiles = this.tiles.filter(x => x !== t); t.l = {}; this.page = +v; this.tiles.push(t); }))) : null,
       h('div', { class: 'btns' }, h('button', { class: 'danger', onclick: () => this.remove(t.id) }, 'Usuń'), h('button', { onclick: () => this.duplicate(t.id) }, 'Powiel')),
     ];
+  }
+
+  /** Zmniejsza kafelek, aż zmieści się w wolnym miejscu strony (największe pole wygrywa). */
+  fitIn(t) {
+    const f = this.DP.FORMATS[this.fmt], taken = this.layout().placed.filter(p => p.tile !== t);
+    let best = null;
+    for (let w = f.cols; w >= 1; w--) for (let hh = f.rows; hh >= 1; hh--) {
+      if (best && w * hh <= best.w * best.h) continue;
+      const s = this.DP.freeSpot(w, hh, f, taken);
+      if (s) best = s;
+    }
+    if (!best) return this.toast('Na tej stronie nie ma wolnego miejsca. Użyj „Przenieś na nową stronę”.', true);
+    this.commit(() => { this.pin(); t.l[this.fmt] = [best.x, best.y, best.w, best.h]; });
   }
 
   color(label, value, fn) {
@@ -592,9 +626,13 @@ class PanelPilotEditor extends HTMLElement {
       field('Tło ikon', select(t.icons || '', [['', 'Bez tła'], ['circle', 'Kolorowe kółko']], v => setFull('icons', v))),
       t.icons === 'circle' ? this.color('Kolor kółka (puste = z akcentu)', t.icbg, v => set('icbg', v)) : null,
       h('p', { class: 'dim' }, 'Układ, wielkość ikony i kolor kółka pojedynczego kafelka ustawisz po kliknięciu kafelka.'),
-      h('h3', {}, 'Nawigacja'),
+      h('p', { class: 'dim' }, 'Pasek stron i przesunięcia palcem ustawisz w zakładce Gesty.')].filter(Boolean);
+  }
+
+  gestureTab() {
+    return [h('h3', {}, 'Pasek stron'),
       check('Pasek stron na dole ekranu', this.doc.nav !== false, v => this.commit(() => { this.doc.nav = v; })),
-      this.doc.nav === false ? h('p', { class: 'dim' }, 'Bez paska ustawienia panelu otwiera mały przycisk w prawym dolnym rogu albo gest poniżej.') : null,
+      this.doc.nav === false ? h('p', { class: 'dim' }, 'Bez paska ustawienia panelu otwiera mały przycisk w prawym dolnym rogu albo gest.') : null,
       ...this.gestureFields()].filter(Boolean);
   }
 
@@ -616,8 +654,15 @@ class PanelPilotEditor extends HTMLElement {
     const s = this.doc.saver = Object.assign({ seconds: 60, style: 'zegar', entities: [], names: {} }, this.doc.saver), set = (k, v, full) => this.commit(() => { this.doc.saver[k] = v; }, full ? {} : { key: 'sv' + k, quiet: true });
     return [h('h3', {}, 'Wygaszacz'), field('Włącz po (sekundy, 0 = nigdy)', text(s.seconds, v => set('seconds', Number(v) || 0), { type: 'number', min: 0 })),
       field('Wygląd', select(s.style, [['zegar', 'Zegar'], ['czujniki', 'Duże czujniki'], ['czarny', 'Czarny ekran']], v => set('style', v))),
-      group('Co pokazać pod zegarem', this.entityList(s.entities || [], ['sensor', 'binary_sensor', 'weather', 'input_number'], v => set('entities', v.slice(0, 8), true))),
-      ...(s.entities || []).map(id => field('Podpis: ' + this.ename(id), text((s.names || {})[id], v => this.commit(() => { const n = Object.assign({}, this.doc.saver.names); if (v) n[id] = v; else delete n[id]; this.doc.saver.names = n; }, { key: 'svn' + id, quiet: true })))),
+      group('Co pokazać pod zegarem (czujniki, pogoda…)', this.entityList(s.entities || [], ['sensor', 'binary_sensor', 'weather', 'input_number'], v => set('entities', v.slice(0, 8), true))),
+      h('p', { class: 'dim', style: 'margin:-4px 0 8px' }, 'Pogoda (weather.*) pokazuje ikonę warunków, temperaturę i opis.'),
+      field('Wielkość pozycji pod zegarem', select(s.size || 'M', [['S', 'Mała'], ['M', 'Zwykła'], ['L', 'Duża'], ['XL', 'Bardzo duża']], v => set('size', v, true))),
+      ...(s.entities || []).map(id => h('div', { class: 'st' },
+        h('b', {}, this.ename(id)),
+        field('Podpis (pusty = nazwa z HA)', text((s.names || {})[id], v => this.commit(() => { const n = Object.assign({}, this.doc.saver.names); if (v) n[id] = v; else delete n[id]; this.doc.saver.names = n; }, { key: 'svn' + id, quiet: true }))),
+        field('Ikona', h('div', { style: 'display:flex;gap:6px;align-items:center' },
+          this.iconPicker((s.icons || {})[id] || '', v => this.commit(() => { this.doc.saver.icons = Object.assign({}, this.doc.saver.icons, { [id]: v }); })),
+          (s.icons || {})[id] ? h('button', { class: 'icon', 'aria-label': 'Bez ikony', onclick: () => this.commit(() => { const i = Object.assign({}, this.doc.saver.icons); delete i[id]; this.doc.saver.icons = i; }) }, '×') : null)))),
       h('h3', {}, 'Ikony powiadomień'),
       h('p', { class: 'dim', style: 'margin-bottom:8px' }, 'Ikona pojawia się nad zegarem tylko wtedy, gdy coś wymaga uwagi: drzwi otwarte, alarm uzbrojony, czujnik zgłasza problem, licznik większy od zera.'),
       this.entityList(s.alerts || [], ['binary_sensor', 'cover', 'lock', 'alarm_control_panel', 'input_boolean', 'switch', 'sensor', 'group'], v => set('alerts', v.slice(0, 12), true)),
@@ -695,15 +740,24 @@ class PanelPilotEditor extends HTMLElement {
       return h('div', { class: 'card' }, h('h2', {}, 'Nowy panel czeka: ' + p.code.slice(0, 3) + ' ' + p.code.slice(3)), h('p', { class: 'dim' }, p.model + ' · ' + p.remote + '. Zatwierdź tylko wtedy, gdy ten sam kod widzisz na ekranie panelu.'), field('Nazwa panelu', text(name, v => { name = v; })),
         h('div', { class: 'btns' }, h('button', { onclick: () => call({ type: 'panelpilot/admin/pair_reject', code: p.code }) }, 'Odrzuć'), h('button', { class: 'primary', onclick: () => call({ type: 'panelpilot/admin/pair_approve', code: p.code, name: name.trim() || 'Panel' }, 'Panel dodany') }, 'Zatwierdź')));
     });
-    const panels = Object.entries(this.data.panels).map(([id, p]) => {
-      const save = d => call({ type: 'panelpilot/admin/panel_save', device_id: id, data: d }, 'Zapisano'), s = p.settings, setS = (k, v) => save({ settings: { [k]: v } });
-      const num = (l, k) => field(l, h('input', { type: 'number', value: s[k], onchange: e => setS(k, Number(e.target.value)) }));
+    const panels = Object.entries(this.data.panels).map(([id, saved]) => {
+      // Zmiany czekają na przycisk Zapisz u góry, jak w reszcie edytora.
+      const edit = this.pEdits[id] || {}, p = Object.assign({}, saved, edit), s = Object.assign({}, saved.settings, edit.settings);
+      const save = d => {
+        const e = this.pEdits[id] = this.pEdits[id] || {};
+        if (d.settings) e.settings = Object.assign({}, e.settings, d.settings); else Object.assign(e, d);
+        this.header();
+      };
+      const setS = (k, v) => save({ settings: { [k]: v } });
+      const num = (l, k) => field(l, h('input', { type: 'number', value: s[k], oninput: e => { if (e.target.value !== '') setS(k, Number(e.target.value)); } }));
       const cmd = (c, x) => call(Object.assign({ type: 'panelpilot/admin/panel_command', device_id: id, command: c }, x), 'Wysłano');
       return h('div', { class: 'card' }, h('div', { class: 'top' }, h('i', { class: 'dot' + (p.connected ? ' on' : '') }), h('h2', {}, p.name), h('span', { class: 'dim' }, [p.model, p.size, p.app, p.connected ? 'połączony' : 'rozłączony'].filter(Boolean).join(' · '))),
-        h('div', { class: 'cols' }, field('Nazwa', h('input', { value: p.name, onchange: e => save({ name: e.target.value }) })), field('Pulpit', select(p.dashboard, Object.entries(this.data.dashboards).map(([i, d]) => [i, d.name]), v => save({ dashboard: v }))),
+        this.pEdits[id] ? h('p', { class: 'dim', style: 'color:var(--warning-color,#c77700)' }, 'Niezapisane zmiany. Zapiszesz je przyciskiem „Zapisz” u góry.') : null,
+        h('div', { class: 'cols' }, field('Nazwa', h('input', { value: p.name, oninput: e => { if (e.target.value.trim()) save({ name: e.target.value.trim() }); } })), field('Pulpit', select(p.dashboard, Object.entries(this.data.dashboards).map(([i, d]) => [i, d.name]), v => save({ dashboard: v }))),
           field('Ekran', select(p.shape, [['auto', 'Wykryj'], ['square', 'Kwadrat (86)'], ['rect', 'Prostokąt (120)']], v => save({ shape: v }))), field('Obrót', select(String(s.rotation), [['0', '0°'], ['90', '90°'], ['180', '180°'], ['270', '270°']], v => setS('rotation', Number(v)))),
           num('Jasność w dzień (%)', 'dayBrightness'), num('Jasność w nocy (%)', 'nightBrightness'), num('Ciemno poniżej (lx)', 'darkLux'), num('Noc od godziny', 'nightFrom'), num('Noc do godziny', 'nightTo')),
-        check('Budź, gdy ktoś podejdzie', s.wakeOnProximity, v => setS('wakeOnProximity', v)), check('Nie włączaj wygaszacza, gdy ktoś stoi przy panelu', s.proximityHold, v => setS('proximityHold', v)),
+        check('Budź, gdy ktoś podejdzie', s.wakeOnProximity, v => setS('wakeOnProximity', v)), check('Nie włączaj wygaszacza, gdy ktoś stoi przy panelu (najwyżej 3 minuty)', s.proximityHold, v => setS('proximityHold', v)),
+        h('p', { class: 'dim' }, 'Zasięg czujnika zbliżenia ustala producent panelu; zwykle to kilkanaście–kilkadziesiąt centymetrów. Stan widać w encji „Zbliżenie” tego panelu w HA.'),
         h('div', { class: 'btns' }, h('button', { class: 'danger', onclick: () => this.dialog('Usunąć panel „' + p.name + '”?', h('p', {}, 'Panel straci dostęp i trzeba będzie sparować go od nowa.'), ['Anuluj'], ['Usuń', () => call({ type: 'panelpilot/admin/panel_delete', device_id: id })]) }, 'Usuń'), h('button', { disabled: !p.connected, onclick: () => cmd('message', { title: 'Test', message: 'Wiadomość z Home Assistant' }) }, 'Wyślij test'), h('button', { disabled: !p.connected, onclick: () => cmd('doorbell') }, 'Pokaż domofon'), h('button', { disabled: !p.connected, onclick: () => cmd('reload') }, 'Odśwież')));
     });
     return [h('h2', {}, 'Panele'), ...pairing, ...panels, h('div', { class: 'card' }, h('h2', {}, 'Dodaj panel'), h('ol', { style: 'margin:0;padding-left:20px;display:grid;gap:6px' }, h('li', {}, 'Zainstaluj aplikację PanelPilot na NSPanelu i uruchom ją.'), h('li', {}, 'Wybierz na ekranie Home Assistant znaleziony w sieci oraz kształt ekranu.'), h('li', {}, 'Panel pokaże 6-cyfrowy kod. Zatwierdź go tutaj; hasło nie jest potrzebne.')), h('p', { class: 'dim' }, 'Panel dostaje własne konto bez uprawnień administratora, działające tylko w sieci lokalnej. Bez NSPanela możesz otworzyć panel w przeglądarce: ', h('a', { href: new URL('index.html', BASE).href, target: '_blank', rel: 'noopener' }, 'podgląd panelu'), '.'))];

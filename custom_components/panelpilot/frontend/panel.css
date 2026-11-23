@@ -40,7 +40,8 @@ small { font-size: .6em; color: var(--ink2); font-weight: 400; }
 .tile.on > .ic, .tile.on .st { color: var(--on); }
 .tile.warn { background: color-mix(in srgb, var(--warn) 22%, var(--tile)); }
 .tile.warn > .ic, .tile.warn .val { color: var(--warn); }
-#root[data-on=outline] .tile.on { background: color-mix(in srgb, var(--on) 7%, var(--tile)); box-shadow: inset 0 0 0 2px var(--on), 0 0 16px color-mix(in srgb, var(--on) 30%, transparent); }
+/* Świecąca ramka: środek zostaje ciemny, poświata wychodzi na zewnątrz kafelka. */
+#root[data-on=outline] .tile.on { background: color-mix(in srgb, var(--tile) var(--alpha), transparent); box-shadow: 0 0 0 1.5px var(--on), 0 0 14px 2px color-mix(in srgb, var(--on) 45%, transparent); }
 #root[data-on=outline] .tile.on .nm, #root[data-on=outline] .tile.on .st { color: var(--ink); }
 #root[data-icons=circle] .tile > .ic, .tile.icbg > .ic { box-sizing: content-box; padding: calc(var(--ic, 30px) * .28); border-radius: 50%; color: var(--ink); background: var(--icbg, color-mix(in srgb, var(--accent) 22%, transparent)); }
 #root[data-icons=circle] .tile.on > .ic { color: var(--on); background: color-mix(in srgb, var(--on) 28%, transparent); }
@@ -146,11 +147,16 @@ input[type=range] { accent-color: var(--on); min-width: 0; height: 40px; width: 
 .land .sv-time { font-size: 190px; }
 .sv-date { margin-top: 10px; font-size: 22px; font-weight: 300; }
 .sv-items { display: flex; flex-wrap: wrap; justify-content: center; gap: 16px 34px; margin-top: 30px; }
-.sv-items div { display: grid; gap: 2px; }
-.sv-items b { font-size: 26px; font-weight: 400; }
-.sv-items span { font-size: 14px; color: #87939a; }
+#saver { --svs: 1; } #saver.sz-S { --svs: .75; } #saver.sz-L { --svs: 1.35; } #saver.sz-XL { --svs: 1.8; }
+.sv-items div { display: grid; grid-template-columns: auto auto; justify-content: center; align-items: center; column-gap: 8px; row-gap: 2px; }
+.sv-items div .ic { width: calc(28px * var(--svs)); height: calc(28px * var(--svs)); color: #87939a; }
+.sv-items div span { grid-column: 1 / -1; }
+.sv-items div:not(:has(.ic)) { grid-template-columns: auto; }
+.sv-items b { font-size: calc(26px * var(--svs)); font-weight: 400; }
+.sv-items span { font-size: calc(14px * var(--svs)); color: #87939a; }
 .style-czujniki .sv-time { font-size: 72px; }
-.style-czujniki .sv-items b { font-size: 54px; font-weight: 300; }
+.style-czujniki .sv-items b { font-size: calc(54px * var(--svs)); font-weight: 300; }
+.style-czujniki .sv-items div .ic { width: calc(46px * var(--svs)); height: calc(46px * var(--svs)); }
 .fmt-portrait .style-czujniki .sv-items { flex-direction: column; gap: 26px; }
 .fmt-square .style-czujniki .sv-items b { font-size: 40px; }
 .dark .sv { color: #6a6f73; } .dark .sv-items span { color: #555b5f; }

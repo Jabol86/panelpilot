@@ -20,7 +20,8 @@
   const sensors = { lux: null, proximity: null };
   let ha, dash = { pages: [], saver: {}, theme: {} }, bell = {}, cfg = {}, shape = info.shape || 'auto';
   let fmt = 'portrait', pages = [], page = 0, sleeping = false, screenOff = false, lastTouch = Date.now(), dark = false, manual = null;
-  let cleanup = [], jsRun = '';
+  let cleanup = [], jsRun = '', nearSince = 0;
+  const HOLD_MAX = 3 * 60 * 1000;
 
   const Panel = window.Panel = {
     esc, icon, CONDITIONS, sensors, widgets, info, hooks: [], busy: false,
@@ -63,6 +64,7 @@
       const before = sensors[name];
       sensors[name] = value;
       if (name === 'lux') updateDark();
+      if (name === 'proximity') nearSince = value ? (before ? nearSince || Date.now() : Date.now()) : 0;
       if (name === 'proximity' && cfg.wakeOnProximity) {
         if (value && !before) wake();
         lastTouch = Date.now();
@@ -395,7 +397,9 @@
     if (ha.preview) return;
     const s = dash.saver || SAVER;
     // Dopóki ktoś stoi przy panelu, wygaszacz nie wchodzi.
-    if (cfg.wakeOnProximity && cfg.proximityHold && sensors.proximity && !sleeping) lastTouch = Math.max(lastTouch, Date.now() - Math.max(0, s.seconds - 10) * 1000);
+    // Najwyżej 3 minuty: czujnik, który utknął na „blisko”, nie może blokować wygaszacza na zawsze.
+    const held = sensors.proximity && nearSince && Date.now() - nearSince < HOLD_MAX;
+    if (cfg.wakeOnProximity && cfg.proximityHold && held && !sleeping) lastTouch = Math.max(lastTouch, Date.now() - Math.max(0, s.seconds - 10) * 1000);
     if (!sleeping && !Panel.busy && $('sheet').hidden && s.seconds > 0 && Date.now() - lastTouch > s.seconds * 1000) sleep();
     if (sleeping) renderSaver();
     updateDark();
@@ -428,15 +432,23 @@
 
   function renderSaver(force) {
     const s = dash.saver, el = $('saver'), now = new Date(), black = screenOff || s.style === 'czarny';
-    el.className = black ? 'style-czarny' : 'style-' + String(s.style).replace(/\W/g, '');
+    el.className = black ? 'style-czarny' : 'style-' + String(s.style).replace(/\W/g, '') + ' sz-' + String(s.size || 'M').replace(/\W/g, '');
     if (black) { el.innerHTML = ''; renderSaver.last = ''; return; }
     const m = now.getHours() * 60 + now.getMinutes();
     // Co minutę lekkie przesunięcie treści, przeciw wypalaniu.
     const x = [0, 10, 18, 10, 0, -10, -18, -10][m % 8], y = [0, 14, 0, -14, 20, 0, -20][m % 7];
     const all = [].concat(...dash.pages.map(p => p.tiles));
     const items = (s.entities || []).map(id => {
-      const t = all.find(k => k.entity === id);
-      return '<div><b>' + Panel.value(id) + '</b><span>' + esc((s.names || {})[id] || t && t.name || Panel.name(id)) + '</span></div>';
+      const t = all.find(k => k.entity === id), st = Panel.state(id), names = s.names || {}, icons = s.icons || {};
+      let ic = icons[id] || t && t.icon || '', val = Panel.value(id), label = names[id] || t && t.name || Panel.name(id);
+      // Pogoda: ikona warunków, temperatura i opis zamiast surowego „sunny”.
+      if (/^weather\./.test(id) && st) {
+        const c = CONDITIONS[st.state] || ['cloud', st.state], a = st.attributes;
+        ic = icons[id] || c[0];
+        val = a.temperature == null ? '–' : esc(Math.round(a.temperature)) + '<small> ' + esc(a.temperature_unit || '°C') + '</small>';
+        label = names[id] || c[1];
+      }
+      return '<div>' + (ic ? icon(ic) : '') + '<b>' + val + '</b><span>' + esc(label) + '</span></div>';
     }).join('');
     const html = '<div class="sv" style="transform:translate(' + x + 'px,' + y + 'px)">' + alerts(all) + '<div class="sv-time">' + now.toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit' })
       + '</div><div class="sv-date">' + now.toLocaleDateString('pl-PL', { weekday: 'long', day: 'numeric', month: 'long' }) + '</div><div class="sv-items">' + items + '</div></div>';

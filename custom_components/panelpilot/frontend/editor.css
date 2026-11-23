@@ -80,6 +80,8 @@ p { margin: 0; } .dim { color: var(--e-ink2); }
 .chip { display: inline-flex; align-items: center; gap: 6px; min-height: 30px; padding: 0 4px 0 10px; border-radius: 15px; background: var(--e-bg); border: 1px solid var(--e-line); max-width: 100%; }
 .chip span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .chip button { min-height: 24px; width: 24px; padding: 0; border: 0; border-radius: 50%; background: none; }
+.tray .chip button:first-child { width: auto; padding: 0 4px; border-radius: 12px; font-weight: 500; }
+.chip.sel { border-color: var(--e-acc); box-shadow: 0 0 0 1px var(--e-acc); }
 .icons { display: grid; grid-template-columns: repeat(auto-fill, minmax(44px, 1fr)); gap: 4px; overflow-y: auto; }
 .icons button { height: 44px; padding: 0; display: grid; place-items: center; }
 .card { background: var(--e-card); border: 1px solid var(--e-line); border-radius: 12px; padding: 16px; display: grid; gap: 12px; }

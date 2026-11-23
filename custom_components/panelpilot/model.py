@@ -156,6 +156,8 @@ def clean_dashboard(data: Any) -> dict[str, Any]:
             "style": _text(saver.get("style"), 20) or "zegar",
             "entities": _entities(saver.get("entities"), 8),
             "names": {k: _text(v, 40) for k, v in (saver.get("names") or {}).items() if isinstance(k, str)},
+            "icons": {k: _text(v, 60) for k, v in (saver.get("icons") or {}).items() if isinstance(k, str) and ENTITY_RE.match(k)},
+            "size": saver.get("size") if saver.get("size") in ("S", "M", "L", "XL") else "M",
             # Ikony powiadomień: pokazują się tylko, gdy encja jest „aktywna” (otwarte, włączone, problem…).
             "alerts": _entities(saver.get("alerts"), 12),
         },
