@@ -159,7 +159,7 @@
       const i = pages.findIndex(p => p.name === c.page);
       if (i >= 0) { wake(); Panel.openPage(i); }
     } else if (c.command === 'reload') native && native.reload ? native.reload() : location.reload();
-    else if (c.command === 'doorbell') Panel.doorbell.open();
+    else if (c.command === 'doorbell') Panel.doorbell.open(true);
     else if (c.command === 'message') { wake(); message(c); }
   }
 
@@ -205,18 +205,51 @@
     r.style.width = turn ? w + 'px' : '100%'; r.style.height = turn ? h + 'px' : '100%';
     r.style.transform = 'translate(-50%,-50%) rotate(' + turn + 'deg)';
     r._turn = turn;
-    // Format wybrany w HA dla tego panelu (np. własny dla innego tabletu) albo wykryty z ekranu.
-    if (!ha.preview) fmt = DP.FORMATS[cfg.format] ? cfg.format : DP.formatFor(shape, w, h);
+    // Format wybrany w HA dla tego panelu, potem format pulpitu, a na końcu wykryty z ekranu.
+    if (!ha.preview) fmt = DP.FORMATS[cfg.format] ? cfg.format : DP.FORMATS[dash.format] ? dash.format : DP.formatFor(shape, w, h);
     if (!DP.FORMATS[fmt]) fmt = DP.formatFor(shape, w, h);
     r.className = 'fmt-' + fmt + (w > h * 1.18 ? ' land' : '');
+    r.classList.add('nav-' + navStyle());
     updateDark(true);
   }
 
+  /** Pasek stron: kropki (domyślnie), nazwy stron albo brak; dawne true/false też działają. */
+  const navStyle = () => dash.nav === false ? 'none' : ['dots', 'tabs', 'none'].includes(dash.nav) ? dash.nav : 'dots';
+
   const ENTITY_FIELDS = ['entity', 'entity2', 'state_entity', 'pv', 'home', 'grid', 'battery', 'output'];
   const entitiesOf = t => {
-    const def = widgets[t.type];
-    return ENTITY_FIELDS.map(f => t[f]).concat(Array.isArray(t.entities) ? t.entities : [], def && def.entities ? def.entities(t) : []).filter(DP.isEntity);
+    const def = widgets[t.type], rules = Array.isArray(t.rules) ? t.rules.map(r => r && r.entity) : [];
+    return ENTITY_FIELDS.map(f => t[f]).concat(Array.isArray(t.entities) ? t.entities : [], def && def.entities ? def.entities(t) : [], rules).filter(DP.isEntity);
   };
+
+  /* ---------- warunki i animacje kafelka ---------- */
+  const ANIMS = ['pulse', 'spin', 'blink', 'bounce', 'glow', 'shake'];
+  /** Czy warunek jest spełniony; encja pusta = encja kafelka. */
+  function ruleHit(r, t) {
+    const id = DP.isEntity(r.entity) ? r.entity : t.entity, s = Panel.state(id);
+    if (!s) return false;
+    const v = String(r.value == null ? '' : r.value).trim(), n = parseFloat(s.state);
+    switch (r.op) {
+      case 'on': return Panel.isOn(id) || ['detected', 'problem', 'triggered'].includes(s.state);
+      case 'off': return Panel.ok(id) && !Panel.isOn(id);
+      case 'eq': return s.state === v;
+      case 'ne': return s.state !== v;
+      case 'gt': return !isNaN(n) && n > parseFloat(v);
+      case 'lt': return !isNaN(n) && n < parseFloat(v);
+      default: return false;
+    }
+  }
+  Panel.ruleOf = t => (Array.isArray(t.rules) ? t.rules : []).find(r => r && ruleHit(r, t)) || null;
+
+  /** Kolory z kafelka, a na wierzchu z pierwszego spełnionego warunku. */
+  function styleTile(el, t, rule) {
+    ['--tile', '--on', '--accent', '--icbg'].forEach(v => el.style.removeProperty(v));
+    el.classList.remove('icbg');
+    const bg = rule && DP.isColor(rule.bg) ? rule.bg : t.bg, color = rule && DP.isColor(rule.color) ? rule.color : t.color;
+    if (DP.isColor(bg)) el.style.setProperty('--tile', bg);
+    if (DP.isColor(color)) ['--accent', '--on'].forEach(v => el.style.setProperty(v, color));
+    if (DP.isColor(t.iconBg)) { el.classList.add('icbg'); el.style.setProperty('--icbg', t.iconBg); }
+  }
   Panel.entitiesOf = entitiesOf;
   Panel.goto = name => { const i = pages.findIndex(p => p.name === name); if (i >= 0) Panel.openPage(i); };
   const coded = () => dash.mode === 'code' || dash.mode === 'module';
@@ -259,8 +292,8 @@
     if (coded() && (ha.preview || ha.online || codeKey)) return renderCode();
     if (codeKey) { codeKey = ''; Panel.code.unmount(); }
     $('root').classList.remove('full');
-    $('root').classList.toggle('nonav', dash.nav === false);
-    gear(dash.nav === false);
+    $('root').classList.toggle('nonav', navStyle() === 'none');
+    gear(navStyle() === 'none');
     pages = DP.pagesFor(dash.pages, fmt, widgets);
     if (!pages.length) { renderNav(); return; }
     page = Math.max(0, Math.min(page, pages.length - 1));
@@ -273,14 +306,17 @@
       el.className = 'tile ' + (p.h === 1 ? p.w === 1 ? 'mini' : 'row' : 'stack') + (def && def.plain ? ' plain' : '') + (t.text ? ' text-' + String(t.text).replace(/\W/g, '') : '');
       el.dataset.type = t.type; el.dataset.id = t.id;
       el.style.gridArea = (p.y + 1) + '/' + (p.x + 1) + '/span ' + p.h + '/span ' + p.w;
-      if (DP.isColor(t.bg)) el.style.setProperty('--tile', t.bg);
-      if (DP.isColor(t.color)) ['--accent', '--on'].forEach(v => el.style.setProperty(v, t.color));
-      if (DP.isColor(t.iconBg)) { el.classList.add('icbg'); el.style.setProperty('--icbg', t.iconBg); }
-      // Układ treści i wielkość ikony: z kafelka, a gdy brak, z motywu pulpitu.
+      // Układ treści, wyrównanie i wielkość ikony: z kafelka, a gdy brak, z motywu pulpitu.
+      const th = dash.theme || {};
       if (def && !def.noIcon) {
-        const th = dash.theme || {}, lay = t.layout || th.layout, size = DP.ICON_SIZES[t.iconSize || th.iconSize];
+        const lay = t.layout || th.layout, size = DP.ICON_SIZES[t.iconSize || th.iconSize];
         if (lay === 'row' || lay === 'center') el.classList.add('lay-' + lay);
         if (size) el.style.setProperty('--ic', size + 'px');
+      }
+      if (!(def && def.plain)) {
+        const ah = t.align || th.align, av = t.valign || th.valign;
+        if (['left', 'center', 'right'].includes(ah)) el.dataset.ah = ah;
+        if (['top', 'center', 'bottom'].includes(av)) el.dataset.av = av;
       }
       el._tile = t;
       try { if (def && def.mount) { const stop = def.mount(el, t); if (stop) cleanup.push(stop); } } catch (e) { console.error(t.type, e); }
@@ -297,9 +333,15 @@
     const ids = entitiesOf(t);
     el.classList.toggle('missing', !!ids.length && ha.online && !ids.some(Panel.ok));
     try {
-      if (def.update) def.update(el, t); else el.innerHTML = def.html(t);
-      el.classList.toggle('on', !!(def.active && def.active(t)));
-      el.classList.toggle('warn', !!(def.warn && def.warn(t)));
+      // Spełniony warunek może podmienić ikonę, kolory, podświetlenie i animację.
+      const rule = Panel.ruleOf(t), shown = rule && rule.icon ? Object.assign({}, t, { icon: rule.icon }) : t;
+      styleTile(el, t, rule);
+      if (def.update) def.update(el, shown); else el.innerHTML = def.html(shown);
+      const on = rule && rule.lit != null ? !!rule.lit : !!(def.active && def.active(t));
+      el.classList.toggle('on', on);
+      el.classList.toggle('warn', !rule && !!(def.warn && def.warn(t)));
+      const th = dash.theme || {}, anim = rule && rule.anim ? rule.anim : on ? t.anim || th.anim : '';
+      ANIMS.forEach(a => el.classList.toggle('anim-' + a, anim === a));
     } catch (e) { console.error(t.type, e); el.innerHTML = '<div class="lbl">Błąd: ' + esc(e.message) + '</div>'; }
   }
 
@@ -311,8 +353,10 @@
   }
 
   function renderNav() {
-    $('nav').innerHTML = pages.map((p, i) => '<button data-page="' + i + '"' + (i === page ? ' aria-current="page"' : '') + '>' + esc(p.name) + '</button>').join('')
-      + '<span class="off">Brak połączenia</span><button class="act" data-act="settings" aria-label="Ustawienia">' + icon('gear') + '</button>';
+    // Kropki: sama pozycja strony, bez nazw. Przy jednej stronie nie ma czego pokazywać.
+    const dots = navStyle() === 'dots';
+    const list = dots && pages.length < 2 ? '' : pages.map((p, i) => '<button data-page="' + i + '"' + (i === page ? ' aria-current="page"' : '') + (dots ? ' class="dot" aria-label="' + esc(p.name) + '"><i></i>' : '>' + esc(p.name)) + '</button>').join('');
+    $('nav').innerHTML = '<span class="pg">' + list + '</span><span class="off">Brak połączenia</span><button class="act" data-act="settings" aria-label="Ustawienia">' + icon('gear') + '</button>';
   }
 
   /* ---------- dotyk ---------- */

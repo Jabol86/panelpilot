@@ -7,6 +7,10 @@ const BASE = new URL('.', import.meta.url);
 const GAP = 8;
 const LAYOUTS = [['column', 'Ikona nad tekstem'], ['row', 'Ikona obok tekstu'], ['center', 'Wszystko na środku']];
 const ICON_SIZES = [['S', 'Mała'], ['M', 'Zwykła'], ['L', 'Duża'], ['XL', 'Bardzo duża'], ['XXL', 'Ogromna']];
+const ALIGN_H = [['left', 'Do lewej'], ['center', 'Na środku'], ['right', 'Do prawej']];
+const ALIGN_V = [['top', 'Do góry'], ['center', 'Na środku'], ['bottom', 'Do dołu']];
+const ANIMS = [['pulse', 'Pulsowanie'], ['spin', 'Obracanie (wentylator)'], ['blink', 'Miganie'], ['bounce', 'Podskakiwanie'], ['shake', 'Kołysanie (dzwonek)'], ['glow', 'Świecenie']];
+const RULE_OPS = [['on', 'jest włączona / otwarta'], ['off', 'jest wyłączona / zamknięta'], ['eq', 'ma stan równy'], ['ne', 'ma stan inny niż'], ['gt', 'jest większa niż'], ['lt', 'jest mniejsza niż']];
 
 class PanelPilotEditor extends HTMLElement {
   constructor() {
@@ -99,7 +103,7 @@ class PanelPilotEditor extends HTMLElement {
   }
 
   /** Dodanie albo zmiana własnego formatu: rozmiar w pikselach CSS i siatka kafelków. */
-  formatDialog(id) {
+  formatDialog(id, done) {
     const all = Object.assign({}, this.data.formats || {}), size = this.panelSize();
     const f = Object.assign({ name: 'Tablet', w: 1280, h: 800, cols: 10, rows: 6 }, id ? all[id] : {});
     const num = (label, key, hint) => field(label, text(f[key], v => { f[key] = Number(v); }, { type: 'number', min: 1, placeholder: hint || '' }));
@@ -110,10 +114,13 @@ class PanelPilotEditor extends HTMLElement {
       h('p', { class: 'dim' }, 'Rozmiar w pikselach CSS, czyli rozdzielczość podzielona przez skalę ekranu (np. 1920×1200 przy skali 1,5 to 1280×800). Panel pokazuje swój rozmiar w zakładce „Panele i jasność”. Rozmiar służy do podglądu; na tablecie kafelki wypełnią cały ekran według siatki.'),
       size ? h('p', { class: 'dim' }, 'Podpowiedź z podłączonego panelu: ' + size[0] + '×' + size[1] + '.') : null,
       h('p', { class: 'dim' }, 'Żeby panel używał tego formatu, wybierz go w zakładce „Panele i jasność” → Format ekranu.')];
-    const save = async list => {
+    const save = async (list, fid) => {
       try {
         await this.hass.callWS({ type: 'panelpilot/admin/formats_save', data: list });
-        this.data.formats = list; this.syncFormats(); this.bar(); this.renderSides(); this.fit(); this.refresh();
+        this.data.formats = list; this.syncFormats();
+        if (fid && done) done(fid);
+        if (this.doc.format && !this.DP.FORMATS[this.doc.format]) this.commit(() => { this.doc.format = ''; });
+        this.header(); this.bar(); this.renderSides(); this.fit(); this.refresh();
         this.toast('Formaty zapisane');
       } catch (e) { this.toast(e.message || e.code, true); }
     };
@@ -122,7 +129,7 @@ class PanelPilotEditor extends HTMLElement {
     buttons.push(['Zapisz format', () => {
       const fid = id || 'c_' + Math.random().toString(36).slice(2, 10);
       this.fmt = fid;
-      save(Object.assign({}, all, { [fid]: { name: (f.name || 'Tablet').trim(), w: f.w, h: f.h, cols: f.cols, rows: f.rows } }));
+      save(Object.assign({}, all, { [fid]: { name: (f.name || 'Tablet').trim(), w: f.w, h: f.h, cols: f.cols, rows: f.rows } }), fid);
     }]);
     this.dialog(id ? 'Format „' + f.name + '”' : 'Nowy format ekranu', h('div', {}, ...body.filter(Boolean)), ...buttons);
   }
@@ -136,6 +143,9 @@ class PanelPilotEditor extends HTMLElement {
 
   /** Podgląd w formacie panelu, który pokazuje ten pulpit (najpierw połączonego), zamiast zawsze w pionie. */
   guessFmt() {
+    // Pulpit ma swój format (wybrany przy tworzeniu albo u góry): od niego zaczynamy.
+    const own = this.doc && this.doc.format;
+    if (own && (!this.DP || this.DP.FORMATS[own])) return own;
     const list = Object.values(this.data.panels || {}).filter(p => p.dashboard === this.dashId);
     const p = list.find(x => x.connected) || list[0];
     if (!p) return this.fmt;
@@ -236,6 +246,7 @@ class PanelPilotEditor extends HTMLElement {
       h('button', { class: 'icon', 'aria-label': 'Menu Home Assistant', onclick: () => this.dispatchEvent(new CustomEvent('hass-toggle-menu', { bubbles: true, composed: true })) }, '☰'),
       select(this.dashId, dashes.map(([id, d]) => [id, id === this.dashId ? this.doc.name : d.name]), id => this.guard(() => this.openDash(id), () => this.header())),
       h('button', { onclick: () => this.newDash() }, 'Nowy'),
+      this.formatSelect(),
       select(mode, [['tiles', 'Kafelki'], ['code', 'Własny kod (HTML, CSS, JS)'], ['module', 'Moduł JS z pliku']], v => { this.sel = null; this.commit(() => { this.doc.mode = v; }); this.tab = v === 'tiles' ? 'tiles' : 'code'; this.header(); this.renderBody(); }),
       h('span', { class: 'sp' }),
       h('button', { class: 'icon', 'aria-label': 'Cofnij', title: 'Cofnij (Ctrl+Z)', disabled: !this.undo.length, onclick: () => this.back(this.undo, this.redo) }, '↶'),
@@ -252,15 +263,47 @@ class PanelPilotEditor extends HTMLElement {
     this.dialog('Niezapisane zmiany', h('p', {}, 'Zmiany w tym pulpicie nie są zapisane.'), ['Wróć', cancel], ['Odrzuć zmiany', () => { this.dirty = false; fn(); }]);
   }
 
+  /** Lista formatów: wbudowane i własne, opcjonalnie z pozycją „+ Nowy format…”. */
+  formatOptions(extra) {
+    const all = this.DP ? Object.entries(this.DP.FORMATS) : [];
+    const hint = { square: ' (NSPanel Pro 86)', portrait: ' (NSPanel Pro 120 pionowo)', landscape: ' (NSPanel Pro 120 poziomo)' };
+    return all.map(([id, f]) => [id, f.name + (hint[id] || ' · ' + f.w + '×' + f.h)]).concat(extra ? [['__new', '+ Nowy format…']] : []);
+  }
+
+  /** Format pulpitu na górnym pasku: w nim projektujesz i z niego korzysta panel bez własnego wyboru. */
+  formatSelect() {
+    if ((this.doc.mode || 'tiles') !== 'tiles') return null;
+    const cur = this.doc.format || '', f = cur && this.DP && this.DP.FORMATS[cur];
+    const opts = [['', 'Format: z ekranu panelu']].concat(this.formatOptions(true));
+    if (f && f.custom) opts.push(['__edit', 'Edytuj „' + f.name + '”…']);
+    const el = select(cur, opts, v => {
+      if (v === '__new') { el.value = cur; return this.formatDialog(null, fid => this.commit(() => { this.doc.format = fid; })); }
+      if (v === '__edit') { el.value = cur; return this.formatDialog(cur); }
+      this.commit(() => { this.doc.format = v; });
+      if (v) this.fmt = v;
+      this.bar(); this.renderSides(); this.fit(); this.refresh();
+    });
+    el.title = 'Format ekranu tego pulpitu'; el.className = 'fmt';
+    return el;
+  }
+
   newDash() {
-    let name = 'Nowy pulpit', from = 'empty';
-    this.dialog('Nowy pulpit', [field('Nazwa', text(name, v => { name = v; })), field('Zacznij od', select(from, [['empty', 'Pusty'], ['copy', 'Kopia obecnego'], ['code', 'Własny kod']], v => { from = v; }))], ['Anuluj'], ['Utwórz', async () => {
+    let name = 'Nowy pulpit', from = 'empty', format = this.doc.format || this.fmt;
+    const fmtField = field('Format ekranu', select(format, this.formatOptions(true), v => { format = v; }));
+    this.dialog('Nowy pulpit', [field('Nazwa', text(name, v => { name = v; })),
+      fmtField, h('p', { class: 'dim' }, 'Format to rozmiar ekranu i siatka kafelków. „+ Nowy format…” pozwala dodać inny tablet. Później zmienisz go na górnym pasku.'),
+      field('Zacznij od', select(from, [['empty', 'Pusty'], ['copy', 'Kopia obecnego'], ['code', 'Własny kod']], v => { from = v; }))], ['Anuluj'], ['Utwórz', async () => {
       const code = from === 'code', data = from === 'copy' ? clone(this.doc) : { pages: [{ name: 'Dom', tiles: [] }], mode: code ? 'code' : 'tiles', html: code ? SAMPLE.html : '', css: code ? SAMPLE.css : '', code: code ? SAMPLE.js : '' };
       data.name = name;
+      delete data.rev;
+      data.format = format === '__new' ? '' : format;
       try {
         const r = await this.hass.callWS({ type: 'panelpilot/admin/dashboard_save', dashboard_id: null, data });
         this.data.dashboards[r.id] = this.data.dashboards[r.id] || Object.assign(data, { rev: r.rev });
-        this.guard(() => { this.tab = data.mode === 'tiles' ? 'tiles' : 'code'; this.openDash(r.id); });
+        this.guard(() => {
+          this.tab = data.mode === 'tiles' ? 'tiles' : 'code'; this.openDash(r.id);
+          if (format === '__new') this.formatDialog(null, fid => { this.commit(() => { this.doc.format = fid; }); this.save(); });
+        });
       } catch (e) { this.toast(e.message, true); }
     }]);
   }
@@ -455,11 +498,11 @@ class PanelPilotEditor extends HTMLElement {
 
   bar() {
     const formats = this.DP ? Object.entries(this.DP.FORMATS) : [], cur = this.DP && this.DP.FORMATS[this.fmt];
+    // Pulpit z ustalonym formatem (górny pasek) nie potrzebuje przełącznika podglądu.
+    const fixed = this.doc.format && cur && this.fmt === this.doc.format;
     this.barEl.replaceChildren(...[
-      h('div', { class: 'seg', role: 'group', 'aria-label': 'Format ekranu' }, formats.map(([id, f]) => h('button', { 'aria-pressed': String(this.fmt === id), onclick: () => { this.fmt = id; this.bar(); this.renderSides(); this.fit(); this.refresh(); } }, f.name))),
-      h('button', { title: 'Własny format: inny tablet albo inna siatka kafelków', onclick: () => this.formatDialog() }, '+ Format'),
-      cur && cur.custom ? h('button', { onclick: () => this.formatDialog(this.fmt) }, 'Edytuj format') : null,
-      h('span', { class: 'dim' }, cur && cur.custom ? cur.w + '×' + cur.h + ', siatka ' + cur.cols + '×' + cur.rows : { square: 'NSPanel Pro 86', portrait: 'NSPanel Pro 120 pionowo', landscape: 'NSPanel Pro 120 poziomo' }[this.fmt]),
+      fixed ? null : h('div', { class: 'seg', role: 'group', 'aria-label': 'Podgląd w formacie' }, formats.map(([id, f]) => h('button', { 'aria-pressed': String(this.fmt === id), onclick: () => { this.fmt = id; this.bar(); this.renderSides(); this.fit(); this.refresh(); } }, f.name))),
+      h('span', { class: 'dim' }, cur ? (fixed ? cur.name + ': ' : '') + cur.w + '×' + cur.h + ', siatka ' + cur.cols + '×' + cur.rows : ''),
       h('span', { style: 'flex:1' }),
       this.tab === 'tiles' ? h('button', { onclick: () => this.wizard() }, 'Wybierz, co pokazać') : null,
       this.tab === 'tiles' ? h('button', { title: 'Usuwa ręczny układ tylko w tym formacie', onclick: () => this.commit(() => this.tiles.forEach(t => { delete t.l[this.fmt]; })) }, 'Ułóż automatycznie') : null,
@@ -531,6 +574,11 @@ class PanelPilotEditor extends HTMLElement {
       w.noIcon ? null : h('div', { class: 'row2' },
         field('Układ', select(t.layout || '', [['', 'Jak w motywie']].concat(LAYOUTS), v => set('layout', v, true))),
         field('Wielkość ikony', select(t.iconSize || '', [['', 'Jak w motywie']].concat(ICON_SIZES), v => set('iconSize', v, true)))),
+      w.plain ? null : h('div', { class: 'row2' },
+        field('Wyrównanie w poziomie', select(t.align || '', [['', 'Jak w motywie']].concat(ALIGN_H), v => set('align', v, true))),
+        field('Wyrównanie w pionie', select(t.valign || '', [['', 'Jak w motywie']].concat(ALIGN_V), v => set('valign', v, true)))),
+      w.noIcon ? null : field('Animacja ikony, gdy włączony', select(t.anim || '', [['', 'Jak w motywie']].concat([['none', 'Bez animacji']], ANIMS), v => set('anim', v, true))),
+      ...this.rulesFields(t),
       h('h3', {}, 'Dotknięcie'),
       field('Co robi', select(tap.kind || 'default', [['default', 'Domyślnie dla tego kafelka'], ['none', 'Nic'], ['toggle', 'Przełącz encję'], ['page', 'Otwórz stronę'], ['service', 'Wywołaj akcję HA']], v => setTap({ kind: v }))),
       tap.kind === 'page' ? field('Strona', select(tap.page || '', [['', '–']].concat(this.doc.pages.map(x => [x.name, x.name])), v => setTap({ page: v }))) : null,
@@ -557,6 +605,34 @@ class PanelPilotEditor extends HTMLElement {
     }
     if (!best) return this.toast('Na tej stronie nie ma wolnego miejsca. Użyj „Przenieś na nową stronę”.', true);
     this.commit(() => { this.pin(); t.l[this.fmt] = [best.x, best.y, best.w, best.h]; });
+  }
+
+  /** Warunki: „gdy encja … to kolor / tło / ikona / animacja”. Liczy się pierwszy spełniony. */
+  rulesFields(t) {
+    const rules = t.rules || [];
+    const upd = (fn, key) => this.commit(() => { t.rules = (t.rules || []).map(r => Object.assign({}, r)); fn(t.rules); if (!t.rules.length) delete t.rules; }, key ? { key: t.id + key, quiet: true } : {});
+    const out = [h('h3', {}, 'Warunki'),
+      h('p', { class: 'dim', style: 'margin:0 0 8px' }, 'Np. gdy czujnik ruchu jest włączony, kafelek świeci na czerwono; gdy temperatura jest większa niż 25, ikona miga. Sprawdzane po kolei, działa pierwszy spełniony.')];
+    rules.forEach((r, i) => {
+      const set = (k, v, full) => upd(list => { if (v === '' || v == null) delete list[i][k]; else list[i][k] = v; }, full ? null : 'r' + i + k);
+      const needsValue = ['eq', 'ne', 'gt', 'lt'].includes(r.op);
+      out.push(h('div', { class: 'st rule' },
+        h('div', { style: 'display:flex;gap:6px;align-items:center' }, h('b', { style: 'flex:1' }, 'Warunek ' + (i + 1)),
+          h('button', { class: 'icon', 'aria-label': 'Wyżej', disabled: !i, onclick: () => upd(list => list.splice(i - 1, 0, list.splice(i, 1)[0])) }, '↑'),
+          h('button', { class: 'icon danger', 'aria-label': 'Usuń warunek', onclick: () => upd(list => list.splice(i, 1)) }, '×')),
+        group('Gdy encja', this.entityPicker(r.entity, null, v => set('entity', v, true)), r.entity ? null : h('small', { class: 'dim' }, 'Pusta = encja tego kafelka')),
+        h('div', { class: 'row2' }, select(r.op || 'on', RULE_OPS, v => set('op', v, true)),
+          needsValue ? text(r.value, v => set('value', v), { placeholder: r.op === 'gt' || r.op === 'lt' ? 'np. 25' : 'np. open' }) : h('span')),
+        h('div', { class: 'row2' }, this.color('Kolor podświetlenia', r.color, v => set('color', v)), this.color('Tło kafelka', r.bg, v => set('bg', v))),
+        h('div', { class: 'row2' },
+          field('Podświetlenie', select(r.lit == null ? '' : r.lit ? '1' : '0', [['', 'Jak zwykle'], ['1', 'Podświetl'], ['0', 'Bez podświetlenia']], v => set('lit', v === '' ? null : v === '1', true))),
+          field('Animacja', select(r.anim || '', [['', 'Bez animacji']].concat(ANIMS), v => set('anim', v, true)))),
+        field('Inna ikona', h('div', { style: 'display:flex;gap:6px;align-items:center' }, this.iconPicker(r.icon || '', v => set('icon', v, true)),
+          r.icon ? h('button', { class: 'icon', 'aria-label': 'Bez zmiany ikony', onclick: () => set('icon', '', true) }, '×') : null))));
+    });
+    out.push(h('div', { class: 'btns', style: 'justify-content:flex-start' },
+      h('button', { onclick: () => upd(list => list.push({ op: 'on', color: '#ee1c25', lit: true })) }, '+ Warunek')));
+    return out;
   }
 
   color(label, value, fn) {
@@ -684,16 +760,22 @@ class PanelPilotEditor extends HTMLElement {
       h('div', { class: 'row2' },
         field('Układ treści', select(t.layout || '', [['', 'Ikona nad tekstem']].concat(LAYOUTS.slice(1)), v => setFull('layout', v))),
         field('Wielkość ikon', select(t.iconSize || '', [['', 'Zwykła']].concat(ICON_SIZES.filter(s => s[0] !== 'M')), v => setFull('iconSize', v)))),
+      h('div', { class: 'row2' },
+        field('Wyrównanie w poziomie', select(t.align || '', [['', 'Domyślne']].concat(ALIGN_H), v => setFull('align', v))),
+        field('Wyrównanie w pionie', select(t.valign || '', [['', 'Domyślne']].concat(ALIGN_V), v => setFull('valign', v)))),
+      field('Animacja ikony włączonego kafelka', select(t.anim || '', [['', 'Bez animacji']].concat(ANIMS), v => setFull('anim', v))),
       field('Tło ikon', select(t.icons || '', [['', 'Bez tła'], ['circle', 'Kolorowe kółko']], v => setFull('icons', v))),
       t.icons === 'circle' ? this.color('Kolor kółka (puste = z akcentu)', t.icbg, v => set('icbg', v)) : null,
-      h('p', { class: 'dim' }, 'Układ, wielkość ikony i kolor kółka pojedynczego kafelka ustawisz po kliknięciu kafelka.'),
+      h('p', { class: 'dim' }, 'Układ, wyrównanie, animację, kolor kółka i warunki pojedynczego kafelka ustawisz po kliknięciu kafelka.'),
       h('p', { class: 'dim' }, 'Pasek stron i przesunięcia palcem ustawisz w zakładce Gesty.')].filter(Boolean);
   }
 
   gestureTab() {
+    const nav = this.doc.nav === false ? 'none' : ['dots', 'tabs', 'none'].includes(this.doc.nav) ? this.doc.nav : 'dots';
     return [h('h3', {}, 'Pasek stron'),
-      check('Pasek stron na dole ekranu', this.doc.nav !== false, v => this.commit(() => { this.doc.nav = v; })),
-      this.doc.nav === false ? h('p', { class: 'dim' }, 'Bez paska ustawienia panelu otwiera mały przycisk w prawym dolnym rogu albo gest.') : null,
+      field('Na dole ekranu', select(nav, [['dots', 'Kropki (tylko pozycja strony)'], ['tabs', 'Nazwy stron'], ['none', 'Nic (więcej miejsca na kafelki)']], v => this.commit(() => { this.doc.nav = v; }))),
+      nav === 'none' ? h('p', { class: 'dim' }, 'Bez paska ustawienia panelu otwiera mały przycisk w prawym dolnym rogu albo gest.') : null,
+      nav === 'dots' ? h('p', { class: 'dim' }, 'Przy jednej stronie kropek nie widać; zostaje tylko koło zębate ustawień.') : null,
       ...this.gestureFields()].filter(Boolean);
   }
 
@@ -736,7 +818,10 @@ class PanelPilotEditor extends HTMLElement {
     return [h('h3', {}, 'Domofon (wspólny dla wszystkich paneli)'), field('Nazwa', text(b.name, v => set('name', v))),
       field('Dzwonek: otwiera okno', this.entityPicker(b.entity, ['binary_sensor', 'event', 'input_boolean'], v => set('entity', v, true))),
       field('Kamera', this.entityPicker(b.camera, ['camera'], v => set('camera', v, true))),
-      field('Zamknij okno po (s)', text(b.seconds, v => set('seconds', Number(v) || 60), { type: 'number', min: 10 })),
+      h('div', { class: 'row2' },
+        field('Zamknij okno po (s)', text(b.seconds, v => set('seconds', Number(v) || 60), { type: 'number', min: 10 })),
+        field('Po otwarciu zostaw (s)', text(b.after == null ? 10 : b.after, v => set('after', v === '' ? 10 : Number(v)), { type: 'number', min: 0, max: 120 }))),
+      h('p', { class: 'dim', style: 'margin:-4px 0 8px' }, 'Po otwarciu furtki lub bramy okno pokazuje „Otwarto” i zostaje jeszcze tyle sekund, żeby było widać, kto wchodzi.'),
       check('Gong na panelu', b.chime !== false, v => set('chime', v)),
       check('Przycisk „Rozmawiaj” (mikrofon panelu)', b.talk, v => set('talk', v, true)),
       b.talk && !(b.go2rtc && b.stream) ? h('p', { class: 'dim' }, 'Rozmowa wymaga go2rtc ze źródłem z dźwiękiem zwrotnym (sekcja na dole). Bez niego przycisk się pokaże, ale głos nie dotrze do bramki.') : null,

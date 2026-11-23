@@ -74,6 +74,14 @@ Fakty o NSPanel Pro 120: Android 8.1, 750×1334 przy 240 dpi. Czujniki światła
 - 0.1.6: po przeładowaniu wpisu integracji panel zostawał przypięty do starego `Hub` (rozłączony w HA, stary kod). Teraz unload wysyła `reload`, panel co minutę robi `panelpilot/ping` i subskrybuje od nowa, a `config` niesie `version` (zmiana = przeładowanie strony). Edytor startuje w formacie panelu pokazującego dany pulpit.
 - 0.1.7 (prośba właściciela: obsługa innych tabletów): **własne formaty** `c_…` (nazwa, w×h w px CSS do podglądu, siatka do 24×24, max 12) w `hub.formats`, WS `panelpilot/admin/formats_save`; panel dostaje je w `config.formats`; ustawienie panelu `settings.format` (auto / wbudowany / własny). W edytorze „+ Format”, „Edytuj format”, pole „Format ekranu” przy panelu.
 
+### v0.1.8 (5 uwag właściciela)
+
+1. Format pulpitu `dashboard.format` wybiera się przy „Nowy” i na górnym pasku (lista z „+ Nowy format…”). Panel: `settings.format` → `dashboard.format` → wykrycie z ekranu. Z ustalonym formatem pasek podglądu nie ma przełącznika.
+2. Pasek stron `dashboard.nav` = `dots` (domyślnie, kropki) / `tabs` (pigułki na środku) / `none`; dawne true/false działają.
+3. Domofon zawsze czarno-czerwony (#ee1c25), znacznik „Ktoś dzwoni”; po otwarciu nakładka „Otwarto” i okno zostaje `doorbell.after` s (domyślnie 10).
+4. Wyrównanie `align` (left/center/right) i `valign` (top/center/bottom) w kafelku i w motywie.
+5. `anim` (pulse/spin/blink/bounce/shake/glow) dla włączonego kafelka i w motywie; `rules`: [{entity?, op on/off/eq/ne/gt/lt, value, color, bg, lit, anim, icon}], działa pierwszy spełniony.
+
 ## Instalacja przez HACS
 
 Właściciel chce instalować PanelPilot z GitHuba przez HACS. To **integracja**, nie dodatek Supervisora. HACS nie widzi prywatnych repozytoriów. Kiedy właściciel się zgodzi:

@@ -21,6 +21,7 @@ SHAPES = ("auto", "square", "rect")
 ROTATIONS = (0, 90, 180, 270)
 MODES = ("tiles", "code", "module")
 GESTURES = ("up", "down", "left", "right")
+NAV_STYLES = ("dots", "tabs", "none")
 GESTURE_KINDS = ("default", "none", "next", "prev", "page", "saver", "bell", "settings", "service")
 
 DEFAULT_SETTINGS: dict[str, Any] = {
@@ -147,8 +148,13 @@ def clean_dashboard(data: Any) -> dict[str, Any]:
         seconds = 60
     theme = data.get("theme") if isinstance(data.get("theme"), dict) else {}
     gestures = data.get("gestures") if isinstance(data.get("gestures"), dict) else {}
+    nav = data.get("nav")
+    fmt = data.get("format")
     return {
-        "nav": data.get("nav") is not False,
+        # Pasek stron: kropki (domyślnie), nazwy stron albo brak. Dawne true/false też działają.
+        "nav": nav if nav in NAV_STYLES else "none" if nav is False else "dots",
+        # Format, w którym pulpit jest projektowany; panel bez własnego wyboru go używa. Pusty = z ekranu panelu.
+        "format": fmt if isinstance(fmt, str) and (fmt in FORMATS or CUSTOM_FMT_RE.match(fmt)) else "",
         "gestures": {g: _gesture(gestures.get(g)) for g in GESTURES},
         "name": _text(data.get("name"), 40) or "Pulpit",
         "mode": data.get("mode") if data.get("mode") in MODES else "tiles",
@@ -243,8 +249,14 @@ def clean_doorbell(data: Any) -> dict[str, Any]:
         seconds = max(10, min(600, int(data.get("seconds", 60))))
     except (TypeError, ValueError):
         seconds = 60
+    try:
+        after = max(0, min(120, int(data.get("after", 10))))
+    except (TypeError, ValueError):
+        after = 10
     return {
         "name": _text(data.get("name"), 40) or "Domofon",
+        # Ile sekund okno zostaje po otwarciu furtki lub bramy (z potwierdzeniem na ekranie).
+        "after": after,
         "entity": entity if ENTITY_RE.match(entity) else "",
         "camera": camera if ENTITY_RE.match(camera) else "",
         "go2rtc": go2rtc,

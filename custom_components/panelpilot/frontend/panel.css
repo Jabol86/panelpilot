@@ -27,6 +27,44 @@ small { font-size: .6em; color: var(--ink2); font-weight: 400; }
 .tile.row.lay-center { justify-content: center; }
 .tile.lay-center > .tx { justify-items: center; }
 .tile.lay-center > .cbs { margin-left: 0; }
+/* Wyrównanie treści: poziomo (data-ah) i pionowo (data-av), z kafelka albo z motywu. */
+.tile.stack[data-ah=left] { align-items: flex-start; text-align: left; }
+.tile.stack[data-ah=center] { align-items: center; text-align: center; }
+.tile.stack[data-ah=right] { align-items: flex-end; text-align: right; }
+.tile.stack[data-av=top] { justify-content: flex-start; }
+.tile.stack[data-av=center] { justify-content: center; }
+.tile.stack[data-av=bottom] { justify-content: flex-end; }
+.tile.row[data-ah=left], .tile.stack.lay-row[data-ah=left] { justify-content: flex-start; }
+.tile.row[data-ah=center], .tile.stack.lay-row[data-ah=center] { justify-content: center; }
+.tile.row[data-ah=right], .tile.stack.lay-row[data-ah=right] { justify-content: flex-end; }
+.tile.stack.lay-row { align-items: center; text-align: left; }
+.tile.stack.lay-row[data-av=top] { align-content: flex-start; }
+.tile.stack.lay-row[data-av=center] { align-content: center; }
+.tile.stack.lay-row[data-av=bottom] { align-content: flex-end; }
+.tile.row[data-av=top] { align-items: flex-start; }
+.tile.row[data-av=bottom] { align-items: flex-end; }
+.tile[data-ah=center] > .tx { justify-items: center; }
+.tile[data-ah=right] > .tx { justify-items: end; }
+.tile.row[data-ah] > .tx, .tile.lay-row[data-ah] > .tx { flex: 0 1 auto; }
+.tile[data-ah=center] > .cbs, .tile[data-ah=right] > .cbs { margin-left: 0; }
+
+/* Animacja ikony włączonego kafelka (albo z warunku). */
+.tile[class*=anim-] > .ic, .tile[class*=anim-] .ic.main { transform-origin: 50% 50%; }
+.anim-pulse > .ic { animation: pp-pulse 1.6s ease-in-out infinite; }
+.anim-spin > .ic { animation: pp-spin 1.4s linear infinite; }
+.anim-blink > .ic { animation: pp-blink 1s steps(2, jump-none) infinite; }
+.anim-bounce > .ic { animation: pp-bounce 1.2s ease-in-out infinite; }
+.anim-shake > .ic { animation: pp-shake .9s ease-in-out infinite; }
+.anim-glow > .ic { animation: pp-glow 1.8s ease-in-out infinite; }
+.tile.anim-glow { animation: pp-tileglow 1.8s ease-in-out infinite; }
+@keyframes pp-pulse { 50% { transform: scale(1.18); } }
+@keyframes pp-spin { to { transform: rotate(360deg); } }
+@keyframes pp-blink { 50% { opacity: .2; } }
+@keyframes pp-bounce { 50% { transform: translateY(-18%); } }
+@keyframes pp-shake { 20%, 60% { transform: rotate(-12deg); } 40%, 80% { transform: rotate(12deg); } }
+@keyframes pp-glow { 50% { filter: drop-shadow(0 0 6px var(--on)); } }
+@keyframes pp-tileglow { 50% { box-shadow: 0 0 0 1.5px var(--on), 0 0 22px 4px color-mix(in srgb, var(--on) 50%, transparent); } }
+@media (prefers-reduced-motion: reduce) { .tile[class*=anim-], .tile[class*=anim-] > .ic { animation: none; } }
 .tx { position: relative; min-width: 0; max-width: 100%; display: grid; gap: 1px; }
 .val { font-size: calc(21px * var(--scale)); font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-variant-numeric: tabular-nums; }
 .stack .val { font-size: calc(30px * var(--scale)); }
@@ -123,13 +161,28 @@ input[type=range] { accent-color: var(--on); min-width: 0; height: 40px; width: 
 .mu-st img { max-width: 90%; max-height: 80%; object-fit: contain; }
 .row .mu-st, .row .mu-top select { display: none; }
 
-#nav { display: flex; align-items: center; gap: 4px; padding-top: var(--gap); height: 52px; flex: none; overflow: hidden; }
-#nav button { height: 44px; min-width: 44px; padding: 0 12px; border-radius: 12px; color: var(--ink2); white-space: nowrap; }
-#nav button[aria-current] { background: var(--tile2); color: var(--ink); }
-#nav .act { display: grid; place-items: center; margin-left: auto; }
-#nav .off { display: none; margin-left: auto; color: var(--warn); font-size: 14px; white-space: nowrap; }
-.offline #nav .off { display: block; } .offline #nav .act { margin-left: 0; }
-.fmt-square #nav button { padding: 0 9px; }
+/* Pasek stron: na środku, ustawienia przy prawej krawędzi, „Brak połączenia” przy lewej. */
+#nav { position: relative; display: flex; align-items: center; justify-content: center; padding-top: var(--gap); height: 52px; flex: none; overflow: hidden; }
+#nav .pg { display: flex; align-items: center; gap: 2px; min-width: 0; max-width: calc(100% - 100px); overflow: hidden; }
+#nav button { color: var(--ink2); white-space: nowrap; }
+#nav .act { position: absolute; right: 0; bottom: 0; width: 44px; height: 44px; display: grid; place-items: center; opacity: .55; }
+#nav .act .ic { width: 22px; height: 22px; }
+#nav .off { display: none; position: absolute; left: 4px; bottom: 12px; color: var(--warn); font-size: 13px; white-space: nowrap; }
+.offline #nav .off { display: block; }
+/* Nazwy stron: pigułki w półprzezroczystej ramce. */
+.nav-tabs #nav .pg { padding: 3px; border-radius: 999px; background: color-mix(in srgb, var(--tile) 75%, transparent); }
+.nav-tabs #nav .pg:empty { display: none; }
+.nav-tabs #nav .pg button { height: 36px; padding: 0 16px; border-radius: 999px; font-size: 14px; transition: background .2s, color .2s; }
+.nav-tabs #nav .pg button[aria-current] { background: color-mix(in srgb, var(--accent) 24%, var(--tile2)); color: var(--ink); }
+.fmt-square.nav-tabs #nav .pg button { padding: 0 11px; }
+/* Kropki: tylko pozycja strony; aktywna to wydłużona kreska w kolorze akcentu. */
+.nav-dots #nav { height: 34px; }
+.nav-dots #nav .act { width: 34px; height: 30px; }
+.nav-dots #nav .act .ic { width: 18px; height: 18px; }
+.nav-dots #nav .off { bottom: 7px; }
+#nav .dot { width: 26px; height: 26px; display: grid; place-items: center; }
+#nav .dot i { width: 7px; height: 7px; border-radius: 4px; background: var(--ink2); opacity: .4; transition: width .25s, background .25s, opacity .25s; }
+#nav .dot[aria-current] i { width: 22px; background: var(--accent); opacity: 1; }
 
 .empty { grid-column: 1 / -1; grid-row: 1 / -1; display: grid; gap: 14px; place-content: center; justify-items: center; text-align: center; padding: 20px; color: var(--ink2); }
 .empty b { color: var(--ink); font-size: 20px; font-weight: 500; }
@@ -203,3 +256,28 @@ input[type=range] { accent-color: var(--on); min-width: 0; height: 40px; width: 
 .fmt-square .holdable { min-height: 64px; grid-template-columns: auto auto; gap: 2px 10px; align-items: center; }
 .fmt-square .holdable span { display: none; }
 .fmt-square .bell-audio button { height: 58px; }
+
+/* Domofon w barwach ekranu konfiguracji: czysta czerń, czerwień #ee1c25, biały tekst. Kolor ustala projekt, nie motyw. */
+#bell { --red: #ee1c25; --redl: rgba(238, 28, 37, .45); background: #000; color: #fff; box-shadow: inset 0 0 0 2px var(--red); padding: 10px; }
+#bell .ic { color: #fff; }
+.bell-video { border: 1px solid var(--redl); border-radius: 14px; }
+.bell-tag { position: absolute; left: 10px; top: 10px; display: flex; align-items: center; gap: 8px; padding: 6px 12px 6px 10px; border-radius: 999px; background: rgba(0, 0, 0, .7); border: 1px solid var(--red); font-size: 14px; font-weight: 500; letter-spacing: .04em; text-transform: uppercase; }
+.bell-tag i { width: 10px; height: 10px; border-radius: 50%; background: var(--red); }
+#bell:not(.ringing) .bell-tag { display: none; }
+#bell.ringing .bell-tag i { animation: pp-blink 1s steps(2, jump-none) infinite; }
+#bell.ringing:not(.opened) { animation: pp-ring 1.4s ease-in-out 4; }
+@keyframes pp-ring { 50% { box-shadow: inset 0 0 0 2px var(--red), inset 0 0 40px rgba(238, 28, 37, .35); } }
+.bell-done { position: absolute; inset: 0; display: grid; place-content: center; justify-items: center; gap: 6px; background: rgba(0, 0, 0, .78); text-align: center; animation: pp-in .25s ease-out; }
+.bell-done .ic { width: 64px; height: 64px; padding: 16px; box-sizing: content-box; border-radius: 50%; border: 2px solid var(--red); color: var(--red) !important; }
+.bell-done b { font-size: 30px; font-weight: 500; }
+.bell-done span { color: rgba(255, 255, 255, .75); font-size: 17px; }
+@keyframes pp-in { from { opacity: 0; transform: scale(.96); } }
+.bell-title b { color: #fff; }
+.bell-title span { color: rgba(255, 255, 255, .6); }
+#bell .holdable { background: #0b0b0b; border: 1px solid var(--redl); color: #fff; }
+#bell .holdable span { color: rgba(255, 255, 255, .6); }
+#bell .holdable .fill { background: rgba(238, 28, 37, .55); }
+#bell .holdable.tapnow:active { background: var(--red); color: #fff; }
+#bell .bell-audio button { background: #0b0b0b; border: 1px solid rgba(255, 255, 255, .14); color: #fff; }
+#bell .bell-audio button.active { background: var(--red); border-color: var(--red); color: #fff; }
+.bell-msg { color: rgba(255, 255, 255, .7); }

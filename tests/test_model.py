@@ -78,7 +78,7 @@ class Other(unittest.TestCase):
             "gestures": {"up": {"kind": "page", "page": "Energia"}, "down": {"kind": "service", "service": "script.turn_on", "data": "zle"}, "left": {"kind": "hack"}},
             "saver": {"alerts": ["binary_sensor.drzwi", "zle"]},
         })
-        self.assertFalse(d["nav"])
+        self.assertEqual(d["nav"], "none")
         self.assertEqual(d["gestures"]["up"], {"kind": "page", "page": "Energia"})
         self.assertEqual(d["gestures"]["down"], {"kind": "service", "service": "script.turn_on", "data": {}})
         self.assertEqual(d["gestures"]["left"], {"kind": "default"})
@@ -86,7 +86,22 @@ class Other(unittest.TestCase):
         self.assertEqual(d["saver"]["alerts"], ["binary_sensor.drzwi"])
         s = model.clean_dashboard({"pages": [{"tiles": []}], "saver": {"icons": {"weather.dom": "sun", "zle": "x"}, "size": "XXXL"}})["saver"]
         self.assertEqual((s["icons"], s["size"]), ({"weather.dom": "sun"}, "M"))
-        self.assertTrue(model.clean_dashboard({"pages": [{"tiles": []}]})["nav"])
+        base = {"pages": [{"tiles": []}]}
+        self.assertEqual(model.clean_dashboard(base)["nav"], "dots")
+        self.assertEqual(model.clean_dashboard({**base, "nav": True})["nav"], "dots")
+        self.assertEqual(model.clean_dashboard({**base, "nav": "tabs"})["nav"], "tabs")
+
+    def test_dashboard_format(self):
+        base = {"pages": [{"tiles": []}]}
+        self.assertEqual(model.clean_dashboard(base)["format"], "")
+        self.assertEqual(model.clean_dashboard({**base, "format": "landscape"})["format"], "landscape")
+        self.assertEqual(model.clean_dashboard({**base, "format": "c_tab"})["format"], "c_tab")
+        self.assertEqual(model.clean_dashboard({**base, "format": "<x>"})["format"], "")
+
+    def test_doorbell_after(self):
+        self.assertEqual(model.clean_doorbell({})["after"], 10)
+        self.assertEqual(model.clean_doorbell({"after": 500})["after"], 120)
+        self.assertEqual(model.clean_doorbell({"after": "x"})["after"], 10)
 
 
 class Pairing(unittest.TestCase):

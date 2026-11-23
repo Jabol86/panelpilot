@@ -12,7 +12,7 @@
     // Encje event.* zmieniają znacznik czasu, pozostałe przechodzą na „on”. Pierwszy odczyt nic nie otwiera.
     const hit = /^event\./.test(d.entity) ? ring !== null && s !== ring : s === 'on' && ring !== null && ring !== 'on';
     ring = s;
-    if (hit) { open(); if (d.chime !== false) chime(); }
+    if (hit) { open(true); if (d.chime !== false) chime(); }
   });
 
   function chime() {
@@ -30,15 +30,18 @@
     } catch (e) { /* bez dźwięku */ }
   }
 
-  function open() {
+  function open(rang) {
     const d = P.doorbellConfig;
     endAt = Date.now() + (+d.seconds || 60) * 1000;
     if (!P.ha.preview) P.wake();
-    if (el) return;
+    if (el) { if (rang) el.classList.add('ringing'); return; }
     P.busy = true;
     el = document.createElement('div');
     el.id = 'bell';
-    el.innerHTML = '<div class="bell-video"><video autoplay playsinline muted></video><img alt=""><div class="bell-msg">Łączenie z kamerą…</div></div>'
+    // Dzwonek (albo podgląd w edytorze) = pulsujący czerwony znacznik „Ktoś dzwoni”.
+    if (rang || P.ha.preview) el.classList.add('ringing');
+    el.innerHTML = '<div class="bell-video"><video autoplay playsinline muted></video><img alt=""><div class="bell-msg">Łączenie z kamerą…</div>'
+      + '<div class="bell-tag"><i></i>Ktoś dzwoni</div><div class="bell-done" hidden></div></div>'
       + '<div class="bell-bar"><div class="bell-title"><b>' + esc(d.name || 'Domofon') + '</b><span id="bell-left"></span></div><div class="bell-actions"></div>'
       + '<div class="bell-audio"><button data-b="listen">' + P.icon('speaker') + '<span>Słuchaj</span></button>' + (d.talk ? '<button data-b="talk">' + P.icon('mic') + '<span>Rozmawiaj</span></button>' : '') + '<button data-b="close">' + P.icon('close') + '<span>Zamknij</span></button></div></div>';
     (d.actions || []).forEach(a => {
@@ -46,8 +49,8 @@
       const tap = a.mode === 'tap', b = document.createElement(tap ? 'button' : 'div');
       b.className = tap ? 'holdable tapnow' : 'holdable';
       b.innerHTML = (tap ? '' : '<i class="fill"></i>') + P.icon(a.icon || 'gate') + '<b>' + esc(a.name) + '</b><span>' + (tap ? 'dotknij' : 'przytrzymaj') + '</span>';
-      b._tile = Object.assign({ type: 'hold', done: () => { endAt = Math.min(endAt, Date.now() + 2000); } }, a);
-      if (tap) b.addEventListener('click', () => { if (!P.ha.preview) P.trigger(b._tile); });
+      b._tile = Object.assign({ type: 'hold', done: () => opened(a) }, a);
+      if (tap) b.addEventListener('click', () => { if (P.ha.preview) opened(a); else P.trigger(b._tile); });
       el.querySelector('.bell-actions').append(b);
     });
     el.addEventListener('click', e => { const b = e.target.closest('[data-b]'); if (b && !P.ha.preview) ({ listen, talk, close })[b.dataset.b](); });
@@ -61,6 +64,19 @@
       const s = document.getElementById('bell-left');
       if (s) s.textContent = talking ? 'rozmowa trwa' : 'zamknie się za ' + Math.max(0, left) + ' s';
     }, 500);
+  }
+
+  /** Po otwarciu furtki lub bramy okno zostaje jeszcze chwilę z wyraźnym potwierdzeniem. */
+  function opened(a) {
+    if (!el) return;
+    const after = P.doorbellConfig.after == null ? 10 : +P.doorbellConfig.after;
+    if (!talking) endAt = Date.now() + Math.max(2, after) * 1000;
+    const box = el.querySelector('.bell-done');
+    box.innerHTML = P.icon(a.icon || 'gate') + '<b>Otwarto</b><span>' + esc(a.name || P.name(a.entity)) + '</span>';
+    box.hidden = false;
+    el.classList.add('opened');
+    clearTimeout(box._t);
+    box._t = setTimeout(() => { box.hidden = true; }, Math.max(2, Math.min(after, 6)) * 1000);
   }
 
   function close() {

@@ -147,6 +147,9 @@ class Hub:
             fmt = panel["settings"].get("format", "auto")
             if fmt.startswith("c_") and fmt not in self.formats:
                 panel["settings"]["format"] = "auto"
+        for dash in self.dashboards.values():
+            if dash.get("format", "").startswith("c_") and dash["format"] not in self.formats:
+                dash["format"] = ""
         self.save()
         for pid in self.panels:
             self.push_config(pid)
