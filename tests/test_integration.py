@@ -1,5 +1,7 @@
 """Testy integracji na prawdziwym Home Assistant (uruchamiane w GitHub Actions)."""
 
+import asyncio
+
 import pytest
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
@@ -12,7 +14,7 @@ STATE = {"type": "panelpilot/state", "device_id": "app_1", "screen_on": True, "b
 
 @pytest.fixture(autouse=True)
 def _custom(_our_components, enable_custom_integrations):
-    return
+    _EVENTS.clear()
 
 
 @pytest.fixture
@@ -29,17 +31,25 @@ def entity(hass, unique):
     return next(e.entity_id for e in registry.entities.values() if e.unique_id == f"app_1_{unique}")
 
 
+# Zdarzenia, które przyszły, gdy test czekał na odpowiedź (np. config wysłany przed wynikiem zapisu).
+_EVENTS: dict[int, list] = {}
+
+
 async def ask(ws, msg):
     await ws.send_json_auto_id(msg)
     while True:
         answer = await ws.receive_json()
         if answer["type"] == "result":
             return answer
+        if answer["type"] == "event":
+            _EVENTS.setdefault(id(ws), []).append(answer["event"])
 
 
-async def event(ws):
+async def event(ws, timeout=10):
+    if _EVENTS.get(id(ws)):
+        return _EVENTS[id(ws)].pop(0)
     while True:
-        answer = await ws.receive_json()
+        answer = await asyncio.wait_for(ws.receive_json(), timeout)
         if answer["type"] == "event":
             return answer["event"]
 
