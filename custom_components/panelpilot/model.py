@@ -193,6 +193,10 @@ def clean_dashboard(data: Any) -> dict[str, Any]:
             "size": saver.get("size") if saver.get("size") in ("S", "M", "L", "XL") else "M",
             # Ikony powiadomień: pokazują się tylko, gdy encja jest „aktywna” (otwarte, włączone, problem…).
             "alerts": _entities(saver.get("alerts"), 12),
+            # Własny napis i ikona powiadomienia; wygląd: plain (ikona i napis), frame (w cienkiej ramce), icon (sama ikona).
+            "alertText": {k: _text(v, 40) for k, v in (saver.get("alertText") or {}).items() if isinstance(k, str) and ENTITY_RE.match(k) and _text(v, 40)},
+            "alertIcons": {k: _text(v, 60) for k, v in (saver.get("alertIcons") or {}).items() if isinstance(k, str) and ENTITY_RE.match(k) and _text(v, 60)},
+            "alertStyle": saver.get("alertStyle") if saver.get("alertStyle") in ("plain", "frame", "icon") else "plain",
             # Panel pogody pod zegarem: bieżące warunki i prognoza na kilka dni.
             "weather": w if isinstance(w := saver.get("weather"), str) and re.match(r"^weather\.[a-z0-9_]+$", w) else "",
             "days": _int(saver.get("days"), 0, 7, 5),

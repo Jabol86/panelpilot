@@ -101,7 +101,7 @@ public class MainActivity extends Activity implements SensorEventListener {
     protected void onDestroy() {
         ui.removeCallbacksAndMessages(null);
         if (web != null) web.destroy();
-        if (tunnel != null) tunnel.stop();
+        // Tunel zostaje dla procesu: nowa kopia ekranu użyje go ponownie.
         super.onDestroy();
     }
 
@@ -127,20 +127,20 @@ public class MainActivity extends Activity implements SensorEventListener {
 
     private void load() {
         ui.removeCallbacksAndMessages(null);
-        if (tunnel != null) {
-            tunnel.stop();
-            tunnel = null;
-        }
         if (!config.secure()) {
+            // Ten sam adres HA = ten sam tunel; przeładowanie strony nie zajmuje portu od nowa.
             Uri u = Uri.parse(config.url());
-            tunnel = new Tunnel(u.getHost(), u.getPort() > 0 ? u.getPort() : 80);
             try {
-                tunnel.start(Config.TUNNEL_PORT);
+                tunnel = Tunnel.open(u.getHost(), u.getPort() > 0 ? u.getPort() : 80, Config.TUNNEL_PORT);
             } catch (IOException e) {
                 Log.e(TAG, "tunel", e);
-                showError("Nie można uruchomić połączenia lokalnego: " + e.getMessage());
+                showError("Nie można uruchomić połączenia lokalnego: " + e.getMessage() + "\nPonowna próba za kilka sekund…");
+                ui.postDelayed(this::load, 5000);
                 return;
             }
+        } else {
+            Tunnel.closeShared();
+            tunnel = null;
         }
         hideError();
         createWeb();

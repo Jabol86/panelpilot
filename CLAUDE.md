@@ -124,6 +124,14 @@ Zgłoszenie: o 23:14 panel świecił jasno, a „Zbliżenie” stale pokazywało
 
 Zgłoszenie: „mam najnowszą wersję, ale wielu funkcji nie mam w edytorze”. Przyczyna: podgląd w edytorze (iframe tworzony przez JS) i pliki index.html/widgets.js nie miały wersji w adresie, więc przeglądarka brała stare kopie; Ctrl+F5 ich nie odświeża. Teraz `StaticView` w http.py zamiast `register_static_paths`: `Cache-Control: no-cache`, a w index.html i w importach editor.js dopisuje `?v=VERSION`; iframe też ma `?v=`.
 
+### v0.1.16 (APK 0.1.3)
+
+- Przyciski głośności szersze, nie wyższe (96×48): wyższe rozjeżdżały kafelek.
+- Kafelek `tv` od nowa: `sources` [{name, image, match?, service?, data?}] jako przyciski z logo (domyślnie `select_source`, aplikacje z własną akcją); bieżące źródło rozpoznawane po app_name → media_channel → media_title → source; tło `.tv-bg` = logo źródła albo `entity_picture`; przycisk zasilania; „Pilot” przełącza siatkę źródeł na strzałki; kanały opcjonalnie (`ch`). W edytorze `tvSources` z „+ Wszystkie źródła z telewizora”.
+- Licznik: `.st.keep` nie chowa się przy `theme.state = hide` (u właściciela stan był ukryty, dlatego nie było liczby).
+- Wygaszacz: `saver.alertText`, `saver.alertIcons`, `saver.alertStyle` (plain/frame/icon).
+- APK 0.1.3: `Tunnel.open()` – jeden tunel na proces, ponowne użycie przy tym samym adresie HA, ponawianie bind, automatyczna ponowna próba zamiast stałego błędu EADDRINUSE. `build-apk.ps1` woła Gradle przez cmd (ostrzeżenia javac przerywały skrypt).
+
 ## Instalacja przez HACS
 
 Właściciel chce instalować PanelPilot z GitHuba przez HACS. To **integracja**, nie dodatek Supervisora. HACS nie widzi prywatnych repozytoriów. Kiedy właściciel się zgodzi:

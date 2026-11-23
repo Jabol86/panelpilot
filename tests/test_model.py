@@ -110,6 +110,12 @@ class Other(unittest.TestCase):
         self.assertEqual((d["saver"]["weather"], d["saver"]["days"]), ("weather.dom", 7))
         self.assertEqual(model.clean_dashboard({"pages": [{"tiles": []}], "saver": {"weather": "sensor.x"}})["saver"]["weather"], "")
 
+    def test_saver_alert_style(self):
+        s = model.clean_dashboard({"pages": [{"tiles": []}], "saver": {"alerts": ["group.okna"], "alertStyle": "frame",
+                                   "alertText": {"group.okna": "Otwarte okno", "zle id": "x", "group.puste": ""}, "alertIcons": {"group.okna": "window"}}})["saver"]
+        self.assertEqual((s["alertStyle"], s["alertText"], s["alertIcons"]), ("frame", {"group.okna": "Otwarte okno"}, {"group.okna": "window"}))
+        self.assertEqual(model.clean_dashboard({"pages": [{"tiles": []}], "saver": {"alertStyle": "duzy"}})["saver"]["alertStyle"], "plain")
+
     def test_home_page(self):
         pages = [{"name": "Dom", "tiles": []}, {"name": "Muzyka", "tiles": []}]
         self.assertEqual(model.clean_dashboard({"pages": pages, "home": "Muzyka"})["home"], "Muzyka")

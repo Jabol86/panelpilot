@@ -21,7 +21,8 @@ $work = Join-Path $Tools 'w'
 if (Test-Path $work) { Remove-Item $work -Recurse -Force }
 Copy-Item $src $work -Recurse
 $gradle = (Get-ChildItem (Join-Path $Tools 'gradle') -Directory)[0].FullName
-& (Join-Path $gradle 'bin\gradle.bat') -p $work --no-daemon --console=plain :app:assembleRelease
+# Przez cmd: ostrzeżenia kompilatora na stderr nie przerywają skryptu (ErrorActionPreference = Stop).
+cmd /c "`"$(Join-Path $gradle 'bin\gradle.bat')`" -p `"$work`" --no-daemon --console=plain :app:assembleRelease 2>&1"
 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 $out = Join-Path $PSScriptRoot '..\dist'
 New-Item -ItemType Directory -Force $out | Out-Null

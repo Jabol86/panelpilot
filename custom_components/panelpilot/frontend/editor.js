@@ -575,6 +575,7 @@ class PanelPilotEditor extends HTMLElement {
       if (f.t === 'area') return field(f.l, h('textarea', { value: t[f.k] || '', rows: 4, oninput: e => set(f.k, e.target.value) }));
       if (f.t === 'code') return group(f.l, this.codeField(t[f.k], v => set(f.k, v), 7));
       if (f.t === 'stations') return group(f.l, this.stations(t));
+      if (f.t === 'sources') return group(f.l, this.tvSources(t));
       if (f.t === 'select') return field(f.l, select(t[f.k] || '', f.o, v => set(f.k, v)));
       return field(f.l, text(t[f.k], v => set(f.k, f.t === 'number' && v !== '' ? Number(v) : v), { type: f.t === 'number' ? 'number' : 'text', step: 'any' }));
     });
@@ -691,6 +692,22 @@ class PanelPilotEditor extends HTMLElement {
       text(s.image, v => upd(() => { s.image = v; }, t.id + 'i' + i), { placeholder: 'Logo, np. /local/radio/logo.png' }),
       h('details', { open: !s.service }, h('summary', {}, s.service || 'Akcja nieustawiona'), this.serviceFields(s, o => upd(() => Object.assign(s, o)))))),
     h('button', { onclick: () => upd(() => list.push({ name: 'Stacja ' + (list.length + 1), data: {} })) }, '+ Dodaj stację'));
+  }
+
+  /** Źródła i aplikacje telewizora: nazwa (jak w HA albo nazwa aplikacji), logo i opcjonalna własna akcja. */
+  tvSources(t) {
+    const list = t.sources = t.sources || [], upd = (fn, key) => this.commit(fn, key ? { quiet: true, key } : {});
+    const st = this.hass.states[t.entity], have = st && st.attributes.source_list || [];
+    return h('div', {},
+      h('p', { class: 'dim', style: 'margin:0 0 6px' }, 'Nazwa źródła taka jak w HA (np. HDMI 1) przełącza wejście. Aplikację (YouTube, Netflix) dodaj z własną akcją, np. media_player.play_media albo remote.send_command. Gdy telewizor pokazuje dane źródło lub aplikację, jego logo staje się tłem kafelka.'),
+      list.map((s, i) => h('div', { class: 'st' },
+        h('div', { style: 'display:flex;gap:6px' }, text(s.name, v => upd(() => { s.name = v; }, t.id + 'sn' + i), { placeholder: 'Nazwa, np. HDMI 1 albo Netflix' }), h('button', { class: 'icon', 'aria-label': 'Wyżej', disabled: !i, onclick: () => upd(() => list.splice(i - 1, 0, list.splice(i, 1)[0])) }, '↑'), h('button', { class: 'icon danger', 'aria-label': 'Usuń', onclick: () => upd(() => list.splice(i, 1)) }, '×')),
+        text(s.image, v => upd(() => { s.image = v; }, t.id + 'si' + i), { placeholder: 'Logo, np. /local/tv/netflix.png' }),
+        text(s.match, v => upd(() => { s.match = v; }, t.id + 'sm' + i), { placeholder: 'Rozpoznawaj też po nazwie (opcjonalnie, np. nazwa aplikacji w HA)' }),
+        h('details', { open: false }, h('summary', {}, s.service ? 'Akcja: ' + s.service : 'Akcja: przełącz źródło (domyślnie)'), this.serviceFields(s, o => upd(() => Object.assign(s, o)))))),
+      h('div', { class: 'btns', style: 'justify-content:flex-start' },
+        h('button', { onclick: () => upd(() => list.push({ name: '', data: {} })) }, '+ Dodaj źródło lub aplikację'),
+        have.length ? h('button', { onclick: () => upd(() => have.filter(n => !list.some(s => s.name === n)).forEach(n => list.push({ name: n, data: {} }))) }, '+ Wszystkie źródła z telewizora (' + have.length + ')') : null));
   }
 
   /* ---------- wybór encji i ikon ---------- */
@@ -856,6 +873,13 @@ class PanelPilotEditor extends HTMLElement {
       h('h3', {}, 'Ikony powiadomień'),
       h('p', { class: 'dim', style: 'margin-bottom:8px' }, 'Ikona pojawia się nad zegarem tylko wtedy, gdy coś wymaga uwagi: drzwi otwarte, alarm uzbrojony, czujnik zgłasza problem, licznik większy od zera.'),
       this.entityList(s.alerts || [], ['binary_sensor', 'cover', 'lock', 'alarm_control_panel', 'input_boolean', 'switch', 'sensor', 'group'], v => set('alerts', v.slice(0, 12), true)),
+      (s.alerts || []).length ? field('Wygląd powiadomień', select(s.alertStyle || 'plain', [['plain', 'Ikona i napis'], ['frame', 'Ikona i napis w cienkiej ramce'], ['icon', 'Sama ikona']], v => set('alertStyle', v, true))) : null,
+      ...(s.alerts || []).map(id => h('div', { class: 'st' },
+        h('b', {}, this.ename(id)),
+        field('Napis, gdy aktywne (pusty = nazwa z HA), np. „Otwarte okno”', text((s.alertText || {})[id], v => this.commit(() => { const n = Object.assign({}, this.doc.saver.alertText); if (v) n[id] = v; else delete n[id]; this.doc.saver.alertText = n; }, { key: 'sva' + id, quiet: true }))),
+        field('Ikona', h('div', { style: 'display:flex;gap:6px;align-items:center' },
+          this.iconPicker((s.alertIcons || {})[id] || '', v => this.commit(() => { this.doc.saver.alertIcons = Object.assign({}, this.doc.saver.alertIcons, { [id]: v }); })),
+          (s.alertIcons || {})[id] ? h('button', { class: 'icon', 'aria-label': 'Ikona domyślna', onclick: () => this.commit(() => { const i = Object.assign({}, this.doc.saver.alertIcons); delete i[id]; this.doc.saver.alertIcons = i; }) }, '×') : null)))),
       h('p', { class: 'dim' }, 'Jasność w dzień i w nocy, próg ciemności i budzenie zbliżeniem ustawiasz dla każdego panelu w zakładce „Panele i jasność”. Na samym panelu jasność zmienisz suwakiem w ustawieniach (koło zębate).')];
   }
 

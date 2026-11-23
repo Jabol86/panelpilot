@@ -308,47 +308,80 @@
   const volBox = () => '<div class="mu-vol"><div class="mu-meter" aria-hidden="true">' + '<i></i>'.repeat(10) + '<span></span></div>'
     + '<div class="mu-vb"><button class="cb" data-v="-1" aria-label="Ciszej">' + ic('minus') + '</button><button class="cb" data-v="1" aria-label="Głośniej">' + ic('plus') + '</button></div></div>';
 
-  // Telewizor (np. Philips przez integrację „Philips TV”): zasilanie, głośność, kanały, źródło i opcjonalnie pilot.
+  // Telewizor (np. Philips przez integrację „Philips TV”). Tło: obraz bieżącego źródła albo aplikacji.
+  // Źródła i aplikacje to przyciski z logo; pilot (strzałki, OK) chowa się pod przyciskiem „Pilot”.
   const TV_KEYS = { up: 'CursorUp', down: 'CursorDown', left: 'CursorLeft', right: 'CursorRight', ok: 'Confirm', back: 'Back', home: 'Home' };
+  const same = (a, b) => !!a && !!b && String(a).trim().toLowerCase() === String(b).trim().toLowerCase();
+  /** Które źródło z listy kafelka jest teraz włączone (po aplikacji, źródle albo tytule). */
+  const tvNow = (t, a) => {
+    // Najpierw aplikacja (Netflix działa „na” HDMI 1, ale ważniejsza jest aplikacja), potem kanał i tytuł, na końcu wejście.
+    for (const x of [a.app_name, a.media_channel, a.media_title, a.source]) {
+      const i = x ? (t.sources || []).findIndex(s => same(x, s.name) || same(x, s.match)) : -1;
+      if (i >= 0) return i;
+    }
+    return -1;
+  };
   P.widget('tv', {
     name: 'Telewizor', icon: 'tv', group: 'Sterowanie', size: [6, 4], controls: true, noIcon: true,
     fields: [E('Telewizor', ['media_player']), E('Pilot (opcjonalnie, np. remote.philips_tv)', ['remote'], 'remote'),
+      { k: 'sources', l: 'Źródła i aplikacje (przyciski)', t: 'sources' },
+      { k: 'perRow', l: 'Przycisków w rzędzie (puste = tyle, ile się zmieści)', t: 'number' },
+      { k: 'bg', l: 'Tło z obrazu bieżącego źródła lub aplikacji', t: 'bool', def: true },
+      { k: 'ch', l: 'Przyciski kanałów', t: 'bool', def: false },
       { k: 'volStep', l: 'Krok przycisków głośności (%)', t: 'number' },
       { k: 'keys', l: 'Kody klawiszy pilota (JSON, puste = Philips)', t: 'text' }],
     mount(el, t) {
-      const b = (k, i, l) => '<button class="cb" data-k="' + k + '" aria-label="' + l + '">' + ic(i) + '</button>';
-      const pad = DP.isEntity(t.remote) ? '<div class="tv-pad">' + b('up', 'up', 'W górę') + b('left', 'left', 'W lewo') + '<button class="cb ok" data-k="ok">OK</button>' + b('right', 'right', 'W prawo') + b('down', 'down', 'W dół')
-        + b('back', 'back', 'Wstecz') + b('home', 'home', 'Menu główne') + '</div>' : '';
-      el.innerHTML = '<div class="tv"><div class="mu-top"><div class="tv-hd"><div class="mu-title"></div><div class="tv-sub"></div></div><select aria-label="Źródło"></select></div>'
-        + '<div class="tv-row">' + b('power', 'power', 'Włącz lub wyłącz') + b('mute', 'mute', 'Wycisz') + '<div class="tv-ch">' + b('chdown', 'down', 'Poprzedni kanał') + '<span>CH</span>' + b('chup', 'up', 'Następny kanał') + '</div><span class="mu-sp"></span>' + volBox() + '</div>'
-        + pad + '</div>';
-      const sel = el.querySelector('select');
-      sel.addEventListener('change', () => P.service('media_player.select_source', { entity_id: t.entity, source: sel.value }));
+      const b = (k, i, l, c) => '<button class="cb' + (c ? ' ' + c : '') + '" data-k="' + k + '" aria-label="' + l + '">' + ic(i) + '</button>';
+      const list = (t.sources || []).length ? t.sources : null;
+      const remote = DP.isEntity(t.remote);
+      el.innerHTML = '<div class="tv-bg"></div><div class="tv">'
+        + '<div class="tv-top"><div class="tv-hd"><div class="tv-name"></div><div class="tv-sub"></div></div>'
+        + (remote ? '<button class="tv-chip" data-k="pad">' + ic('touch') + '<span>Pilot</span></button>' : '') + b('mute', 'mute', 'Wycisz') + b('power', 'power', 'Włącz lub wyłącz', 'pw') + '</div>'
+        + '<div class="tv-src"' + (+t.perRow ? ' style="grid-template-columns:repeat(' + Math.min(12, +t.perRow) + ',minmax(0,1fr))"' : '') + '>'
+        + (list || []).map((s, i) => '<button data-s="' + i + '">' + (/^(\/|https?:)/.test(s.image || '') ? '<img src="' + esc(s.image) + '" alt="' + esc(s.name) + '">' : '<span>' + esc(s.name) + '</span>') + '</button>').join('') + '</div>'
+        + (remote ? '<div class="tv-pad" hidden>' + b('home', 'home', 'Menu główne') + b('up', 'up', 'W górę') + b('back', 'back', 'Wstecz') + b('left', 'left', 'W lewo') + '<button class="cb ok" data-k="ok">OK</button>' + b('right', 'right', 'W prawo') + '<i></i>' + b('down', 'down', 'W dół') + '<i></i></div>' : '')
+        + '<div class="tv-bot">' + (t.ch ? '<div class="tv-ch">' + b('chdown', 'down', 'Poprzedni kanał') + '<span>CH</span>' + b('chup', 'up', 'Następny kanał') + '</div>' : '')
+        + '<span class="mu-sp"></span>' + volBox() + '</div></div>';
       el.addEventListener('click', e => {
         const x = e.target.closest('button');
         if (!x) return;
         if (x.dataset.v) return volClick(el, t, +x.dataset.v);
+        if (x.dataset.k === 'pad') { const pad = el.querySelector('.tv-pad'); pad.hidden = !pad.hidden; el.classList.toggle('pad-open', !pad.hidden); return; }
         if (P.ha.preview) return;
-        if (!P.ok(t.entity) && x.dataset.k !== 'power') return missing(t);
-        const k = x.dataset.k, a = P.state(t.entity) ? P.state(t.entity).attributes : {};
-        if (k === 'power') return P.service(P.isOn(t.entity) ? 'media_player.turn_off' : 'media_player.turn_on', { entity_id: t.entity });
+        if (!DP.isEntity(t.entity)) return missing(t);
+        const k = x.dataset.k, a = P.state(t.entity) ? P.state(t.entity).attributes : {}, on = P.isOn(t.entity);
+        if (k === 'power') return P.service(on ? 'media_player.turn_off' : 'media_player.turn_on', { entity_id: t.entity });
+        if (x.dataset.s != null) {
+          const s = t.sources[+x.dataset.s];
+          const go = () => s.service ? P.service(s.service, s.data || {}) : P.service('media_player.select_source', { entity_id: t.entity, source: s.name });
+          // Wyłączony telewizor najpierw się włącza.
+          if (!on) { P.service('media_player.turn_on', { entity_id: t.entity }); setTimeout(go, 4000); } else go();
+          el._pick = +x.dataset.s; clearTimeout(el._pickT); el._pickT = setTimeout(() => { el._pick = null; this.update(el, t); }, 6000);
+          return this.update(el, t);
+        }
+        if (!P.ok(t.entity)) return missing(t);
         if (k === 'mute') return P.service('media_player.volume_mute', { entity_id: t.entity, is_volume_muted: !a.is_volume_muted });
         if (k === 'chup' || k === 'chdown') return P.service('media_player.media_' + (k === 'chup' ? 'next' : 'previous') + '_track', { entity_id: t.entity });
         let keys = TV_KEYS;
         try { if (t.keys) keys = Object.assign({}, TV_KEYS, JSON.parse(t.keys)); } catch (err) { /* zostają domyślne */ }
-        P.service('remote.send_command', { entity_id: t.remote, command: keys[k] });
+        if (keys[k]) P.service('remote.send_command', { entity_id: t.remote, command: keys[k] });
       });
     },
     update(el, t) {
-      const s = P.state(t.entity), a = s ? s.attributes : {}, on = P.isOn(t.entity) || (s && s.state === 'paused');
-      el.querySelector('.mu-title').textContent = t.name || P.name(t.entity) || 'Telewizor';
-      el.querySelector('.tv-sub').textContent = !P.ok(t.entity) ? 'niedostępny' : !on ? 'wyłączony' : [a.source, a.media_channel || a.media_title].filter(Boolean).join(' · ') || 'włączony';
-      el.querySelector('[data-k=power]').classList.toggle('lit', !!on);
+      const s = P.state(t.entity), a = s ? s.attributes : {}, on = P.isOn(t.entity) || (!!s && s.state === 'paused');
+      const now = el._pick != null ? el._pick : on ? tvNow(t, a) : -1, src = now >= 0 ? t.sources[now] : null;
+      const what = on ? (src && src.name) || a.app_name || a.source || '' : '';
+      el.querySelector('.tv-name').textContent = t.name || P.name(t.entity) || 'Telewizor';
+      el.querySelector('.tv-sub').textContent = !P.ok(t.entity) ? 'niedostępny' : !on ? 'wyłączony' : [what, a.media_channel || (a.media_title !== what ? a.media_title : '')].filter(Boolean).join(' · ') || 'włączony';
+      el.classList.toggle('tv-off', !on);
+      el.querySelector('[data-k=power]').classList.toggle('lit', on);
       el.querySelector('[data-k=mute]').classList.toggle('lit', !!a.is_volume_muted);
-      if (el._vol == null) meter(el, a.volume_level == null ? null : Math.round(a.volume_level * 100));
-      const sel = el.querySelector('select'), list = a.source_list || [];
-      sel.hidden = !list.length;
-      if (el.getRootNode().activeElement !== sel) sel.innerHTML = list.map(x => '<option' + (x === a.source ? ' selected' : '') + '>' + esc(x) + '</option>').join('');
+      el.querySelectorAll('.tv-src [data-s]').forEach((x, i) => x.classList.toggle('active', i === now));
+      // Tło: obraz źródła z listy, a gdy go nie ma, obrazek aplikacji/kanału z Home Assistanta.
+      const img = t.bg === false || !on ? '' : src && /^(\/|https?:)/.test(src.image || '') ? src.image : a.entity_picture || '';
+      const bg = el.querySelector('.tv-bg');
+      if (bg._img !== img) { bg._img = img; bg.style.backgroundImage = img ? 'url("' + img.replace(/["\\]/g, '') + '")' : ''; }
+      if (el._vol == null) meter(el, on && a.volume_level != null ? Math.round(a.volume_level * 100) : null);
     },
   });
 
@@ -362,7 +395,7 @@
     html(t) {
       const ids = t.entities || [], n = ids.filter(P.isOn).length;
       const text = !ids.length ? 'wybierz encje' : n ? n + ' ' + plural(n) : esc(t.none || 'wszystkie wyłączone');
-      return ic(t.icon || 'bulb') + tx(name(esc(t.name || 'Oświetlenie')), st(text));
+      return ic(t.icon || 'bulb') + tx(name(esc(t.name || 'Oświetlenie')), '<div class="st keep">' + text + '</div>');
     },
   });
 

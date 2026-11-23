@@ -21,14 +21,56 @@ final class Tunnel {
     private final int port;
     private volatile ServerSocket server;
     private volatile boolean stopped;
+    private final java.util.Set<Socket> open = java.util.Collections.newSetFromMap(new java.util.concurrent.ConcurrentHashMap<>());
 
-    Tunnel(String host, int port) {
+    /** Jeden tunel na cały proces: przeładowanie strony go nie zamyka, tylko używa ponownie. */
+    private static Tunnel shared;
+
+    private Tunnel(String host, int port) {
         this.host = host;
         this.port = port;
     }
 
+    /**
+     * Tunel do host:port na localhost:localPort. Ten sam cel = ten sam, już działający tunel.
+     * Inny cel: stary jest zamykany (z otwartymi połączeniami), a port zajmowany ponownie z kilkoma próbami,
+     * bo system zwalnia go z małym opóźnieniem (wcześniej kończyło się to błędem EADDRINUSE).
+     */
+    static synchronized Tunnel open(String host, int port, int localPort) throws IOException {
+        if (shared != null && shared.alive() && shared.host.equals(host) && shared.port == port) return shared;
+        closeShared();
+        Tunnel t = new Tunnel(host, port);
+        IOException last = null;
+        for (int i = 0; i < 12; i++) {
+            try {
+                t.start(localPort);
+                shared = t;
+                return t;
+            } catch (IOException e) {
+                last = e;
+                try {
+                    Thread.sleep(200);
+                } catch (InterruptedException ie) {
+                    Thread.currentThread().interrupt();
+                    break;
+                }
+            }
+        }
+        throw last != null ? last : new IOException("tunel");
+    }
+
+    static synchronized void closeShared() {
+        if (shared != null) shared.stop();
+        shared = null;
+    }
+
+    private boolean alive() {
+        ServerSocket s = server;
+        return !stopped && s != null && !s.isClosed();
+    }
+
     /** Gniazdo otwierane od razu, zanim WebView zacznie ładować stronę. */
-    void start(int localPort) throws IOException {
+    private void start(int localPort) throws IOException {
         ServerSocket s = new ServerSocket();
         s.setReuseAddress(true);
         s.bind(new InetSocketAddress(InetAddress.getByAddress(new byte[]{127, 0, 0, 1}), localPort), 50);
@@ -45,13 +87,18 @@ final class Tunnel {
         });
     }
 
-    void stop() {
+    private void stop() {
         stopped = true;
         close(server);
+        for (Socket s : open) close(s);
+        open.clear();
     }
 
     private void connect(Socket in) {
         Socket out = new Socket();
+        open.removeIf(Socket::isClosed);
+        open.add(in);
+        open.add(out);
         try {
             out.connect(new InetSocketAddress(host, port), 6000);
             in.setTcpNoDelay(true);

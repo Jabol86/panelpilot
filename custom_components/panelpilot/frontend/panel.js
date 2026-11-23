@@ -600,12 +600,14 @@
     return Panel.isOn(id) || ['detected', 'problem', 'triggered', 'pending', 'arming'].includes(s) || (s !== '' && !isNaN(n) && n > 0);
   }
   function alerts(all) {
-    const list = (dash.saver.alerts || []).filter(active);
+    const s = dash.saver, list = (s.alerts || []).filter(active);
     if (!list.length) return '';
-    return '<div class="sv-alerts">' + list.map(id => {
+    const style = ['frame', 'icon'].includes(s.alertStyle) ? s.alertStyle : 'plain';
+    return '<div class="sv-alerts al-' + style + '">' + list.map(id => {
       const t = all.find(k => k.entity === id || (k.entities || []).includes(id)), dc = Panel.state(id).attributes.device_class;
-      const ic = t && t.icon || ALERT_ICONS[dc] || ALERT_ICONS[id.split('.')[0]] || 'bell';
-      return '<span>' + icon(ic) + '<em>' + esc((dash.saver.names || {})[id] || Panel.name(id)) + '</em></span>';
+      const ic = (s.alertIcons || {})[id] || t && t.icon || ALERT_ICONS[dc] || ALERT_ICONS[id.split('.')[0]] || 'bell';
+      const text = (s.alertText || {})[id] || (s.names || {})[id] || Panel.name(id);
+      return '<span title="' + esc(text) + '">' + icon(ic) + (style === 'icon' ? '' : '<em>' + esc(text) + '</em>') + '</span>';
     }).join('') + '</div>';
   }
 
