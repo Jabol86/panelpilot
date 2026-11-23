@@ -108,3 +108,18 @@ p { margin: 0; } .dim { color: var(--e-ink2); }
 .toast { position: fixed; z-index: 70; left: 50%; bottom: 24px; transform: translateX(-50%); padding: 12px 20px; border-radius: 12px; background: #2f6b47; color: #fff; } .toast.bad { background: #a33b2a; }
 .codearea { display: grid; gap: 10px; }
 @media (max-width: 900px) { .body { grid-template-columns: 1fr !important; grid-template-rows: none; overflow-y: auto; } .side { border: 0; border-top: 1px solid var(--e-line); overflow: visible; } .mid { min-height: 70vh; order: -1; } .pal { grid-template-columns: 1fr 1fr; } }
+/* Zwijane działy ustawień kafelka */
+.sec { margin: 0 -4px 8px; border: 1px solid var(--e-line); border-radius: 10px; background: var(--e-card); }
+.sec > summary { display: flex; align-items: center; gap: 8px; padding: 10px 12px; cursor: pointer; list-style: none; font-weight: 500; user-select: none; }
+.sec > summary::-webkit-details-marker { display: none; }
+.sec > summary::before { content: ''; width: 7px; height: 7px; border-right: 2px solid var(--e-ink2); border-bottom: 2px solid var(--e-ink2); transform: rotate(-45deg); transition: transform .15s; margin-right: 2px; }
+.sec[open] > summary::before { transform: rotate(45deg); }
+.sec > summary span { flex: 1; }
+.sec > summary em { font-style: normal; font-size: 12px; padding: 1px 8px; border-radius: 9px; background: color-mix(in srgb, var(--e-acc) 15%, transparent); color: var(--e-acc); }
+.sec-body { padding: 2px 12px 8px; }
+/* (i) przy etykiecie i wyjaśnienie pod polem */
+.lbl { display: inline-flex; align-items: center; gap: 6px; }
+button.info { min-height: 0; width: 18px; height: 18px; padding: 0; border-radius: 50%; display: inline-grid; place-items: center; font: italic 600 11px/1 Georgia, serif; color: var(--e-ink2); background: none; }
+button.info.on, button.info:hover { color: var(--e-onacc); background: var(--e-acc); border-color: var(--e-acc); }
+.tipbox { display: block; padding: 6px 10px; border-radius: 8px; background: color-mix(in srgb, var(--e-acc) 8%, transparent); border-left: 3px solid var(--e-acc); color: var(--e-ink); font-size: 12.5px; line-height: 1.4; }
+.tipbox[hidden] { display: none; }

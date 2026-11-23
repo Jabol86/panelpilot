@@ -26,7 +26,7 @@
   P.widget('section', {
     name: 'Sekcja (nagłówek)', icon: 'text', group: 'Podstawowe', size: [24, 1], noEntity: true, noIcon: true, plain: true, thin: true,
     fields: [{ k: 'align', l: 'Położenie napisu', t: 'select', o: [['', 'Do lewej'], ['center', 'Na środku'], ['right', 'Do prawej']] }, { k: 'line', l: 'Linia obok napisu', t: 'bool', def: true },
-      { k: 'thin', l: 'Wysokość paska (część zwykłego wiersza)', t: 'select', o: [['', 'Niski (0,35)'], ['S', 'Bardzo niski (0,25)'], ['L', 'Połowa (0,5)']] }],
+      { k: 'thin', l: 'Wysokość paska (część zwykłego wiersza)', tip: 'Wiersz, w którym są same sekcje, jest niższy od zwykłego; resztę miejsca dostają kafelki. Gdy w wierszu są sekcje o różnej wysokości, liczy się najwyższa.', t: 'select', o: [['', 'Niski (0,35)'], ['S', 'Bardzo niski (0,25)'], ['L', 'Połowa (0,5)']] }],
     html: t => '<span class="sec-t">' + esc(t.name || 'Sekcja') + '</span>' + (t.line === false ? '' : '<i class="sec-l"></i>'),
   });
 
@@ -106,7 +106,8 @@
 
   P.widget('hold', {
     name: 'Przytrzymaj (brama)', icon: 'gate', group: 'Sterowanie', size: [2, 1],
-    fields: [E('Co uruchomić', ['switch', 'button', 'input_button', 'script', 'scene', 'cover', 'lock', 'input_boolean', 'light']), E('Skąd brać stan', null, 'state_entity')],
+    fields: [E('Co uruchomić', ['switch', 'button', 'input_button', 'script', 'scene', 'cover', 'lock', 'input_boolean', 'light']), { k: 'state_entity', l: 'Skąd brać stan', t: 'entity', tip: 'Encja, której stan widać na kafelku, np. czujnik bramy (otwarta/zamknięta). Pusta = napis „przytrzymaj”.' },
+      { k: 'holdTime', l: 'Czas przytrzymania (s)', t: 'number', ph: '0,9', tip: 'Jak długo trzeba trzymać palec, zanim akcja się wykona (0,3–10 s). Pasek na kafelku wypełnia się w tym czasie. Dłużej = mniej przypadkowych otwarć.' }],
     html: t => '<i class="fill"></i>' + ic(t.icon || 'gate') + tx(name(nm(t)), st(P.ok(t.state_entity) ? P.value(t.state_entity) : 'przytrzymaj')),
     tap: () => P.toast('Przytrzymaj, aby uruchomić'),
   });
@@ -252,7 +253,7 @@
     fields: [E('Odtwarzacz', ['media_player']), E('Wyjście (puste = źródła odtwarzacza)', ['select', 'input_select'], 'output'),
       { k: 'vol', l: 'Głośność', t: 'select', o: [['', 'Przyciski − i + ze wskaźnikiem'], ['slider', 'Suwak'], ['none', 'Bez regulacji']] },
       { k: 'volStep', l: 'Krok przycisków głośności (%)', t: 'number' },
-      { k: 'perRow', l: 'Stacji w rzędzie (puste = tyle, ile się zmieści)', t: 'number' },
+      { k: 'perRow', l: 'Stacji w rzędzie (puste = tyle, ile się zmieści)', t: 'number', tip: 'Np. 4 przy 8 stacjach daje dwa rzędy po 4. Rzędy dzielą wysokość kafelka po równo.' },
       { k: 'stations', l: 'Przyciski stacji', t: 'stations' }],
     mount(el, t) {
       const vol = t.vol === 'slider' ? '<input type="range" min="0" max="100" aria-label="Głośność">'
@@ -390,7 +391,7 @@
   const plural = n => n === 1 || (n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 12 || n % 100 > 14)) ? 'włączone' : 'włączonych';
   P.widget('count', {
     name: 'Licznik włączonych (np. światła)', icon: 'bulb', group: 'Podstawowe', size: [3, 1], noEntity: true,
-    fields: [{ k: 'entities', l: 'Co liczyć', t: 'entities', d: ['light', 'switch', 'fan', 'media_player', 'cover', 'binary_sensor', 'input_boolean', 'climate'], quick: [['light', '+ Wszystkie światła']] },
+    fields: [{ k: 'entities', l: 'Co liczyć', tip: 'Kafelek pokazuje, ile z tych encji jest włączonych, np. „3 włączone”. Grupy świateł są pomijane, żeby lampa nie liczyła się podwójnie.', t: 'entities', d: ['light', 'switch', 'fan', 'media_player', 'cover', 'binary_sensor', 'input_boolean', 'climate'], quick: [['light', '+ Wszystkie światła']] },
       { k: 'none', l: 'Napis, gdy nic nie jest włączone', t: 'text' }],
     active: t => (t.entities || []).some(P.isOn),
     html(t) {

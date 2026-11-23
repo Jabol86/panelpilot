@@ -257,6 +257,13 @@ def clean_formats(data: Any) -> dict[str, dict[str, Any]]:
     return out
 
 
+def _hold_time(value: Any) -> float:
+    try:
+        return round(max(0.3, min(10.0, float(value))), 1)
+    except (TypeError, ValueError):
+        return 0.9
+
+
 def clean_doorbell(data: Any) -> dict[str, Any]:
     if not isinstance(data, dict):
         data = {}
@@ -272,6 +279,8 @@ def clean_doorbell(data: Any) -> dict[str, Any]:
                 "name": _text(a.get("name"), 30) or a["entity"], "entity": a["entity"], "icon": _text(a.get("icon"), 60),
                 # hold = przytrzymaj (bezpieczniej), tap = jedno dotknięcie
                 "mode": "tap" if a.get("mode") == "tap" else "hold",
+                # Czas przytrzymania w sekundach (0,3–10), domyślnie 0,9.
+                "holdTime": _hold_time(a.get("holdTime")),
             })
     try:
         seconds = max(10, min(600, int(data.get("seconds", 60))))

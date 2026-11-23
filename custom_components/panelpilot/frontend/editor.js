@@ -564,20 +564,22 @@ class PanelPilotEditor extends HTMLElement {
     const w = this.win.Panel.widgets[t.type] || { name: t.type, fields: [] };
     const set = (k, v, full) => this.commit(() => { if (v === '' || v == null) delete t[k]; else t[k] = v; }, full ? {} : { key: t.id + k, quiet: true });
     const fields = (w.fields || []).map(f => {
-      if (f.t === 'entity') return field(f.l, this.entityPicker(t[f.k], f.d, v => set(f.k, v, true)));
-      if (f.t === 'entities') return group(f.l, this.entityList(t[f.k] || [], f.d, v => set(f.k, v, true)),
+      const L = this.lbl(f.l, f.tip);
+      if (f.t === 'entity') return field(L, this.entityPicker(t[f.k], f.d, v => set(f.k, v, true)));
+      if (f.t === 'entities') return group(L, this.entityList(t[f.k] || [], f.d, v => set(f.k, v, true)),
         // Szybkie wypełnienie, np. wszystkie światła (bez grup świateł, żeby nie liczyć ich podwójnie).
         ...(f.quick || []).map(([dom, label]) => h('button', { type: 'button', class: 'add', onclick: () => {
           const all = Object.keys(this.hass.states).filter(id => id.startsWith(dom + '.') && !Array.isArray(this.hass.states[id].attributes.entity_id)).sort();
           set(f.k, [...new Set((t[f.k] || []).concat(all))], true);
         } }, label)));
-      if (f.t === 'bool') return check(f.l, t[f.k] === undefined ? f.def : t[f.k], v => this.commit(() => { t[f.k] = v; }, { quiet: true }));
-      if (f.t === 'area') return field(f.l, h('textarea', { value: t[f.k] || '', rows: 4, oninput: e => set(f.k, e.target.value) }));
-      if (f.t === 'code') return group(f.l, this.codeField(t[f.k], v => set(f.k, v), 7));
-      if (f.t === 'stations') return group(f.l, this.stations(t));
-      if (f.t === 'sources') return group(f.l, this.tvSources(t));
-      if (f.t === 'select') return field(f.l, select(t[f.k] || '', f.o, v => set(f.k, v)));
-      return field(f.l, text(t[f.k], v => set(f.k, f.t === 'number' && v !== '' ? Number(v) : v), { type: f.t === 'number' ? 'number' : 'text', step: 'any' }));
+      if (f.t === 'bool') return check(L, t[f.k] === undefined ? f.def : t[f.k], v => this.commit(() => { t[f.k] = v; }, { quiet: true }));
+      if (f.t === 'area') return field(L, h('textarea', { value: t[f.k] || '', rows: 4, oninput: e => set(f.k, e.target.value) }));
+      if (f.t === 'code') return group(L, this.codeField(t[f.k], v => set(f.k, v), 7));
+      if (f.t === 'stations') return group(L, this.stations(t));
+      if (f.t === 'sources') return group(L, this.tvSources(t));
+      if (f.t === 'select') return field(L, select(t[f.k] || '', f.o, v => set(f.k, v)));
+      const num = f.t === 'number';
+      return field(L, text(t[f.k], v => set(f.k, num && v !== '' ? Number(String(v).replace(',', '.')) : v), { type: num ? 'number' : 'text', step: 'any', placeholder: f.ph || '' }));
     });
     const tap = t.tap || {}, setTap = o => this.commit(() => { t.tap = Object.assign({}, t.tap, o); if (t.tap.kind === 'default') delete t.tap; });
     const p = this.layout().placed.find(x => x.tile === t), f = this.DP.FORMATS[this.fmt];
@@ -586,40 +588,41 @@ class PanelPilotEditor extends HTMLElement {
       r['xywh'[i]] = Number(v) - (i < 2 ? 1 : 0);
       if (r.x >= 0 && r.y >= 0 && r.w > 0 && r.h > 0 && r.x + r.w <= f.cols && r.y + r.h <= f.rows) this.commit(() => this.place(t, r), { quiet: true, key: t.id + k });
     }, { type: 'number', disabled: !p }));
+    const rules = (t.rules || []).length, tapNames = { none: 'nic', toggle: 'przełącz', page: 'strona', service: 'akcja' };
     return [
       h('h3', {}, w.name),
-      field('Rodzaj kafelka', select(t.type, Object.entries(this.win.Panel.widgets).map(([id, x]) => [id, x.name]), v => this.commit(() => { t.type = v; if (v === 'music' && !t.stations) t.stations = []; }))),
-      ...fields,
-      field(w.thin ? 'Napis, np. Kuchnia' : 'Nazwa (pusta = z Home Assistant)', text(t.name, v => set('name', v))),
-      w.thin ? h('p', { class: 'dim', style: 'margin:-4px 0 8px' }, 'Wiersz, w którym są same sekcje, ma pół wysokości zwykłego wiersza. Sekcja zajmuje zwykle całą szerokość.') : null,
-      w.noIcon ? null : field('Ikona', this.iconPicker(t.icon || w.icon, v => set('icon', v, true))),
-      h('h3', {}, 'Wygląd'),
-      h('div', { class: 'row2' }, this.color('Tło', t.bg, v => set('bg', v)), this.color('Kolor', t.color, v => set('color', v))),
-      w.noIcon ? null : this.color('Tło ikony (kółko)', t.iconBg, v => set('iconBg', v)),
-      w.plain ? null : field('Stan pod nazwą (np. „włączone”)', select(t.showState == null ? '' : t.showState ? '1' : '0', [['', 'Jak w motywie'], ['1', 'Pokaż'], ['0', 'Ukryj']], v => this.commit(() => { if (v === '') delete t.showState; else t.showState = v === '1'; }))),
-      field('Wielkość tekstu', select(t.text || '', [['S', 'Mała'], ['', 'Zwykła'], ['L', 'Duża'], ['XL', 'Bardzo duża']], v => set('text', v))),
-      w.noIcon ? null : h('div', { class: 'row2' },
-        field('Układ', select(t.layout || '', [['', 'Jak w motywie']].concat(LAYOUTS), v => set('layout', v, true))),
-        field('Wielkość ikony', select(t.iconSize || '', [['', 'Jak w motywie']].concat(ICON_SIZES), v => set('iconSize', v, true)))),
-      w.plain ? null : this.posPicker('Położenie treści w kafelku', t.align, t.valign, 'Jak w motywie',
-        (a, v) => this.commit(() => { if (a) t.align = a; else delete t.align; if (v) t.valign = v; else delete t.valign; })),
-      w.noIcon ? null : field('Animacja ikony, gdy włączony', select(t.anim || '', [['', 'Jak w motywie']].concat([['none', 'Bez animacji']], ANIMS), v => set('anim', v, true))),
-      ...this.rulesFields(t),
-      h('h3', {}, 'Dotknięcie'),
-      field('Co robi', select(tap.kind || 'default', [['default', 'Domyślnie dla tego kafelka'], ['none', 'Nic'], ['toggle', 'Przełącz encję'], ['page', 'Otwórz stronę'], ['service', 'Wywołaj akcję HA']], v => setTap({ kind: v }))),
-      tap.kind === 'page' ? field('Strona', select(tap.page || '', [['', '–']].concat(this.doc.pages.map(x => [x.name, x.name])), v => setTap({ page: v }))) : null,
-      ...(tap.kind === 'service' ? this.serviceFields(tap, setTap) : []),
-      w.confirmable || tap.kind === 'service' || tap.kind === 'toggle' ? check('Pytaj o potwierdzenie', t.confirm, v => set('confirm', v)) : null,
-      h('h3', {}, 'Położenie: ' + f.name.toLowerCase()),
-      !p && t.l[this.fmt] !== false ? h('div', { class: 'st' }, h('p', { class: 'dim', style: 'margin:0 0 6px' }, 'Ten kafelek nie mieści się na tej stronie.'),
-        h('button', { onclick: () => this.fitIn(t) }, 'Wstaw w największe wolne miejsce')) : null,
-      h('div', { class: 'row4' }, num('Kol.', 0), num('Wiersz', 1), num('Szer.', 2), num('Wys.', 3)),
-      check('Pokazuj w tym formacie', t.l[this.fmt] !== false, v => this.commit(() => { if (v) delete t.l[this.fmt]; else { this.pin(); t.l[this.fmt] = false; } })),
-      this.doc.pages.length > 1 ? field('Na stronie', select(String(this.page), this.doc.pages.map((x, i) => [String(i), x.name]), v => this.commit(() => { this.doc.pages[this.page].tiles = this.tiles.filter(x => x !== t); t.l = {}; this.page = +v; this.tiles.push(t); }))) : null,
+      // Działy do zwijania: najpierw to, co kafelek robi, potem wygląd, warunki, dotknięcie i położenie.
+      this.sec('basic', 'Podstawowe', [
+        field(this.lbl('Rodzaj kafelka', 'Zmiana rodzaju zachowuje nazwę, kolory i położenie; pola specyficzne dla rodzaju trzeba ustawić od nowa.'), select(t.type, Object.entries(this.win.Panel.widgets).map(([id, x]) => [id, x.name]), v => this.commit(() => { t.type = v; if (v === 'music' && !t.stations) t.stations = []; }))),
+        ...fields,
+        field(this.lbl(w.thin ? 'Napis, np. Kuchnia' : 'Nazwa', w.thin ? '' : 'Napis na kafelku. Pusta = nazwa encji z Home Assistant.'), text(t.name, v => set('name', v))),
+        w.noIcon ? null : field(this.lbl('Ikona', 'Własne ikony PanelPilot albo dowolna mdi:… z Home Assistant.'), this.iconPicker(t.icon || w.icon, v => set('icon', v, true)))]),
+      this.sec('look', 'Wygląd', [
+        h('div', { class: 'row2' }, this.color('Tło', t.bg, v => set('bg', v)), this.color('Kolor', t.color, v => set('color', v))),
+        w.noIcon ? null : this.color('Tło ikony (kółko)', t.iconBg, v => set('iconBg', v)),
+        w.plain ? null : field(this.lbl('Stan pod nazwą', 'Napis typu „włączone”, „wyłączone”, „2 włączone”. „Jak w motywie” bierze ustawienie z zakładki Wygląd. Napis z warunku pokazuje się zawsze.'), select(t.showState == null ? '' : t.showState ? '1' : '0', [['', 'Jak w motywie'], ['1', 'Pokaż'], ['0', 'Ukryj']], v => this.commit(() => { if (v === '') delete t.showState; else t.showState = v === '1'; }))),
+        field('Wielkość tekstu', select(t.text || '', [['S', 'Mała'], ['', 'Zwykła'], ['L', 'Duża'], ['XL', 'Bardzo duża']], v => set('text', v))),
+        w.noIcon ? null : h('div', { class: 'row2' },
+          field(this.lbl('Układ', 'Ikona nad napisem albo obok niego.'), select(t.layout || '', [['', 'Jak w motywie']].concat(LAYOUTS), v => set('layout', v, true))),
+          field('Wielkość ikony', select(t.iconSize || '', [['', 'Jak w motywie']].concat(ICON_SIZES), v => set('iconSize', v, true)))),
+        w.plain ? null : this.posPicker('Położenie treści w kafelku', t.align, t.valign, 'Jak w motywie',
+          (a, v) => this.commit(() => { if (a) t.align = a; else delete t.align; if (v) t.valign = v; else delete t.valign; })),
+        w.noIcon ? null : field(this.lbl('Animacja ikony, gdy włączony', 'Działa, gdy kafelek jest „włączony” (np. światło świeci). Warunki mogą ustawić inną animację.'), select(t.anim || '', [['', 'Jak w motywie']].concat([['none', 'Bez animacji']], ANIMS), v => set('anim', v, true)))]),
+      this.sec('rules', 'Warunki', this.rulesFields(t), rules ? String(rules) : ''),
+      this.sec('tap', 'Dotknięcie', [
+        field(this.lbl('Co robi', '„Domyślnie” to zachowanie rodzaju kafelka, np. przełącznik włącza i wyłącza encję. Możesz zamiast tego otworzyć stronę albo wywołać akcję.'), select(tap.kind || 'default', [['default', 'Domyślnie dla tego kafelka'], ['none', 'Nic'], ['toggle', 'Przełącz encję'], ['page', 'Otwórz stronę'], ['service', 'Wywołaj akcję HA']], v => setTap({ kind: v }))),
+        tap.kind === 'page' ? field('Strona', select(tap.page || '', [['', '–']].concat(this.doc.pages.map(x => [x.name, x.name])), v => setTap({ page: v }))) : null,
+        ...(tap.kind === 'service' ? this.serviceFields(tap, setTap) : []),
+        w.confirmable || tap.kind === 'service' || tap.kind === 'toggle' ? check('Pytaj o potwierdzenie', t.confirm, v => set('confirm', v)) : null], tapNames[tap.kind] || ''),
+      this.sec('place', 'Położenie: ' + f.name.toLowerCase(), [
+        !p && t.l[this.fmt] !== false ? h('div', { class: 'st' }, h('p', { class: 'dim', style: 'margin:0 0 6px' }, 'Ten kafelek nie mieści się na tej stronie.'),
+          h('button', { onclick: () => this.fitIn(t) }, 'Wstaw w największe wolne miejsce')) : null,
+        h('div', { class: 'row4' }, num('Kol.', 0), num('Wiersz', 1), num('Szer.', 2), num('Wys.', 3)),
+        check(this.lbl('Pokazuj w tym formacie', 'Każdy format ekranu (kwadrat, pion, poziom, własne) ma osobny układ. Odznacz, żeby ukryć kafelek tylko w tym formacie.'), t.l[this.fmt] !== false, v => this.commit(() => { if (v) delete t.l[this.fmt]; else { this.pin(); t.l[this.fmt] = false; } })),
+        this.doc.pages.length > 1 ? field('Na stronie', select(String(this.page), this.doc.pages.map((x, i) => [String(i), x.name]), v => this.commit(() => { this.doc.pages[this.page].tiles = this.tiles.filter(x => x !== t); t.l = {}; this.page = +v; this.tiles.push(t); }))) : null]),
       h('div', { class: 'btns' }, h('button', { class: 'danger', onclick: () => this.remove(t.id) }, 'Usuń'), h('button', { onclick: () => this.duplicate(t.id) }, 'Powiel')),
     ];
   }
-
   /** Zmniejsza kafelek, aż zmieści się w wolnym miejscu strony (największe pole wygrywa). */
   fitIn(t) {
     const f = this.DP.FORMATS[this.fmt], taken = this.layout().placed.filter(p => p.tile !== t);
@@ -637,8 +640,7 @@ class PanelPilotEditor extends HTMLElement {
   rulesFields(t) {
     const rules = t.rules || [];
     const upd = (fn, key) => this.commit(() => { t.rules = (t.rules || []).map(r => Object.assign({}, r)); fn(t.rules); if (!t.rules.length) delete t.rules; }, key ? { key: t.id + key, quiet: true } : {});
-    const out = [h('h3', {}, 'Warunki'),
-      h('p', { class: 'dim', style: 'margin:0 0 8px' }, 'Np. gdy czujnik ruchu jest włączony, kafelek świeci na czerwono; gdy temperatura jest większa niż 25, ikona miga. Sprawdzane po kolei, działa pierwszy spełniony.')];
+    const out = [h('p', { class: 'dim', style: 'margin:0 0 8px' }, 'Np. gdy czujnik ruchu jest włączony, kafelek świeci na czerwono; gdy brama się otwiera, pod nazwą widać „Otwieranie…”. Sprawdzane po kolei, działa pierwszy spełniony.')];
     rules.forEach((r, i) => {
       const set = (k, v, full) => upd(list => { if (v === '' || v == null) delete list[i][k]; else list[i][k] = v; }, full ? null : 'r' + i + k);
       const needsValue = ['eq', 'ne', 'gt', 'lt'].includes(r.op);
@@ -654,11 +656,31 @@ class PanelPilotEditor extends HTMLElement {
           field('Podświetlenie', select(r.lit == null ? '' : r.lit ? '1' : '0', [['', 'Jak zwykle'], ['1', 'Podświetl'], ['0', 'Bez podświetlenia']], v => set('lit', v === '' ? null : v === '1', true))),
           field('Animacja', select(r.anim || '', [['', 'Bez animacji']].concat(ANIMS), v => set('anim', v, true)))),
         field('Inna ikona', h('div', { style: 'display:flex;gap:6px;align-items:center' }, this.iconPicker(r.icon || '', v => set('icon', v, true)),
-          r.icon ? h('button', { class: 'icon', 'aria-label': 'Bez zmiany ikony', onclick: () => set('icon', '', true) }, '×') : null))));
+          r.icon ? h('button', { class: 'icon', 'aria-label': 'Bez zmiany ikony', onclick: () => set('icon', '', true) }, '×') : null)),
+        field(this.lbl('Napis stanu', 'Tekst pod nazwą kafelka, gdy ten warunek jest spełniony, np. „Otwieranie…” albo „Brama otwarta”. {state} wstawia stan encji. Napis widać nawet wtedy, gdy stan jest ukryty w motywie.'),
+          text(r.text, v => set('text', v), { placeholder: 'np. Otwieranie…' }))));
     });
     out.push(h('div', { class: 'btns', style: 'justify-content:flex-start' },
       h('button', { onclick: () => upd(list => list.push({ op: 'on', color: '#ee1c25', lit: true })) }, '+ Warunek')));
     return out;
+  }
+
+  /** Etykieta z przyciskiem (i): kliknięcie pokazuje lub chowa wyjaśnienie pod polem. */
+  lbl(label, tip) {
+    if (!tip) return label;
+    const box = h('small', { class: 'tipbox', hidden: true }, tip);
+    const btn = h('button', { type: 'button', class: 'info', title: tip, 'aria-label': 'Co to robi?', onclick: e => { e.preventDefault(); e.stopPropagation(); box.hidden = !box.hidden; btn.classList.toggle('on', !box.hidden); } }, 'i');
+    // Wyjaśnienie trafia na koniec pola (po kontrolce), gdy pole jest już w drzewie.
+    queueMicrotask(() => { const f = btn.closest('.f'); if (f) f.append(box); });
+    return h('span', { class: 'lbl' }, label, btn);
+  }
+
+  /** Zwijany dział ustawień kafelka; to, co otwarte, edytor pamięta. */
+  sec(id, title, kids, badge) {
+    const open = this.secOpen || (this.secOpen = (() => { try { return JSON.parse(localStorage.getItem('pp-sec')) || null; } catch (e) { return null; } })() || { basic: true });
+    const d = h('details', { class: 'sec', open: !!open[id], ontoggle: () => { open[id] = d.open; try { localStorage.setItem('pp-sec', JSON.stringify(open)); } catch (e) { /* bez pamięci */ } } },
+      h('summary', {}, h('span', {}, title), badge ? h('em', {}, badge) : null), h('div', { class: 'sec-body' }, kids));
+    return d;
   }
 
   /** Siatka 3×3: jedno kliknięcie ustawia położenie w poziomie i w pionie naraz. */
@@ -900,7 +922,9 @@ class PanelPilotEditor extends HTMLElement {
       ...b.actions.map((a, i) => h('div', { class: 'st' },
         h('div', { style: 'display:flex;gap:6px' }, text(a.name, v => { a.name = v; set('actions', b.actions); }, { placeholder: 'Nazwa, np. Otwórz furtkę' }), h('button', { class: 'icon danger', 'aria-label': 'Usuń przycisk', onclick: () => { b.actions.splice(i, 1); set('actions', b.actions, true); } }, '×')),
         this.entityPicker(a.entity, ['switch', 'button', 'input_button', 'cover', 'lock', 'script'], v => { a.entity = v; set('actions', b.actions, true); }),
-        h('div', { class: 'row2' }, this.iconPicker(a.icon || 'gate', v => { a.icon = v; set('actions', b.actions, true); }), select(a.mode || 'hold', [['hold', 'Przytrzymaj, aby otworzyć'], ['tap', 'Jedno dotknięcie']], v => { a.mode = v; set('actions', b.actions, true); })))),
+        h('div', { class: 'row2' }, this.iconPicker(a.icon || 'gate', v => { a.icon = v; set('actions', b.actions, true); }), select(a.mode || 'hold', [['hold', 'Przytrzymaj, aby otworzyć'], ['tap', 'Jedno dotknięcie']], v => { a.mode = v; set('actions', b.actions, true); })),
+        (a.mode || 'hold') === 'hold' ? field(this.lbl('Czas przytrzymania (s)', 'Jak długo trzymać palec, zanim furtka lub brama się otworzy (0,3–10 s, domyślnie 0,9).'),
+          text(a.holdTime == null ? '' : a.holdTime, v => { if (v === '') delete a.holdTime; else a.holdTime = Number(String(v).replace(',', '.')); set('actions', b.actions); }, { type: 'number', step: '0.1', min: 0.3, max: 10, placeholder: '0,9' })) : null)),
       b.actions.length < 4 ? h('div', { class: 'btns', style: 'justify-content:flex-start' },
         h('button', { onclick: () => { b.actions.push({ name: 'Otwórz furtkę', entity: '', icon: 'gate', mode: 'hold' }); set('actions', b.actions, true); } }, '+ Furtka'),
         h('button', { onclick: () => { b.actions.push({ name: 'Otwórz bramę', entity: '', icon: 'garage', mode: 'hold' }); set('actions', b.actions, true); } }, '+ Brama'),

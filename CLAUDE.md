@@ -138,6 +138,12 @@ Zgłoszenie: „mam najnowszą wersję, ale wielu funkcji nie mam w edytorze”.
 - Domofon: „Otwarto” (`.bell-done`) to karta w prawej kolumnie nad przyciskami, nie nakładka na kamerę.
 - go2rtc: `go2rtc_detect` w websocket.py szuka adresu w config entries `go2rtc`/`webrtc`, `hass.data["go2rtc"]` i typowych adresach (localhost:11984, :1984, a889bffc-go2rtc:1984), sprawdza `/api/streams`; WS `panelpilot/admin/go2rtc_detect`. Pusty `go2rtc` + `stream` = użyj wykrytego; `own` = sam `stream`. Edytor: lista strumieni. Niesprawdzone u właściciela.
 
+### v0.1.18
+
+- Warunki: `rule.text` (napis stanu, `{state}` = stan encji) w `ruleText()` w panel.js: dokłada `.st.keep.rule-st`, chowa zwykły `.st` klasą `rule-hid`.
+- Przytrzymanie: `tile.holdTime` (s, 0,3–10, domyślnie 0,9) w kafelku `hold` i w przyciskach domofonu (`actions[].holdTime`, model `_hold_time`); pasek `.fill` przez `--hold`.
+- Inspektor kafelka: zwijane działy `sec()` (Podstawowe, Wygląd, Warunki, Dotknięcie, Położenie; stan w localStorage `pp-sec`) i `lbl(label, tip)` z przyciskiem (i). Pola kafelków mogą mieć `tip` i `ph`.
+
 ## Instalacja przez HACS
 
 Właściciel chce instalować PanelPilot z GitHuba przez HACS. To **integracja**, nie dodatek Supervisora. HACS nie widzi prywatnych repozytoriów. Kiedy właściciel się zgodzi:

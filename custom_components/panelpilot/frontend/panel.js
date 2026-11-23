@@ -359,12 +359,26 @@
       const rule = Panel.ruleOf(t), shown = rule && rule.icon ? Object.assign({}, t, { icon: rule.icon }) : t;
       styleTile(el, t, rule);
       if (def.update) def.update(el, shown); else el.innerHTML = def.html(shown);
+      ruleText(el, t, rule);
       const on = rule && rule.lit != null ? !!rule.lit : !!(def.active && def.active(t));
       el.classList.toggle('on', on);
       el.classList.toggle('warn', !rule && !!(def.warn && def.warn(t)));
       const th = dash.theme || {}, anim = rule && rule.anim ? rule.anim : on ? t.anim || th.anim : '';
       ANIMS.forEach(a => el.classList.toggle('anim-' + a, anim === a));
     } catch (e) { console.error(t.type, e); el.innerHTML = '<div class="lbl">Błąd: ' + esc(e.message) + '</div>'; }
+  }
+
+  /** Napis z warunku (np. „Otwieranie…”) zamiast stanu pod nazwą; {state} = stan encji. Widać go także przy ukrytym stanie. */
+  function ruleText(el, t, rule) {
+    const old = el.querySelector('.st.rule-st');
+    if (!rule || !rule.text) { if (old) old.remove(); el.querySelectorAll('.rule-hid').forEach(x => x.classList.remove('rule-hid')); return; }
+    const id = DP.isEntity(rule.entity) ? rule.entity : t.entity, s = Panel.state(id);
+    const text = String(rule.text).replace(/\{state\}/g, s ? s.state : '');
+    const box = el.querySelector('.tx') || el;
+    box.querySelectorAll(':scope > .st:not(.rule-st)').forEach(x => x.classList.add('rule-hid'));
+    const st = old || document.createElement('div');
+    st.className = 'st keep rule-st'; st.textContent = text;
+    if (!old) box.append(st);
   }
 
   function onState(changed) {
@@ -486,8 +500,11 @@
   function startHold(el) {
     if (ha.preview || !ha.online || !Panel.ok(el._tile.entity)) return;
     stopHold();
+    // Czas przytrzymania z kafelka (sekundy), domyślnie 0,9 s; pasek wypełnia się w tym samym czasie.
+    const ms = Math.round(Math.max(0.3, Math.min(10, parseFloat(el._tile.holdTime) || 0.9)) * 1000);
+    el.style.setProperty('--hold', ms + 'ms');
     el.classList.add('holding');
-    hold = { el, timer: setTimeout(() => { stopHold(); Panel.trigger(el._tile); }, 900) };
+    hold = { el, timer: setTimeout(() => { stopHold(); Panel.trigger(el._tile); }, ms) };
   }
   /** Otwiera/uruchamia encję bramy, furtki, zamka, przycisku albo skryptu. */
   Panel.trigger = async t => {
