@@ -46,6 +46,10 @@ class Other(unittest.TestCase):
     def test_settings_clamped(self):
         s = model.clean_settings({"dayBrightness": 500, "rotation": 45, "nightFrom": "x", "wakeOnProximity": False})
         self.assertEqual((s["dayBrightness"], s["rotation"], s["nightFrom"], s["wakeOnProximity"]), (100, 0, 22, False))
+        self.assertEqual((s["nightMode"], s["proximityInvert"]), ("both", False))
+        s = model.clean_settings({"nightMode": "hours", "proximityInvert": True})
+        self.assertEqual((s["nightMode"], s["proximityInvert"]), ("hours", True))
+        self.assertEqual(model.clean_settings({"nightMode": "zle"})["nightMode"], "both")
 
     def test_doorbell(self):
         d = model.clean_doorbell({"go2rtc": "http://192.0.2.1:1984/", "stream": "brama", "actions": [{"name": "F", "entity": "switch.f"}, {"entity": "zle"}]})

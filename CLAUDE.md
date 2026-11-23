@@ -107,6 +107,12 @@ Kafelek `section` (Sekcja) dzieli stronę na działy, np. „Kuchnia”, „Salo
 - Edytor (`geo`, `rowSpan`, `cell`) bierze rzeczywiste wysokości wierszy z `gridTemplateRows` podglądu.
 - Nagłówek strony z 0.1.10 został, ale właścicielowi chodziło o sekcje w środku strony.
 
+### v0.1.13
+
+Zgłoszenie: o 23:14 panel świecił jasno, a „Zbliżenie” stale pokazywało „wykryto”.
+- Tryb nocny: wcześniej z czujnikiem światła godziny były pomijane (liczyły się tylko lx). Teraz `settings.nightMode` = `both` (domyślnie: godziny nocne albo ciemno) / `hours` / `lux`. Przy zmianie dzień↔noc ręczna jasność (`manual`, z suwaka albo z encji ekranu) wraca na automatyczną.
+- Zbliżenie: `settings.proximityInvert` odwraca odczyt w panel.js (`rawNear`, działa od razu po zapisie). APK bez zmian. **Nie potwierdzono** na panelu, czy czujnik jest odwrócony, czy zgłasza „daleko” poniżej `maximumRange` (wtedy odwrócenie nie pomoże i trzeba poprawić APK: `MainActivity.onSensorChanged`).
+
 ## Instalacja przez HACS
 
 Właściciel chce instalować PanelPilot z GitHuba przez HACS. To **integracja**, nie dodatek Supervisora. HACS nie widzi prywatnych repozytoriów. Kiedy właściciel się zgodzi:

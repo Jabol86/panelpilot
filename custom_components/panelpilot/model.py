@@ -22,6 +22,7 @@ ROTATIONS = (0, 90, 180, 270)
 MODES = ("tiles", "code", "module")
 GESTURES = ("up", "down", "left", "right")
 NAV_STYLES = ("dots", "tabs", "none")
+NIGHT_MODES = ("both", "hours", "lux")
 GESTURE_KINDS = ("default", "none", "next", "prev", "page", "home", "saver", "bell", "settings", "service")
 
 DEFAULT_SETTINGS: dict[str, Any] = {
@@ -31,8 +32,12 @@ DEFAULT_SETTINGS: dict[str, Any] = {
     "darkLux": 8,
     "nightFrom": 22,
     "nightTo": 6,
+    # both = noc w godzinach nocnych albo gdy ciemno; hours = tylko zegar; lux = tylko czujnik światła
+    "nightMode": "both",
     "wakeOnProximity": True,
     "proximityHold": True,
+    # Niektóre czujniki zgłaszają „blisko” i „daleko” odwrotnie.
+    "proximityInvert": False,
     # auto = wykryj z rozmiaru ekranu; albo square/portrait/landscape, albo własny format c_…
     "format": "auto",
 }
@@ -209,9 +214,11 @@ def clean_settings(data: Any, current: dict[str, Any] | None = None) -> dict[str
                 pass
     if data.get("rotation") in ROTATIONS:
         out["rotation"] = data["rotation"]
-    for key in ("wakeOnProximity", "proximityHold"):
+    for key in ("wakeOnProximity", "proximityHold", "proximityInvert"):
         if isinstance(data.get(key), bool):
             out[key] = data[key]
+    if data.get("nightMode") in NIGHT_MODES:
+        out["nightMode"] = data["nightMode"]
     fmt = data.get("format")
     if isinstance(fmt, str) and (fmt == "auto" or fmt in FORMATS or CUSTOM_FMT_RE.match(fmt)):
         out["format"] = fmt

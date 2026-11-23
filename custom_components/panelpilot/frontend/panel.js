@@ -14,12 +14,12 @@
     lightning: ['bolt', 'Burza'], 'lightning-rainy': ['bolt', 'Burza z deszczem'], windy: ['fan', 'Wietrznie'], 'windy-variant': ['fan', 'Wietrznie'], hail: ['snow', 'Grad'], exceptional: ['bolt', 'Zjawisko ekstremalne'],
   };
   const SAVER = { seconds: 60, style: 'zegar', entities: [] };
-  const SETTINGS = { format: 'auto', rotation: 0, dayBrightness: 80, nightBrightness: 8, darkLux: 8, nightFrom: 22, nightTo: 6, wakeOnProximity: true, proximityHold: true };
+  const SETTINGS = { format: 'auto', rotation: 0, dayBrightness: 80, nightBrightness: 8, darkLux: 8, nightFrom: 22, nightTo: 6, nightMode: 'both', wakeOnProximity: true, proximityHold: true, proximityInvert: false };
 
   const widgets = {};
   const sensors = { lux: null, proximity: null };
   let ha, dash = { pages: [], saver: {}, theme: {} }, bell = {}, cfg = {}, shape = info.shape || 'auto';
-  let fmt = 'portrait', pages = [], page = 0, sleeping = false, screenOff = false, lastTouch = Date.now(), dark = false, manual = null;
+  let fmt = 'portrait', pages = [], page = 0, sleeping = false, screenOff = false, lastTouch = Date.now(), dark = false, manual = null, rawNear = null;
   let homed = null, cleanup = [], jsRun = '', nearSince = 0, loadedVersion = '', lastPing = Date.now();
   const HOLD_MAX = 3 * 60 * 1000;
 
@@ -61,6 +61,7 @@
       on(el, 'no', closeSheet); on(el, 'yes', () => { closeSheet(); fn(); });
     },
     sensor(name, value) {
+      if (name === 'proximity') { rawNear = value ? 1 : 0; if (cfg.proximityInvert) value = rawNear ? 0 : 1; }
       const before = sensors[name];
       sensors[name] = value;
       if (name === 'lux') updateDark();
@@ -147,6 +148,9 @@
       shape = ev.panel.shape || shape;
       bell = ev.doorbell || {};
       setDashboard(ev.dashboard);
+      // Nowe ustawienia (np. odwrócenie czujnika, tryb nocny) działają od razu.
+      if (rawNear != null) Panel.sensor('proximity', rawNear);
+      updateDark(true);
     } else if (ev.type === 'command') command(ev);
   }
 
@@ -498,8 +502,14 @@
     if (ha.preview) return;
     const h = new Date().getHours(), lux = sensors.lux, a = +cfg.nightFrom, b = +cfg.nightTo;
     const hours = a > b ? h >= a || h < b : h >= a && h < b;
-    // Histereza, żeby jasność nie migotała przy progu; bez czujnika decyduje zegar.
-    const next = lux == null ? hours : lux < cfg.darkLux ? true : lux > cfg.darkLux * 2.5 ? false : dark;
+    // Histereza, żeby jasność nie migotała przy progu.
+    const darkRoom = lux == null ? null : lux < cfg.darkLux ? true : lux > cfg.darkLux * 2.5 ? false : updateDark.room || false;
+    updateDark.room = darkRoom;
+    const mode = cfg.nightMode || 'both';
+    // both: noc w godzinach nocnych albo gdy w pokoju ciemno; hours: tylko zegar; lux: tylko czujnik (bez czujnika zegar).
+    const next = mode === 'hours' || darkRoom == null ? hours : mode === 'lux' ? darkRoom : hours || darkRoom;
+    // Zmiana dzień/noc kasuje ręcznie ustawioną jasność, żeby noc zawsze przygaszała ekran.
+    if (updateDark.key != null && next !== dark) manual = null;
     const auto = Math.round(Math.max(1, Math.min(100, next ? cfg.nightBrightness : cfg.dayBrightness)) * 2.55);
     const level = screenOff ? 0 : manual != null && !sleeping ? manual : auto;
     const key = level + '|' + next;
