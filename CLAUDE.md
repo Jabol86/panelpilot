@@ -120,6 +120,10 @@ Zgłoszenie: o 23:14 panel świecił jasno, a „Zbliżenie” stale pokazywało
 - Kafelek `count` (Licznik włączonych): `entities`, napis „N włączone/włączonych”; w edytorze przycisk „+ Wszystkie światła” (pole `quick`, pomija grupy świateł).
 - `navOrder()` w panel.js: przy `dashboard.home` i ≥3 stronach główna na środku paska; strona z gestu `left` po prawej, z `right` po lewej, reszta na zmianę. Gesty next/prev idą w tej kolejności.
 
+### v0.1.15
+
+Zgłoszenie: „mam najnowszą wersję, ale wielu funkcji nie mam w edytorze”. Przyczyna: podgląd w edytorze (iframe tworzony przez JS) i pliki index.html/widgets.js nie miały wersji w adresie, więc przeglądarka brała stare kopie; Ctrl+F5 ich nie odświeża. Teraz `StaticView` w http.py zamiast `register_static_paths`: `Cache-Control: no-cache`, a w index.html i w importach editor.js dopisuje `?v=VERSION`; iframe też ma `?v=`.
+
 ## Instalacja przez HACS
 
 Właściciel chce instalować PanelPilot z GitHuba przez HACS. To **integracja**, nie dodatek Supervisora. HACS nie widzi prywatnych repozytoriów. Kiedy właściciel się zgodzi:
