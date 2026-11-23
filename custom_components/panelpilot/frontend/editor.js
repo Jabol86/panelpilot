@@ -828,6 +828,8 @@ class PanelPilotEditor extends HTMLElement {
     const setFull = (k, v) => this.commit(() => { this.doc.theme = Object.assign({}, this.doc.theme); if (v) this.doc.theme[k] = v; else delete this.doc.theme[k]; });
     const cur = Object.assign({}, this.DP.THEMES.Grafit, t), range = (l, k, min, max, v, conv) => field(l, h('input', { type: 'range', min, max, value: v, oninput: e => set(k, conv(+e.target.value)) }));
     return [h('h3', {}, 'Gotowe motywy'), h('div', { class: 'themes' }, Object.entries(this.DP.THEMES).map(([n, v]) => h('button', { onclick: () => this.commit(() => { this.doc.theme = Object.assign({}, this.doc.theme, v); }) }, h('span', { class: 'sw', style: 'background:linear-gradient(90deg,' + v.bg + ' 33%,' + v.tile + ' 33% 66%,' + v.accent + ' 66%)' }), n))),
+      field(this.lbl('Styl', '„Nocne szkło”: cienkie ramki i sześciokąty w rogu, jak ekran konfiguracji aplikacji. „Terminal”: ścięte rogi, pasy ostrzegawcze, siatka sześciokątów i pismo maszynowe. Styl działa z dowolnymi kolorami poniżej.'),
+        select(t.style || '', [['', 'Zwykły'], ['glass', 'Nocne szkło'], ['hud', 'Terminal']], v => setFull('style', v))),
       h('h3', {}, 'Kolory'), h('div', { class: 'row2' }, Object.entries(this.DP.THEME_FIELDS).map(([k, l]) => field(l, h('input', { type: 'color', value: cur[k], oninput: e => set(k, e.target.value) })))),
       h('h3', {}, 'Kształt i tekst'), range('Zaokrąglenie rogów', 'radius', 0, 40, t.radius == null ? 16 : t.radius, v => v), range('Wielkość tekstu', 'scale', 80, 150, (t.scale || 1) * 100, v => v / 100), range('Krycie kafelków', 'opacity', 20, 100, t.opacity || 100, v => v),
       field('Tapeta (adres obrazka)', text(t.image, v => set('image', v.trim()), { placeholder: '/local/tapeta.jpg' })),
@@ -910,7 +912,10 @@ class PanelPilotEditor extends HTMLElement {
     b.actions = b.actions || [];
     return [h('h3', {}, 'Domofon (wspólny dla wszystkich paneli)'), field('Nazwa', text(b.name, v => set('name', v))),
       field('Dzwonek: otwiera okno', this.entityPicker(b.entity, ['binary_sensor', 'event', 'input_boolean'], v => set('entity', v, true))),
-      field('Kamera', this.entityPicker(b.camera, ['camera'], v => set('camera', v, true))),
+      h('h3', {}, 'Obraz'),
+      // Podgląd na żywo: strumień go2rtc (obraz i dźwięk) albo kamera HA; obie listy obok siebie.
+      field(this.lbl('Podgląd na żywo (strumień go2rtc)', 'Strumienie z go2rtc znalezionego w Home Assistant. Obraz idzie prosto ze strumienia, z dźwiękiem; do rozmowy źródło musi obsługiwać dźwięk zwrotny. „Bez strumienia” = obraz z kamery HA poniżej.'), this.streamPicker(b, set)),
+      field(this.lbl(b.stream ? 'Kamera HA (zdjęcia, gdy strumień nie działa)' : 'Kamera HA', 'Encja camera.* z Home Assistant. Bez strumienia go2rtc to ona daje obraz; ze strumieniem służy za zapas (zdjęcia co 1,5 s).'), this.entityPicker(b.camera, ['camera'], v => set('camera', v, true))),
       h('div', { class: 'row2' },
         field('Zamknij okno po (s)', text(b.seconds, v => set('seconds', Number(v) || 60), { type: 'number', min: 10 })),
         field('Po otwarciu zostaw (s)', text(b.after == null ? 10 : b.after, v => set('after', v === '' ? 10 : Number(v)), { type: 'number', min: 0, max: 120 }))),
@@ -933,25 +938,34 @@ class PanelPilotEditor extends HTMLElement {
       ...this.go2rtcFields(b, set)];
   }
 
-  /** go2rtc: adres wykrywany w Home Assistant (integracja go2rtc, WebRTC Camera, dodatek), strumień z listy. */
-  go2rtcFields(b, set) {
+  /** go2rtc: wynik wykrywania (adres i strumienie) wspólny dla listy strumieni i sekcji z adresem. */
+  go2rtcState() {
     const g = this.g2 = this.g2 || { busy: false, done: false, url: '', streams: [] };
-    const detect = () => {
+    g.detect = g.detect || (() => {
       g.busy = true; this.renderSides();
       this.hass.callWS({ type: 'panelpilot/admin/go2rtc_detect' }).then(r => Object.assign(g, r), () => Object.assign(g, { url: '', streams: [] }))
         .finally(() => { g.busy = false; g.done = true; this.renderSides(); });
-    };
-    if (!g.done && !g.busy) setTimeout(detect);
-    const status = g.busy ? 'Szukam go2rtc w Home Assistant…' : g.url ? 'Znaleziono go2rtc: ' + g.url + ' (' + g.streams.length + ' strumieni).' : g.done ? 'Nie znaleziono go2rtc w Home Assistant. Wpisz adres ręcznie.' : '';
-    const streams = g.streams.length ? select(b.stream || '', [['', 'Bez go2rtc (obraz z kamery HA)']].concat(g.streams.map(s => [s, s])).concat(b.stream && !g.streams.includes(b.stream) ? [[b.stream, b.stream + ' (nie ma na liście)']] : []), v => set('stream', v, true))
-      : text(b.stream, v => set('stream', v.trim()), { placeholder: 'brama' });
-    return [h('h3', {}, 'Obraz i rozmowa przez go2rtc'),
-      h('p', { class: 'dim', style: 'margin-bottom:8px' }, 'Bez strumienia panel pokazuje obraz z kamery HA. Do rozmowy wybierz strumień go2rtc, którego źródło obsługuje dźwięk zwrotny. Adres zostaw pusty, a integracja użyje go2rtc znalezionego w Home Assistant.'),
-      h('div', { class: 'btns', style: 'justify-content:flex-start;align-items:center' }, h('button', { disabled: g.busy, onclick: detect }, 'Wykryj ponownie'), h('span', { class: 'dim' }, status)),
-      field('Nazwa strumienia', streams),
-      field('Adres go2rtc (pusty = wykryty automatycznie)', text(b.go2rtc, v => set('go2rtc', v.trim()), { placeholder: g.url || 'http://192.168.1.10:1984' }))];
+    });
+    if (!g.done && !g.busy) setTimeout(g.detect);
+    return g;
   }
 
+  /** Lista strumieni go2rtc do podglądu w domofonie; bez wykrytych strumieni pole tekstowe. */
+  streamPicker(b, set) {
+    const g = this.go2rtcState();
+    if (!g.streams.length) return text(b.stream, v => set('stream', v.trim()), { placeholder: g.busy ? 'Szukam go2rtc…' : 'nazwa strumienia, np. brama' });
+    return select(b.stream || '', [['', 'Bez strumienia (obraz z kamery HA)']].concat(g.streams.map(s => [s, s]))
+      .concat(b.stream && !g.streams.includes(b.stream) ? [[b.stream, b.stream + ' (nie ma na liście)']] : []), v => set('stream', v, true));
+  }
+
+  /** Sekcja z adresem go2rtc: status wykrywania i ręczny adres. */
+  go2rtcFields(b, set) {
+    const g = this.go2rtcState();
+    const status = g.busy ? 'Szukam go2rtc w Home Assistant…' : g.url ? 'Znaleziono go2rtc: ' + g.url + ' (' + g.streams.length + ' strumieni).' : g.done ? 'Nie znaleziono go2rtc w Home Assistant. Wpisz adres ręcznie, a nazwę strumienia w polu „Podgląd na żywo”.' : '';
+    return [h('h3', {}, 'go2rtc'),
+      h('div', { class: 'btns', style: 'justify-content:flex-start;align-items:center' }, h('button', { disabled: g.busy, onclick: g.detect }, 'Wykryj ponownie'), h('span', { class: 'dim' }, status)),
+      field(this.lbl('Adres go2rtc (pusty = wykryty automatycznie)', 'Wpisz tylko wtedy, gdy go2rtc działa na innym komputerze albo nie zostało znalezione. Panel nie łączy się z tym adresem sam: obraz przekazuje integracja.'), text(b.go2rtc, v => set('go2rtc', v.trim()), { placeholder: g.url || 'http://192.168.1.10:1984' }))];
+  }
   /* ---------- kod ---------- */
   codeField(value, fn, rows) {
     const area = h('textarea', { class: 'code', spellcheck: false, rows: rows || 12, value: value || '', oninput: () => fn(area.value), onkeydown: e => { if (e.key === 'Tab' && !e.shiftKey) { e.preventDefault(); put('  '); } } });

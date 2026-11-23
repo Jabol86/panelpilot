@@ -180,13 +180,20 @@
 
   /* ---------- motywy ---------- */
   DP.THEME_FIELDS = { bg: 'Tło', tile: 'Kafelek', tile2: 'Przycisk', ink: 'Tekst', ink2: 'Tekst pomocniczy', accent: 'Akcent', on: 'Włączone', good: 'W porządku', warn: 'Ostrzeżenie' };
+  // Zwykłe motywy zerują styl i kształt, żeby po „Terminalu” czy „Nocnym szkle” nie zostały ostre rogi ani ramki.
+  const plain = { style: '', radius: 16, onStyle: '' };
   DP.THEMES = {
-    Grafit: { bg: '#11161a', tile: '#1c2328', tile2: '#2a343b', ink: '#eef2f4', ink2: '#a9b6be', accent: '#6db3f2', on: '#f2b84b', good: '#7ccf9a', warn: '#ff8f6b' },
-    Czerń: { bg: '#000000', tile: '#121212', tile2: '#222222', ink: '#f2f2f2', ink2: '#9b9b9b', accent: '#62d0c4', on: '#ffc857', good: '#79d68c', warn: '#ff7a66' },
-    Granat: { bg: '#0b1426', tile: '#15223b', tile2: '#223454', ink: '#eaf0fb', ink2: '#9db0cf', accent: '#7aa7ff', on: '#ffcf70', good: '#7fd8b0', warn: '#ff8c82' },
-    Las: { bg: '#0f1a14', tile: '#1a2a20', tile2: '#27402f', ink: '#edf5ee', ink2: '#a3bba8', accent: '#8fcf7e', on: '#f0c860', good: '#7ad0a5', warn: '#ff9366' },
-    Jasny: { bg: '#e9edf0', tile: '#ffffff', tile2: '#dde4e9', ink: '#17202a', ink2: '#566472', accent: '#1769c4', on: '#b06a00', good: '#1c7d46', warn: '#c2401c' },
+    Grafit: Object.assign({ bg: '#11161a', tile: '#1c2328', tile2: '#2a343b', ink: '#eef2f4', ink2: '#a9b6be', accent: '#6db3f2', on: '#f2b84b', good: '#7ccf9a', warn: '#ff8f6b' }, plain),
+    Czerń: Object.assign({ bg: '#000000', tile: '#121212', tile2: '#222222', ink: '#f2f2f2', ink2: '#9b9b9b', accent: '#62d0c4', on: '#ffc857', good: '#79d68c', warn: '#ff7a66' }, plain),
+    Granat: Object.assign({ bg: '#0b1426', tile: '#15223b', tile2: '#223454', ink: '#eaf0fb', ink2: '#9db0cf', accent: '#7aa7ff', on: '#ffcf70', good: '#7fd8b0', warn: '#ff8c82' }, plain),
+    Las: Object.assign({ bg: '#0f1a14', tile: '#1a2a20', tile2: '#27402f', ink: '#edf5ee', ink2: '#a3bba8', accent: '#8fcf7e', on: '#f0c860', good: '#7ad0a5', warn: '#ff9366' }, plain),
+    Jasny: Object.assign({ bg: '#e9edf0', tile: '#ffffff', tile2: '#dde4e9', ink: '#17202a', ink2: '#566472', accent: '#1769c4', on: '#b06a00', good: '#1c7d46', warn: '#c2401c' }, plain),
+    // Jak ekran konfiguracji aplikacji: czysta czerń, czerwień, biały tekst, cienkie linie, delikatne sześciokąty.
+    'Nocne szkło': { style: 'glass', bg: '#000000', tile: '#0b0b0b', tile2: '#161616', ink: '#ffffff', ink2: '#8a8a8a', accent: '#ee1c25', on: '#ee1c25', good: '#5fd3a0', warn: '#ff4d4d', radius: 12, onStyle: 'outline' },
+    // Terminal HUD: pomarańcz na czerni, ścięte rogi, pasy ostrzegawcze, siatka sześciokątów, pismo maszynowe.
+    Terminal: { style: 'hud', bg: '#050403', tile: '#0e0a05', tile2: '#1f1408', ink: '#ffd9a8', ink2: '#c8782c', accent: '#ff7a00', on: '#ff7a00', good: '#6dff8a', warn: '#ff2a2a', radius: 2, onStyle: '' },
   };
+  DP.STYLES = ['glass', 'hud'];
   DP.applyTheme = (root, theme) => {
     const t = Object.assign({}, DP.THEMES.Grafit, theme);
     Object.keys(DP.THEME_FIELDS).forEach(k => { if (DP.isColor(t[k])) root.style.setProperty('--' + k, t[k]); });
@@ -199,6 +206,8 @@
     root.dataset.icons = t.icons === 'circle' ? 'circle' : '';
     // Włączony kafelek: wypełnienie kolorem (domyślnie) albo świecąca ramka.
     root.dataset.on = t.onStyle === 'outline' ? 'outline' : '';
+    // Styl motywu: dodatkowy wygląd ponad kolory (tło z sześciokątów, ramki, pasy, pismo).
+    root.dataset.style = DP.STYLES.includes(t.style) ? t.style : '';
     if (DP.isColor(t.icbg)) root.style.setProperty('--icbg', t.icbg); else root.style.removeProperty('--icbg');
   };
 })();

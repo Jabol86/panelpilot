@@ -361,3 +361,48 @@ input[type=range] { accent-color: var(--on); min-width: 0; height: 40px; width: 
 #bell .bell-audio button { background: #0b0b0b; border: 1px solid rgba(255, 255, 255, .14); color: #fff; }
 #bell .bell-audio button.active { background: var(--red); border-color: var(--red); color: #fff; }
 .bell-msg { color: rgba(255, 255, 255, .7); }
+
+/* ---------- Motyw „Nocne szkło”: jak ekran konfiguracji (czerń, czerwień, cienkie linie, sześciokąty w rogu) ---------- */
+#root[data-style=glass] {
+  background-color: var(--bg);
+  background-image: radial-gradient(circle at 100% 100%, transparent 0, transparent 120px, var(--bg) 420px),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='56' height='100'%3E%3Cpath d='M28 66L0 50L0 16L28 0L56 16L56 50L28 66L28 100' fill='none' stroke='%23ffffff' stroke-opacity='.10'/%3E%3C/svg%3E"), var(--image);
+  background-size: auto, 56px 100px, cover; background-position: 0 0, 100% 100%, center;
+}
+#root[data-style=glass] .tile:not(.plain) { border: 1px solid #262626; }
+#root[data-style=glass] .tile.on:not(.plain) { border-color: color-mix(in srgb, var(--on) 70%, transparent); background: color-mix(in srgb, var(--on) 10%, var(--tile)); box-shadow: 0 0 16px -2px color-mix(in srgb, var(--on) 45%, transparent); }
+#root[data-style=glass] .tile.on .nm, #root[data-style=glass] .tile.on .st { color: var(--ink); }
+#root[data-style=glass] .nm { letter-spacing: .02em; }
+#root[data-style=glass] .lbl, #root[data-style=glass] .st { letter-spacing: .04em; }
+#root[data-style=glass] .sec-t { font-weight: 300; letter-spacing: .12em; }
+#root[data-style=glass] .sec-l { height: 1px; background: linear-gradient(90deg, var(--accent) 0 70px, #3a3a3a 70px); }
+#root[data-style=glass] .clock { font-weight: 200; letter-spacing: .02em; }
+#root[data-style=glass] #nav .dot[aria-current] i { box-shadow: 0 0 10px var(--accent); }
+
+/* ---------- Motyw „Terminal”: pomarańczowy HUD, ścięte rogi, pasy ostrzegawcze, siatka sześciokątów ---------- */
+#root[data-style=hud] {
+  background-color: var(--bg);
+  background-image: linear-gradient(180deg, color-mix(in srgb, var(--bg) 55%, transparent), var(--bg) 85%),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='56' height='100'%3E%3Cpath d='M28 66L0 50L0 16L28 0L56 16L56 50L28 66L28 100' fill='none' stroke='%23ff7a00' stroke-opacity='.16'/%3E%3C/svg%3E"), var(--image);
+  background-size: auto, 56px 100px, cover;
+}
+#root[data-style=hud] .tile:not(.plain) {
+  border: 1px solid color-mix(in srgb, var(--accent) 45%, transparent);
+  clip-path: polygon(0 0, calc(100% - 14px) 0, 100% 14px, 100% 100%, 0 100%);
+}
+#root[data-style=hud] .tile:not(.plain)::after { content: ''; position: absolute; top: 0; left: calc(100% - 14px); width: 20px; height: 1px; background: color-mix(in srgb, var(--accent) 70%, transparent); transform-origin: 0 0; transform: rotate(45deg); pointer-events: none; }
+#root[data-style=hud] .nm { text-transform: uppercase; letter-spacing: .12em; font-weight: 500; }
+#root[data-style=hud] .lbl, #root[data-style=hud] .st, #root[data-style=hud] .val, #root[data-style=hud] .clock { font-family: "Roboto Mono", "DejaVu Sans Mono", monospace; }
+#root[data-style=hud] .lbl, #root[data-style=hud] .st { text-transform: uppercase; letter-spacing: .14em; font-size: calc(12px * var(--scale)); }
+#root[data-style=hud] .tile.on:not(.plain) {
+  border-color: var(--on);
+  background: repeating-linear-gradient(-45deg, color-mix(in srgb, var(--on) 14%, transparent) 0 9px, transparent 9px 18px), var(--tile);
+}
+#root[data-style=hud] .tile.on .nm { color: var(--ink); }
+#root[data-style=hud] .tile.warn:not(.plain) { border-color: var(--warn); }
+#root[data-style=hud] .sec-t { text-transform: uppercase; letter-spacing: .3em; font-weight: 400; color: var(--accent); }
+#root[data-style=hud] .sec-l { height: 7px; opacity: .55; background: repeating-linear-gradient(-45deg, var(--accent) 0 6px, transparent 6px 12px); }
+#root[data-style=hud] .clock { font-weight: 300; color: var(--accent); }
+#root[data-style=hud] #nav .dot i { border-radius: 0; }
+#root[data-style=hud] #nav .dot[aria-current] i { width: 26px; height: 5px; background: repeating-linear-gradient(-45deg, var(--accent) 0 4px, transparent 4px 7px); }
+#root[data-style=hud] .cb, #root[data-style=hud] .mu-st button, #root[data-style=hud] .tv-src button { border-radius: 2px; border: 1px solid color-mix(in srgb, var(--accent) 35%, transparent); }

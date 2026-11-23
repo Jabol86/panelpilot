@@ -144,6 +144,12 @@ Zgłoszenie: „mam najnowszą wersję, ale wielu funkcji nie mam w edytorze”.
 - Przytrzymanie: `tile.holdTime` (s, 0,3–10, domyślnie 0,9) w kafelku `hold` i w przyciskach domofonu (`actions[].holdTime`, model `_hold_time`); pasek `.fill` przez `--hold`.
 - Inspektor kafelka: zwijane działy `sec()` (Podstawowe, Wygląd, Warunki, Dotknięcie, Położenie; stan w localStorage `pp-sec`) i `lbl(label, tip)` z przyciskiem (i). Pola kafelków mogą mieć `tip` i `ph`.
 
+### v0.1.19
+
+- Motywy „Nocne szkło” (`theme.style = glass`, jak ekran konfiguracji) i „Terminal” (`hud`, pomarańczowy HUD inspirowany anime, bez nazw i logo). `DP.STYLES`, `root.dataset.style`, CSS na końcu panel.css. Zwykłe motywy zerują `style`, `radius`, `onStyle`. W Wyglądzie pole „Styl”.
+- Domofon: „Podgląd na żywo (strumień go2rtc)” – lista wykrytych strumieni obok kamery HA (`streamPicker`, `go2rtcState`); kamera HA = zapas.
+- Trzeci punkt wiadomości właściciela był pusty („3.”), dopytać.
+
 ## Instalacja przez HACS
 
 Właściciel chce instalować PanelPilot z GitHuba przez HACS. To **integracja**, nie dodatek Supervisora. HACS nie widzi prywatnych repozytoriów. Kiedy właściciel się zgodzi:
