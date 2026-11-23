@@ -6,214 +6,192 @@
 <title>PanelPilot – konfiguracja</title>
 <style>
 :root {
-  --bg: #050505;
-  --panel: #0c0a08;
-  --line: #3a2410;
-  --amber: #ff8c1a;
-  --amber-dim: #8a4a0c;
-  --red: #ff2d2d;
-  --green: #39ff8a;
-  --text: #ffd9a8;
-  --muted: #a07650;
-  --cond: "Roboto Condensed", "Arial Narrow", sans-serif-condensed, sans-serif;
+  --bg: #000;
+  --card: #0b0b0b;
+  --card-on: #161616;
+  --line: #262626;
+  --line-2: #3a3a3a;
+  --text: #e8e8e8;
+  --bright: #fff;
+  --muted: #8a8a8a;
+  --ok: #5fd3a0;
+  --err: #ff4d4d;
+  --a: #ee1c25;
+  --a-soft: rgba(238,28,37,.16);
+  --a-line: rgba(238,28,37,.7);
+  --sans: "Roboto", "Segoe UI", sans-serif;
   --mono: "Roboto Mono", "DejaVu Sans Mono", monospace;
 }
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-html, body { margin: 0; height: 100%; background: var(--bg); color: var(--text); font-family: var(--cond); overflow: hidden; }
-body { user-select: none; }
+html, body { margin: 0; height: 100%; background: var(--bg); color: var(--text); font-family: var(--sans); overflow: hidden; }
+body { user-select: none; transition: background .3s; }
 
-/* obrót programowy (gdy system nie obraca ekranu) */
 #stage { position: fixed; inset: 0; overflow: hidden; }
 body.r90 #stage, body.r270 #stage { width: 100vh; height: 100vw; left: 50%; top: 50%; inset: auto; }
 body.r90 #stage { transform: translate(-50%, -50%) rotate(90deg); }
 body.r270 #stage { transform: translate(-50%, -50%) rotate(-90deg); }
 body.r180 #stage { transform: rotate(180deg); }
 
-/* tło: siatka sześciokątów i linie skanu */
-#stage::before {
-  content: ""; position: absolute; inset: 0; pointer-events: none; opacity: .16;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='56' height='97' viewBox='0 0 56 97'%3E%3Cpath d='M28 1 55 16.5v31L28 63 1 47.5v-31zM28 63v34M1 16.5 28 1M55 16.5 28 1' fill='none' stroke='%23ff8c1a' stroke-width='1'/%3E%3C/svg%3E");
-  background-size: 56px 97px;
-}
-#stage::after {
-  content: ""; position: absolute; inset: 0; pointer-events: none;
-  background: repeating-linear-gradient(0deg, rgba(0,0,0,.28) 0 1px, transparent 1px 3px);
-}
+/* delikatne sześciokąty w rogu */
+.hexes { position: absolute; right: -50px; bottom: -70px; width: 300px; height: 300px; pointer-events: none; opacity: .45; }
+.hexes path { fill: none; stroke: var(--line-2); stroke-width: 1; }
+.hexes path.a { stroke: var(--a); opacity: .8; }
 
-#scroll { position: absolute; inset: 0; overflow-y: auto; padding: 14px 16px 24px; -webkit-overflow-scrolling: touch; }
+#scroll { position: absolute; inset: 0; overflow-y: auto; padding: 22px 22px 28px; }
 
-/* nagłówek */
-header { display: flex; align-items: stretch; gap: 12px; border-bottom: 2px solid var(--amber); padding-bottom: 10px; margin-bottom: 14px; position: relative; }
-header::after { content: ""; position: absolute; left: 0; right: 0; bottom: -7px; height: 3px; background: var(--amber); opacity: .45; }
-.logo { width: 54px; height: 62px; flex: none; }
-.title { flex: 1; min-width: 0; display: flex; flex-direction: column; justify-content: center; }
-.title h1 { margin: 0; font-size: 30px; line-height: 1; letter-spacing: .14em; color: var(--amber); font-weight: 700; text-transform: uppercase; }
-.title .sub { font-size: 12px; letter-spacing: .32em; color: var(--muted); text-transform: uppercase; margin-top: 4px; }
-.meta { text-align: right; font-family: var(--mono); font-size: 11px; color: var(--muted); line-height: 1.5; display: flex; flex-direction: column; justify-content: center; }
-.meta b { color: var(--amber); font-weight: 400; font-size: 20px; letter-spacing: .06em; }
+header { display: flex; align-items: flex-start; gap: 16px; margin-bottom: 22px; padding-bottom: 14px; position: relative; }
+header::before { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 1px; background: var(--a-line); }
+header::after { content: ""; position: absolute; left: 0; bottom: -3px; width: 150px; height: 7px; background: var(--a); clip-path: polygon(0 0, 100% 0, calc(100% - 7px) 100%, 0 100%); }
+.title { flex: 1; min-width: 0; }
+.title h1 { margin: 0; font-size: 26px; font-weight: 300; letter-spacing: .32em; color: var(--bright); }
+.title .sub { margin-top: 6px; font-size: 11px; letter-spacing: .3em; color: var(--muted); text-transform: uppercase; }
+.title .sub b { color: var(--a); font-weight: 400; }
+.meta { text-align: right; font-size: 11px; color: var(--muted); line-height: 1.6; position: relative; }
+.meta .clock { font-size: 26px; font-weight: 300; color: var(--bright); letter-spacing: .04em; line-height: 1; margin-bottom: 4px; }
 
-/* układ: jedna kolumna w pionie, dwie w poziomie */
-.grid { display: grid; grid-template-columns: 1fr; gap: 14px; }
+.grid { display: grid; grid-template-columns: 1fr; gap: 12px; position: relative; }
 @media (min-aspect-ratio: 5/4) {
   .grid { grid-template-columns: 1fr 1fr; }
   .wide { grid-column: 1 / -1; }
 }
 
-section { position: relative; background: linear-gradient(180deg, rgba(255,140,26,.06), rgba(255,140,26,.015)); border: 1px solid var(--line); padding: 12px 12px 14px; clip-path: polygon(0 0, calc(100% - 18px) 0, 100% 18px, 100% 100%, 18px 100%, 0 calc(100% - 18px)); }
-section::before { content: ""; position: absolute; left: 0; top: 0; width: 4px; height: 100%; background: var(--amber); }
-.sec-h { display: flex; align-items: baseline; gap: 10px; margin: 0 0 10px 6px; }
-.sec-h .no { font-family: var(--mono); font-size: 13px; color: var(--bg); background: var(--amber); padding: 1px 6px; }
-.sec-h h2 { margin: 0; font-size: 18px; letter-spacing: .18em; text-transform: uppercase; color: var(--amber); font-weight: 700; }
-.sec-h .en { margin-left: auto; font-size: 10px; letter-spacing: .3em; color: var(--muted); text-transform: uppercase; }
+.card { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px 16px; }
+.cap { display: flex; justify-content: space-between; align-items: center; font-size: 10px; letter-spacing: .28em; text-transform: uppercase; color: var(--muted); margin-bottom: 10px; }
+.cap .st { letter-spacing: .12em; text-transform: none; font-size: 12px; display: flex; align-items: center; gap: 6px; }
+.cap .st::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--muted); }
+.cap .st.searching::before { background: var(--a); animation: pulse 1.2s ease-in-out infinite; }
+.cap .st.found { color: var(--ok); }
+.cap .st.found::before { background: var(--ok); }
+@keyframes pulse { 50% { opacity: .2; } }
 
-label.f { display: block; margin: 10px 0 4px 6px; font-size: 11px; letter-spacing: .28em; text-transform: uppercase; color: var(--muted); }
 input[type=text], input[type=url] {
-  width: 100%; height: 46px; padding: 0 12px; background: #000; color: var(--text);
-  border: 1px solid var(--amber-dim); border-left: 4px solid var(--amber); font: 18px var(--mono); outline: none; border-radius: 0;
-  user-select: text;
+  width: 100%; height: 46px; padding: 0 14px; background: rgba(0,0,0,.25); color: var(--bright);
+  border: 1px solid var(--line-2); border-radius: 8px; font: 17px var(--sans); outline: none; user-select: text;
 }
-input:focus { border-color: var(--amber); box-shadow: 0 0 0 1px var(--amber), 0 0 16px rgba(255,140,26,.35); }
-input.bad { border-color: var(--red); border-left-color: var(--red); box-shadow: 0 0 14px rgba(255,45,45,.4); }
-.err { color: var(--red); font-size: 13px; letter-spacing: .08em; margin: 6px 0 0 6px; min-height: 0; }
+input:focus { border-color: var(--a); background: var(--a-soft); }
+input.bad { border-color: var(--err); }
+.err { color: var(--err); font-size: 13px; margin-top: 6px; }
+.err:empty { display: none; }
+.hint { margin: 8px 0 0; font-size: 12px; color: var(--muted); line-height: 1.45; }
 
-/* wyszukiwanie */
-.scan { display: flex; align-items: center; gap: 12px; margin-left: 6px; font-family: var(--mono); font-size: 13px; letter-spacing: .1em; text-transform: uppercase; color: var(--amber); }
-.radar { width: 34px; height: 34px; flex: none; border-radius: 50%; border: 1px solid var(--amber-dim); position: relative; overflow: hidden; }
-.radar::before { content: ""; position: absolute; inset: 0; background: conic-gradient(from 0deg, rgba(255,140,26,.75), transparent 28%); animation: spin 1.6s linear infinite; }
-.radar::after { content: ""; position: absolute; left: 50%; top: 50%; width: 4px; height: 4px; margin: -2px; background: var(--amber); border-radius: 50%; }
-.scan.done .radar::before { animation: none; background: none; }
-.scan.done.ok { color: var(--green); }
-.scan.done.ok .radar { border-color: var(--green); }
-.scan.done.ok .radar::after { background: var(--green); box-shadow: 0 0 8px var(--green); }
-@keyframes spin { to { transform: rotate(360deg); } }
-.blink { animation: blink 1s steps(2) infinite; }
-@keyframes blink { 50% { opacity: .25; } }
+.found { display: grid; gap: 8px; margin-bottom: 10px; }
+.found:empty { display: none; }
+.host { display: flex; align-items: center; gap: 12px; min-height: 54px; padding: 8px 14px; background: rgba(0,0,0,.2); border: 1px solid var(--line-2); border-radius: 10px; color: var(--text); font: inherit; text-align: left; width: 100%; }
+.host svg { width: 22px; height: 25px; flex: none; }
+.host svg path { fill: none; stroke: var(--muted); stroke-width: 1.5; }
+.host .n { font-size: 16px; color: var(--bright); }
+.host .a { font-size: 12px; color: var(--muted); font-family: var(--mono); }
+.host .tag { margin-left: auto; font-size: 11px; color: var(--ok); }
+.host.on { border-color: var(--a-line); background: var(--a-soft); }
+.host.on svg path { stroke: var(--a); }
 
-.found { display: grid; gap: 8px; margin-top: 10px; }
-.host { display: flex; align-items: center; gap: 12px; min-height: 56px; padding: 8px 12px; background: #000; border: 1px solid var(--amber-dim); color: var(--text); font: inherit; text-align: left; width: 100%; }
-.host .hx { width: 26px; height: 30px; flex: none; }
-.host .n { font-size: 18px; letter-spacing: .08em; text-transform: uppercase; }
-.host .a { font-family: var(--mono); font-size: 13px; color: var(--muted); }
-.host .tag { margin-left: auto; font-family: var(--mono); font-size: 11px; letter-spacing: .14em; color: var(--green); border: 1px solid var(--green); padding: 2px 6px; }
-.host.on { border-color: var(--amber); background: rgba(255,140,26,.12); box-shadow: inset 4px 0 0 var(--amber); }
-
-/* wybór kształtu i obrotu */
 .opts { display: grid; gap: 8px; }
 .opts.three { grid-template-columns: repeat(3, 1fr); }
 .opts.four { grid-template-columns: repeat(4, 1fr); }
-.opt { position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; min-height: 92px; padding: 8px 4px; background: #000; color: var(--muted); border: 1px solid var(--line); font: inherit; text-transform: uppercase; letter-spacing: .12em; font-size: 13px; }
-.opt small { font-family: var(--mono); font-size: 10px; letter-spacing: .04em; text-transform: none; color: var(--muted); opacity: .85; }
-.opt svg { width: 40px; height: 40px; }
-.opt svg .s { fill: none; stroke: currentColor; stroke-width: 2; }
+.opt { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 5px; min-height: 84px; padding: 8px 4px; background: rgba(0,0,0,.2); color: var(--muted); border: 1px solid var(--line); border-radius: 10px; font: 13px var(--sans); }
+.opt small { font-size: 10px; color: var(--muted); opacity: .8; }
+.opt svg { width: 34px; height: 34px; }
+.opt svg .s { fill: none; stroke: currentColor; stroke-width: 1.5; }
 .opt svg .d { fill: currentColor; }
-.opt.on { color: var(--amber); border-color: var(--amber); background: rgba(255,140,26,.1); box-shadow: 0 0 18px rgba(255,140,26,.25) inset; }
-.opt.on::after { content: ""; position: absolute; right: 4px; top: 4px; width: 8px; height: 8px; background: var(--amber); }
-.opts.four .opt { min-height: 78px; }
+.opt.on { color: var(--a); border-color: var(--a-line); background: var(--a-soft); }
+.opts.four .opt { min-height: 70px; }
 
-.toggle { display: flex; align-items: center; gap: 12px; margin: 12px 0 0 6px; font-size: 14px; letter-spacing: .06em; color: var(--text); }
-.sw { width: 52px; height: 26px; flex: none; border: 1px solid var(--amber-dim); background: #000; position: relative; }
-.sw::after { content: ""; position: absolute; top: 3px; left: 3px; width: 18px; height: 18px; background: var(--amber-dim); transition: left .15s, background .15s; }
-.toggle.on .sw { border-color: var(--amber); }
-.toggle.on .sw::after { left: 29px; background: var(--amber); box-shadow: 0 0 10px var(--amber); }
-.hint { margin: 8px 0 0 6px; font-size: 12px; color: var(--muted); letter-spacing: .04em; line-height: 1.4; }
+.toggle { display: flex; align-items: center; gap: 12px; margin-top: 12px; font-size: 14px; }
+.sw { width: 44px; height: 24px; flex: none; border-radius: 12px; background: var(--line-2); position: relative; transition: background .2s; }
+.sw::after { content: ""; position: absolute; top: 3px; left: 3px; width: 18px; height: 18px; border-radius: 50%; background: var(--muted); transition: left .2s, background .2s; }
+.toggle.on .sw { background: var(--a-soft); box-shadow: inset 0 0 0 1px var(--a-line); }
+.toggle.on .sw::after { left: 23px; background: var(--a); }
+.toggle small { color: var(--muted); }
 
-/* przyciski */
-.engage { position: relative; display: block; width: 100%; height: 74px; margin-top: 2px; border: 0; padding: 0; background: var(--amber); color: #000; font: 700 26px var(--cond); letter-spacing: .3em; text-transform: uppercase; clip-path: polygon(14px 0, 100% 0, 100% calc(100% - 14px), calc(100% - 14px) 100%, 0 100%, 0 14px); }
-.engage::before, .engage::after { content: ""; position: absolute; top: 0; bottom: 0; width: 46px; background: repeating-linear-gradient(-45deg, #000 0 8px, transparent 8px 16px); opacity: .85; }
-.engage::before { left: 0; }
-.engage::after { right: 0; }
-.engage span { position: relative; z-index: 1; }
-.engage .en { display: block; font: 400 10px var(--mono); letter-spacing: .45em; margin-top: 2px; }
-.engage:active { filter: brightness(1.25); }
+.engage { display: block; width: 100%; height: 60px; background: transparent; color: var(--a); border: 1px solid var(--a); border-radius: 12px; font: 300 20px var(--sans); letter-spacing: .4em; text-indent: .4em; }
+.engage:active { background: var(--a-soft); }
 .row { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px; margin-top: 10px; }
-.sec { min-height: 48px; background: #000; color: var(--amber); border: 1px solid var(--amber-dim); font: 14px var(--cond); letter-spacing: .14em; text-transform: uppercase; }
-.sec.danger { color: var(--red); border-color: rgba(255,45,45,.5); }
-button:active { filter: brightness(1.4); }
+.sec { min-height: 44px; background: transparent; color: var(--text); border: 1px solid var(--line-2); border-radius: 10px; font: 13px var(--sans); letter-spacing: .06em; }
+.sec.danger { color: var(--err); border-color: rgba(255,107,107,.35); }
+.sec:active { background: var(--card-on); }
 
-footer { display: flex; justify-content: space-between; margin-top: 16px; font-family: var(--mono); font-size: 10px; letter-spacing: .2em; color: var(--muted); text-transform: uppercase; opacity: .8; }
+footer { display: flex; justify-content: space-between; margin-top: 18px; font-size: 10px; letter-spacing: .22em; color: var(--muted); text-transform: uppercase; position: relative; }
 
-/* okno potwierdzenia */
-#modal { position: absolute; inset: 0; background: rgba(0,0,0,.78); display: none; align-items: center; justify-content: center; padding: 20px; z-index: 5; }
+#modal { position: absolute; inset: 0; background: rgba(0,0,0,.82); display: none; align-items: center; justify-content: center; padding: 20px; z-index: 5; }
 #modal.show { display: flex; }
-.box { width: min(440px, 100%); background: #0a0000; border: 2px solid var(--red); padding: 0 0 16px; box-shadow: 0 0 40px rgba(255,45,45,.35); }
-.box .bar { height: 26px; background: repeating-linear-gradient(-45deg, var(--red) 0 12px, #000 12px 24px); }
-.box h3 { margin: 14px 16px 6px; color: var(--red); font-size: 22px; letter-spacing: .22em; text-transform: uppercase; }
-.box p { margin: 0 16px 14px; font-size: 16px; line-height: 1.4; }
-.box .row { margin: 0 16px; }
+.box { width: min(420px, 100%); background: #0b0b0b; border: 1px solid var(--line-2); border-radius: 14px; padding: 20px; }
+.box h3 { margin: 0 0 8px; font-weight: 400; font-size: 18px; color: var(--bright); }
+.box p { margin: 0 0 16px; font-size: 15px; line-height: 1.45; color: var(--text); }
+.box .row { margin: 0; }
 </style>
 </head>
 <body>
 <div id="stage">
+  <svg class="hexes" viewBox="0 0 300 300" aria-hidden="true">
+    <path class="a" d="M180 40l34 20v39l-34 20-34-20V60z"/>
+    <path d="M222 104l34 20v39l-34 20-34-20v-39z"/>
+    <path d="M138 104l34 20v39l-34 20-34-20v-39z"/>
+    <path d="M264 40l34 20v39l-34 20-34-20V60z"/>
+    <path d="M180 168l34 20v39l-34 20-34-20v-39z"/>
+  </svg>
   <div id="scroll">
     <header>
-      <svg class="logo" viewBox="0 0 54 62" aria-hidden="true">
-        <path d="M27 2 52 16.5v29L27 60 2 45.5v-29z" fill="none" stroke="#ff8c1a" stroke-width="2.5"/>
-        <path d="M27 11 44 21v20L27 51 10 41V21z" fill="rgba(255,140,26,.14)" stroke="#ff8c1a" stroke-width="1"/>
-        <text x="27" y="36" text-anchor="middle" fill="#ff8c1a" font-family="Roboto Condensed, sans-serif" font-weight="700" font-size="15" letter-spacing="1">PP</text>
-      </svg>
       <div class="title">
-        <h1>PanelPilot</h1>
-        <div class="sub">Konfiguracja · System setup</div>
+        <h1>PANELPILOT</h1>
+        <div class="sub">Konfiguracja · <b>Setup</b></div>
       </div>
-      <div class="meta"><b id="clock">--:--</b><span id="model"></span><span id="ver"></span></div>
+      <div class="meta">
+        <div class="clock" id="clock">--:--</div>
+        <div id="model"></div>
+      </div>
     </header>
 
     <div class="grid">
-      <section class="wide">
-        <div class="sec-h"><span class="no">01</span><h2>Home Assistant</h2><span class="en">Network scan</span></div>
-        <div class="scan" id="scan"><div class="radar"></div><span id="scanText" class="blink">Szukam w sieci…</span></div>
+      <div class="card wide">
+        <div class="cap"><span>Home Assistant</span><span class="st searching" id="scan">Szukam w sieci…</span></div>
         <div class="found" id="found"></div>
-        <label class="f" for="url">Adres serwera</label>
         <input id="url" type="url" inputmode="url" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="http://192.168.1.10:8123">
         <div class="err" id="urlErr"></div>
-      </section>
+      </div>
 
-      <section>
-        <div class="sec-h"><span class="no">02</span><h2>Identyfikator</h2><span class="en">Unit name</span></div>
-        <label class="f" for="name">Nazwa panelu</label>
-        <input id="name" type="text" autocomplete="off" maxlength="40" placeholder="np. Kuchnia">
+      <div class="card">
+        <div class="cap"><span>Nazwa panelu</span></div>
+        <input id="name" type="text" autocomplete="off" maxlength="40" placeholder="Kuchnia">
         <p class="hint">Pod tą nazwą panel pojawi się w Home Assistant.</p>
-      </section>
+      </div>
 
-      <section>
-        <div class="sec-h"><span class="no">03</span><h2>Ekran</h2><span class="en">Display</span></div>
+      <div class="card">
+        <div class="cap"><span>Ekran</span></div>
         <div class="opts three" id="shape">
-          <button class="opt" data-v="auto"><svg viewBox="0 0 40 40"><path class="s" d="M20 3 35 11.5v17L20 37 5 28.5v-17z"/><text x="20" y="25" text-anchor="middle" class="d" font-size="12" font-weight="700">A</text></svg>Auto<small id="det"></small></button>
-          <button class="opt" data-v="square"><svg viewBox="0 0 40 40"><rect class="s" x="7" y="7" width="26" height="26"/></svg>Kwadrat<small>NSPanel Pro 86</small></button>
-          <button class="opt" data-v="rect"><svg viewBox="0 0 40 40"><rect class="s" x="11" y="3" width="18" height="34"/></svg>Prostokąt<small>NSPanel Pro 120</small></button>
+          <button class="opt" data-v="auto"><svg viewBox="0 0 34 34"><path class="s" d="M17 3l12 7v14l-12 7-12-7V10z"/><circle class="d" cx="17" cy="17" r="3"/></svg>Auto<small id="det"></small></button>
+          <button class="opt" data-v="square"><svg viewBox="0 0 34 34"><rect class="s" x="6" y="6" width="22" height="22" rx="2"/></svg>Kwadrat<small>Pro 86</small></button>
+          <button class="opt" data-v="rect"><svg viewBox="0 0 34 34"><rect class="s" x="9" y="3" width="16" height="28" rx="2"/></svg>Prostokąt<small>Pro 120</small></button>
         </div>
-      </section>
+      </div>
 
-      <section class="wide">
-        <div class="sec-h"><span class="no">04</span><h2>Orientacja</h2><span class="en">Rotation</span></div>
+      <div class="card wide">
+        <div class="cap"><span>Obrót</span><span style="letter-spacing:.06em;text-transform:none">działa od razu</span></div>
         <div class="opts four" id="rot">
-          <button class="opt" data-v="0"><svg viewBox="0 0 40 40"><rect class="s" x="12" y="4" width="16" height="32"/><rect class="d" x="16" y="7" width="8" height="3"/></svg>0°</button>
-          <button class="opt" data-v="90"><svg viewBox="0 0 40 40"><rect class="s" x="4" y="12" width="32" height="16"/><rect class="d" x="30" y="16" width="3" height="8"/></svg>90°</button>
-          <button class="opt" data-v="180"><svg viewBox="0 0 40 40"><rect class="s" x="12" y="4" width="16" height="32"/><rect class="d" x="16" y="30" width="8" height="3"/></svg>180°</button>
-          <button class="opt" data-v="270"><svg viewBox="0 0 40 40"><rect class="s" x="4" y="12" width="32" height="16"/><rect class="d" x="7" y="16" width="3" height="8"/></svg>270°</button>
+          <button class="opt" data-v="0"><svg viewBox="0 0 34 34"><rect class="s" x="10" y="3" width="14" height="28" rx="2"/><rect class="d" x="14" y="6" width="6" height="2"/></svg>0°</button>
+          <button class="opt" data-v="90"><svg viewBox="0 0 34 34"><rect class="s" x="3" y="10" width="28" height="14" rx="2"/><rect class="d" x="26" y="14" width="2" height="6"/></svg>90°</button>
+          <button class="opt" data-v="180"><svg viewBox="0 0 34 34"><rect class="s" x="10" y="3" width="14" height="28" rx="2"/><rect class="d" x="14" y="26" width="6" height="2"/></svg>180°</button>
+          <button class="opt" data-v="270"><svg viewBox="0 0 34 34"><rect class="s" x="3" y="10" width="28" height="14" rx="2"/><rect class="d" x="6" y="14" width="2" height="6"/></svg>270°</button>
         </div>
-        <p class="hint">Ekran obraca się od razu, żebyś widział/a efekt. Później zmienisz to też w Home Assistant.</p>
-        <div class="toggle" id="css"><div class="sw"></div><span>Obracaj obraz w aplikacji <small style="color:var(--muted)">(gdy ekran się nie obraca)</small></span></div>
-      </section>
+        <div class="toggle" id="css"><div class="sw"></div><span>Obracaj obraz w aplikacji <small>gdy ekran się nie obraca</small></span></div>
+      </div>
 
-      <section class="wide" style="clip-path:none;background:none;border:0;padding:0">
-        <button class="engage" id="go"><span>Uruchom<span class="en">Engage system</span></span></button>
+      <div class="wide">
+        <button class="engage" id="go">URUCHOM</button>
         <div class="row">
           <button class="sec" id="home">Ekran główny</button>
           <button class="sec" id="android">Ustawienia Androida</button>
           <button class="sec danger" id="forget" hidden>Zapomnij logowanie</button>
         </div>
-      </section>
+      </div>
     </div>
 
-    <footer><span>PanelPilot</span><span id="dims"></span><span>Status: <span id="status">Standby</span></span></footer>
+    <footer><span id="ver"></span><span id="dims"></span></footer>
   </div>
 
   <div id="modal">
     <div class="box">
-      <div class="bar"></div>
-      <h3>Uwaga</h3>
-      <p>Usunąć zapisane logowanie? Panel trzeba będzie sparować z Home Assistant od nowa.</p>
+      <h3>Zapomnieć logowanie?</h3>
+      <p>Panel trzeba będzie sparować z Home Assistant od nowa.</p>
       <div class="row"><button class="sec" id="no">Anuluj</button><button class="sec danger" id="yes">Usuń</button></div>
     </div>
   </div>
@@ -223,17 +201,17 @@ footer { display: flex; justify-content: space-between; margin-top: 16px; font-f
 'use strict';
 // Most do aplikacji (window.Setup). Bez niego, np. w przeglądarce, strona działa na danych pokazowych.
 const N = window.Setup || {
-  info: () => JSON.stringify({ url: '', name: 'Panel', shape: 'auto', rotation: 0, cssRotation: false, width: 750, height: 1262, kind: 'prostokąt', model: 'Przeglądarka', version: 'dev', configured: true, scan: 'searching', found: [] }),
+  info: () => JSON.stringify({ url: '', name: 'Panel', shape: 'auto', rotation: 0, cssRotation: false, accent: 'red', width: 750, height: 1262, kind: 'prostokąt', model: 'Przeglądarka', version: 'dev', configured: true, scan: 'searching', found: [] }),
   rotate: () => {}, save: () => '', home: () => {}, system: () => {}, forget: () => {},
 };
 const $ = id => document.getElementById(id);
 const info = JSON.parse(N.info());
-const state = { shape: info.shape, rotation: info.rotation, css: info.cssRotation, url: '' };
+const state = { shape: info.shape, rotation: info.rotation, css: info.cssRotation };
 
 $('url').value = info.url;
 $('name').value = info.name;
 $('model').textContent = info.model;
-$('ver').textContent = 'v' + info.version;
+$('ver').textContent = 'PanelPilot v' + info.version;
 $('det').textContent = info.width + '×' + info.height;
 $('forget').hidden = !info.configured;
 
@@ -249,10 +227,13 @@ addEventListener('resize', tick);
 function pick(groupId, value) {
   for (const b of $(groupId).children) b.classList.toggle('on', b.dataset.v === String(value));
 }
-function applyRotation() {
+function paint() {
+  document.body.className = state.css && state.rotation ? 'r' + state.rotation : '';
   pick('rot', state.rotation);
   $('css').classList.toggle('on', state.css);
-  document.body.className = state.css && state.rotation ? 'r' + state.rotation : '';
+}
+function applyRotation() {
+  paint();
   N.rotate(state.rotation, state.css);
 }
 pick('shape', state.shape);
@@ -270,9 +251,6 @@ $('css').addEventListener('click', () => { state.css = !state.css; applyRotation
 
 // ---- wyszukiwanie HA ----
 const seen = new Set();
-function hex() {
-  return '<svg class="hx" viewBox="0 0 26 30"><path d="M13 1 25 8v14L13 29 1 22V8z" fill="none" stroke="#39ff8a" stroke-width="2"/><circle cx="13" cy="15" r="3" fill="#39ff8a"/></svg>';
-}
 function markHosts() {
   for (const b of $('found').children) b.classList.toggle('on', b.dataset.a === $('url').value.trim());
 }
@@ -282,7 +260,7 @@ window.onFound = (name, address) => {
   const b = document.createElement('button');
   b.className = 'host';
   b.dataset.a = address;
-  b.innerHTML = hex() + '<div><div class="n"></div><div class="a"></div></div><span class="tag">Online</span>';
+  b.innerHTML = '<svg viewBox="0 0 22 25"><path d="M11 1.5l9 5.2v11.6l-9 5.2-9-5.2V6.7z"/></svg><div><div class="n"></div><div class="a"></div></div><span class="tag">● online</span>';
   b.querySelector('.n').textContent = name;
   b.querySelector('.a').textContent = address;
   b.onclick = () => { $('url').value = address; clearErr(); markHosts(); };
@@ -292,30 +270,26 @@ window.onFound = (name, address) => {
   window.onScan('found');
 };
 window.onScan = s => {
-  const el = $('scan'), t = $('scanText');
-  el.classList.toggle('done', s !== 'searching');
-  el.classList.toggle('ok', s === 'found');
-  t.classList.toggle('blink', s === 'searching');
-  t.textContent = s === 'searching' ? 'Szukam w sieci…'
+  const el = $('scan');
+  el.className = 'st ' + s;
+  el.textContent = s === 'searching' ? 'Szukam w sieci…'
     : s === 'found' ? 'Znaleziono: ' + seen.size
-    : s === 'failed' ? 'Wyszukiwanie niedostępne – wpisz adres'
-    : 'Nie znaleziono – wpisz adres ręcznie';
+    : s === 'failed' ? 'Wpisz adres ręcznie'
+    : 'Nie znaleziono – wpisz adres';
 };
 for (const f of info.found) window.onFound(f.name, f.address);
 window.onScan(info.found.length ? 'found' : info.scan);
-if (!window.Setup) setTimeout(() => window.onFound('Dom', 'http://192.168.1.10:8123'), 1500);
+if (!window.Setup) setTimeout(() => window.onFound('Dom', 'http://192.168.1.10:8123'), 1200);
 
 $('url').addEventListener('input', () => { clearErr(); markHosts(); });
 function clearErr() { $('url').classList.remove('bad'); $('urlErr').textContent = ''; }
 
 // ---- akcje ----
 $('go').onclick = () => {
-  $('status').textContent = 'Engage';
   const err = N.save(JSON.stringify({ url: $('url').value, name: $('name').value, shape: state.shape, rotation: state.rotation, cssRotation: state.css }));
   if (err) {
     $('url').classList.add('bad');
     $('urlErr').textContent = err;
-    $('status').textContent = 'Error';
     $('url').focus();
   }
 };
@@ -323,7 +297,7 @@ $('home').onclick = () => N.home();
 $('android').onclick = () => N.system();
 $('forget').onclick = () => $('modal').classList.add('show');
 $('no').onclick = () => $('modal').classList.remove('show');
-$('yes').onclick = () => { N.forget(); $('modal').classList.remove('show'); $('status').textContent = 'Reset'; };
+$('yes').onclick = () => { N.forget(); $('modal').classList.remove('show'); };
 </script>
 </body>
 </html>

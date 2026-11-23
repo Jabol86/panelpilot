@@ -49,7 +49,8 @@ Fakty o NSPanel Pro 120: Android 8.1, 750×1334 przy 240 dpi. Czujniki światła
 - Repo `panelpilot` jest **publiczne**; integracja zainstalowana u właściciela przez HACS.
 - APK zainstalowane na NSPanel Pro 120 przez `tools/install-panel.ps1`. Ekran konfiguracji działa, mDNS znalazł HA. Ekran zgłasza 750×1262 w pionie; panel wisi poziomo, więc potrzebny jest obrót 90° albo 270°.
 - v0.1.1: ekran konfiguracji przepisany na HTML (`android/app/src/main/assets/setup.html`, most JS `Setup` w `SetupActivity`) w stylu terminala HUD inspirowanym Evangelionem (czarne tło, pomarańcz, sześciokąty, pasy ostrzegawcze). Bez logo i nazw z anime. Obrót działa od razu jako podgląd. Podgląd w przeglądarce: `tools/serve.ps1`, potem `/setup/setup.html`.
-- Właściciel lubi tę estetykę; można ją też zaproponować jako motyw pulpitu.
+- Właściciel uznał v0.1.1 za „zbyt agresywne”. Spośród 4 pokazanych wariantów wybrał „D · Nocne szkło” (spokojne karty, cienkie linie, delikatne sześciokąty), ale w kolorach: **czysta czerń, intensywna czerwień #ee1c25, biały tekst**. Kolor ustala projekt, nie użytkownik (wyraźnie tak chciał). To jest v0.1.2.
+- Tę estetykę można zaproponować jako motyw pulpitu.
 
 ## Instalacja przez HACS
 
