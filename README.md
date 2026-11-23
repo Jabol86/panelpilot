@@ -4,7 +4,7 @@ Panel ścienny dla Home Assistant na **Sonoff NSPanel Pro 86** (kwadrat) i **NSP
 
 *Home Assistant wall panel for NSPanel Pro: visual dashboard editor inside HA, full HTML/CSS/JS mode, screensaver, sensors, doorbell with two-way audio. The interface is Polish only for now.*
 
-> **Wersja testowa 0.1.13.** Integracja ma testy automatyczne na Home Assistant 2026.10, a interfejs sprawdzono w przeglądarce. Nie sprawdzono jeszcze na fizycznym panelu: obrotu, czujników, mikrofonu ani rozmowy przez domofon.
+> **Wersja testowa 0.1.14.** Integracja ma testy automatyczne na Home Assistant 2026.10, a interfejs sprawdzono w przeglądarce. Nie sprawdzono jeszcze na fizycznym panelu: obrotu, czujników, mikrofonu ani rozmowy przez domofon.
 
 ## Co potrafi
 

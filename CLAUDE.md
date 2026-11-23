@@ -113,6 +113,13 @@ Zgłoszenie: o 23:14 panel świecił jasno, a „Zbliżenie” stale pokazywało
 - Tryb nocny: wcześniej z czujnikiem światła godziny były pomijane (liczyły się tylko lx). Teraz `settings.nightMode` = `both` (domyślnie: godziny nocne albo ciemno) / `hours` / `lux`. Przy zmianie dzień↔noc ręczna jasność (`manual`, z suwaka albo z encji ekranu) wraca na automatyczną.
 - Zbliżenie: `settings.proximityInvert` odwraca odczyt w panel.js (`rawNear`, działa od razu po zapisie). APK bez zmian. **Nie potwierdzono** na panelu, czy czujnik jest odwrócony, czy zgłasza „daleko” poniżej `maximumRange` (wtedy odwrócenie nie pomoże i trzeba poprawić APK: `MainActivity.onSensorChanged`).
 
+### v0.1.14
+
+- Przyciski głośności 84×64 px (wspólne `volBox`/`volClick` w widgets.js).
+- Kafelek `tv` (Telewizor): media_player + opcjonalny `remote` (Philips: `remote.send_command` z CursorUp/Down/Left/Right, Confirm, Back, Home; `keys` JSON nadpisuje kody). Zasilanie, wyciszenie, kanały (next/previous_track), źródło, głośność. Niesprawdzone z prawdziwym Philipsem.
+- Kafelek `count` (Licznik włączonych): `entities`, napis „N włączone/włączonych”; w edytorze przycisk „+ Wszystkie światła” (pole `quick`, pomija grupy świateł).
+- `navOrder()` w panel.js: przy `dashboard.home` i ≥3 stronach główna na środku paska; strona z gestu `left` po prawej, z `right` po lewej, reszta na zmianę. Gesty next/prev idą w tej kolejności.
+
 ## Instalacja przez HACS
 
 Właściciel chce instalować PanelPilot z GitHuba przez HACS. To **integracja**, nie dodatek Supervisora. HACS nie widzi prywatnych repozytoriów. Kiedy właściciel się zgodzi:

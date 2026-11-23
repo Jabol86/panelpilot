@@ -565,7 +565,12 @@ class PanelPilotEditor extends HTMLElement {
     const set = (k, v, full) => this.commit(() => { if (v === '' || v == null) delete t[k]; else t[k] = v; }, full ? {} : { key: t.id + k, quiet: true });
     const fields = (w.fields || []).map(f => {
       if (f.t === 'entity') return field(f.l, this.entityPicker(t[f.k], f.d, v => set(f.k, v, true)));
-      if (f.t === 'entities') return group(f.l, this.entityList(t[f.k] || [], f.d, v => set(f.k, v, true)));
+      if (f.t === 'entities') return group(f.l, this.entityList(t[f.k] || [], f.d, v => set(f.k, v, true)),
+        // Szybkie wypełnienie, np. wszystkie światła (bez grup świateł, żeby nie liczyć ich podwójnie).
+        ...(f.quick || []).map(([dom, label]) => h('button', { type: 'button', class: 'add', onclick: () => {
+          const all = Object.keys(this.hass.states).filter(id => id.startsWith(dom + '.') && !Array.isArray(this.hass.states[id].attributes.entity_id)).sort();
+          set(f.k, [...new Set((t[f.k] || []).concat(all))], true);
+        } }, label)));
       if (f.t === 'bool') return check(f.l, t[f.k] === undefined ? f.def : t[f.k], v => this.commit(() => { t[f.k] = v; }, { quiet: true }));
       if (f.t === 'area') return field(f.l, h('textarea', { value: t[f.k] || '', rows: 4, oninput: e => set(f.k, e.target.value) }));
       if (f.t === 'code') return group(f.l, this.codeField(t[f.k], v => set(f.k, v), 7));
@@ -818,6 +823,7 @@ class PanelPilotEditor extends HTMLElement {
     const out = [h('h3', {}, 'Strona główna'),
       field('Od niej panel startuje i do niej wraca po wygaszaczu', select(this.doc.home || '', [['', 'Pierwsza (' + this.doc.pages[0].name + ')']].concat(this.doc.pages.map(x => [x.name, x.name])), v => this.commit(() => { if (v) this.doc.home = v; else delete this.doc.home; }))),
       h('p', { class: 'dim', style: 'margin:-4px 0 8px' }, 'Gest na „Wybraną stronę” działa w obie strony: np. ze strony głównej w lewo na Oświetlenie, potem w prawo z powrotem na główną, a kolejne w prawo na Muzykę.'),
+      h('p', { class: 'dim', style: 'margin:-4px 0 8px' }, 'Gdy wybierzesz stronę główną (i są co najmniej 3 strony), jej kropka jest na środku paska. Strona z gestu „w lewo” stoi po prawej, z gestu „w prawo” po lewej, a „Następna/Poprzednia strona” idą w tej kolejności.'),
       h('h3', {}, 'Przesunięcie palcem')];
     [['up', 'W górę ↑'], ['down', 'W dół ↓'], ['left', 'W lewo ←'], ['right', 'W prawo →']].forEach(([dir, label]) => {
       const cur = g[dir] || { kind: 'default' }, set = o => this.commit(() => { this.doc.gestures = Object.assign({}, this.doc.gestures, { [dir]: Object.assign({}, cur, o) }); });

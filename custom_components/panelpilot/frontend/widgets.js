@@ -255,8 +255,7 @@
       { k: 'stations', l: 'Przyciski stacji', t: 'stations' }],
     mount(el, t) {
       const vol = t.vol === 'slider' ? '<input type="range" min="0" max="100" aria-label="Głośność">'
-        : t.vol === 'none' ? '' : '<div class="mu-vol"><div class="mu-meter" aria-hidden="true">' + '<i></i>'.repeat(10) + '<span></span></div>'
-          + '<div class="mu-vb"><button class="cb" data-v="-1" aria-label="Ciszej">' + ic('minus') + '</button><button class="cb" data-v="1" aria-label="Głośniej">' + ic('plus') + '</button></div></div>';
+        : t.vol === 'none' ? '' : volBox();
       el.innerHTML = '<div class="mu"><div class="mu-top"><div class="mu-title"></div><select aria-label="Wyjście dźwięku"></select></div><div class="mu-ctl"><button class="cb" data-m="play" aria-label="Odtwarzaj lub wstrzymaj"></button><button class="cb" data-m="next" aria-label="Następny">' + ic('next') + '</button><span class="mu-sp"></span>' + vol + '</div><div class="mu-st">'
         + (t.stations || []).map((s, i) => '<button data-s="' + i + '">' + (/^(\/|https?:)/.test(s.image || '') ? '<img src="' + esc(s.image) + '" alt="' + esc(s.name) + '">' : esc(s.name)) + '</button>').join('') + '</div></div>';
       // Ile stacji w rzędzie: reszta przechodzi do kolejnych rzędów, które dzielą wysokość kafelka.
@@ -273,16 +272,7 @@
       el.addEventListener('click', e => {
         const b = e.target.closest('button');
         if (!b) return;
-        if (b.dataset.v) {
-          // Przyciski od razu pokazują nową głośność; do HA idzie jedna zmiana po serii dotknięć.
-          const a = (P.state(t.entity) || {}).attributes || {}, step = Math.max(1, Math.min(25, +t.volStep || 5));
-          const cur = el._vol != null ? el._vol : Math.round((a.volume_level || 0) * 100);
-          el._vol = Math.max(0, Math.min(100, Math.round((cur + step * b.dataset.v) / step) * step));
-          meter(el, el._vol);
-          clearTimeout(el._volT); el._volT = setTimeout(() => { el._vol = null; }, 3000);
-          if (!P.ha.preview) setVol(el._vol);
-          return;
-        }
+        if (b.dataset.v) return volClick(el, t, +b.dataset.v);
         if (P.ha.preview) return;
         if (b.dataset.m) return P.service(b.dataset.m === 'play' ? 'media_player.media_play_pause' : 'media_player.media_next_track', { entity_id: t.entity });
         const s = t.stations[+b.dataset.s];
@@ -300,6 +290,79 @@
       sel.hidden = !list.length;
       if (document.activeElement !== sel) sel.innerHTML = list.map(x => '<option' + (x === now ? ' selected' : '') + '>' + esc(x) + '</option>').join('');
       el.querySelectorAll('[data-s]').forEach((b, i) => b.classList.toggle('active', !!a.media_title && a.media_title === t.stations[i].name));
+    },
+  });
+
+  /** Przyciski głośności: od razu pokazują nową wartość, do HA idzie jedna zmiana po serii dotknięć. */
+  function volClick(el, t, dir) {
+    const a = (P.state(t.entity) || {}).attributes || {}, step = Math.max(1, Math.min(25, +t.volStep || 5));
+    const cur = el._vol != null ? el._vol : Math.round((a.volume_level || 0) * 100);
+    el._vol = Math.max(0, Math.min(100, Math.round((cur + step * dir) / step) * step));
+    meter(el, el._vol);
+    clearTimeout(el._volT); el._volT = setTimeout(() => { el._vol = null; }, 3000);
+    if (P.ha.preview) return;
+    const v = el._vol;
+    clearTimeout(el._volS);
+    el._volS = setTimeout(() => P.service('media_player.volume_set', { entity_id: t.entity, volume_level: v / 100 }), 250);
+  }
+  const volBox = () => '<div class="mu-vol"><div class="mu-meter" aria-hidden="true">' + '<i></i>'.repeat(10) + '<span></span></div>'
+    + '<div class="mu-vb"><button class="cb" data-v="-1" aria-label="Ciszej">' + ic('minus') + '</button><button class="cb" data-v="1" aria-label="Głośniej">' + ic('plus') + '</button></div></div>';
+
+  // Telewizor (np. Philips przez integrację „Philips TV”): zasilanie, głośność, kanały, źródło i opcjonalnie pilot.
+  const TV_KEYS = { up: 'CursorUp', down: 'CursorDown', left: 'CursorLeft', right: 'CursorRight', ok: 'Confirm', back: 'Back', home: 'Home' };
+  P.widget('tv', {
+    name: 'Telewizor', icon: 'tv', group: 'Sterowanie', size: [6, 4], controls: true, noIcon: true,
+    fields: [E('Telewizor', ['media_player']), E('Pilot (opcjonalnie, np. remote.philips_tv)', ['remote'], 'remote'),
+      { k: 'volStep', l: 'Krok przycisków głośności (%)', t: 'number' },
+      { k: 'keys', l: 'Kody klawiszy pilota (JSON, puste = Philips)', t: 'text' }],
+    mount(el, t) {
+      const b = (k, i, l) => '<button class="cb" data-k="' + k + '" aria-label="' + l + '">' + ic(i) + '</button>';
+      const pad = DP.isEntity(t.remote) ? '<div class="tv-pad">' + b('up', 'up', 'W górę') + b('left', 'left', 'W lewo') + '<button class="cb ok" data-k="ok">OK</button>' + b('right', 'right', 'W prawo') + b('down', 'down', 'W dół')
+        + b('back', 'back', 'Wstecz') + b('home', 'home', 'Menu główne') + '</div>' : '';
+      el.innerHTML = '<div class="tv"><div class="mu-top"><div class="tv-hd"><div class="mu-title"></div><div class="tv-sub"></div></div><select aria-label="Źródło"></select></div>'
+        + '<div class="tv-row">' + b('power', 'power', 'Włącz lub wyłącz') + b('mute', 'mute', 'Wycisz') + '<div class="tv-ch">' + b('chdown', 'down', 'Poprzedni kanał') + '<span>CH</span>' + b('chup', 'up', 'Następny kanał') + '</div><span class="mu-sp"></span>' + volBox() + '</div>'
+        + pad + '</div>';
+      const sel = el.querySelector('select');
+      sel.addEventListener('change', () => P.service('media_player.select_source', { entity_id: t.entity, source: sel.value }));
+      el.addEventListener('click', e => {
+        const x = e.target.closest('button');
+        if (!x) return;
+        if (x.dataset.v) return volClick(el, t, +x.dataset.v);
+        if (P.ha.preview) return;
+        if (!P.ok(t.entity) && x.dataset.k !== 'power') return missing(t);
+        const k = x.dataset.k, a = P.state(t.entity) ? P.state(t.entity).attributes : {};
+        if (k === 'power') return P.service(P.isOn(t.entity) ? 'media_player.turn_off' : 'media_player.turn_on', { entity_id: t.entity });
+        if (k === 'mute') return P.service('media_player.volume_mute', { entity_id: t.entity, is_volume_muted: !a.is_volume_muted });
+        if (k === 'chup' || k === 'chdown') return P.service('media_player.media_' + (k === 'chup' ? 'next' : 'previous') + '_track', { entity_id: t.entity });
+        let keys = TV_KEYS;
+        try { if (t.keys) keys = Object.assign({}, TV_KEYS, JSON.parse(t.keys)); } catch (err) { /* zostają domyślne */ }
+        P.service('remote.send_command', { entity_id: t.remote, command: keys[k] });
+      });
+    },
+    update(el, t) {
+      const s = P.state(t.entity), a = s ? s.attributes : {}, on = P.isOn(t.entity) || (s && s.state === 'paused');
+      el.querySelector('.mu-title').textContent = t.name || P.name(t.entity) || 'Telewizor';
+      el.querySelector('.tv-sub').textContent = !P.ok(t.entity) ? 'niedostępny' : !on ? 'wyłączony' : [a.source, a.media_channel || a.media_title].filter(Boolean).join(' · ') || 'włączony';
+      el.querySelector('[data-k=power]').classList.toggle('lit', !!on);
+      el.querySelector('[data-k=mute]').classList.toggle('lit', !!a.is_volume_muted);
+      if (el._vol == null) meter(el, a.volume_level == null ? null : Math.round(a.volume_level * 100));
+      const sel = el.querySelector('select'), list = a.source_list || [];
+      sel.hidden = !list.length;
+      if (el.getRootNode().activeElement !== sel) sel.innerHTML = list.map(x => '<option' + (x === a.source ? ' selected' : '') + '>' + esc(x) + '</option>').join('');
+    },
+  });
+
+  // Licznik: ile z wybranych encji jest włączonych, np. „7 włączonych” na kafelku Oświetlenie.
+  const plural = n => n === 1 || (n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 12 || n % 100 > 14)) ? 'włączone' : 'włączonych';
+  P.widget('count', {
+    name: 'Licznik włączonych (np. światła)', icon: 'bulb', group: 'Podstawowe', size: [3, 1], noEntity: true,
+    fields: [{ k: 'entities', l: 'Co liczyć', t: 'entities', d: ['light', 'switch', 'fan', 'media_player', 'cover', 'binary_sensor', 'input_boolean', 'climate'], quick: [['light', '+ Wszystkie światła']] },
+      { k: 'none', l: 'Napis, gdy nic nie jest włączone', t: 'text' }],
+    active: t => (t.entities || []).some(P.isOn),
+    html(t) {
+      const ids = t.entities || [], n = ids.filter(P.isOn).length;
+      const text = !ids.length ? 'wybierz encje' : n ? n + ' ' + plural(n) : esc(t.none || 'wszystkie wyłączone');
+      return ic(t.icon || 'bulb') + tx(name(esc(t.name || 'Oświetlenie')), st(text));
     },
   });
 

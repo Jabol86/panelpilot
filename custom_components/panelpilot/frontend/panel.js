@@ -220,7 +220,7 @@
   /** Pasek stron: kropki (domyślnie), nazwy stron albo brak; dawne true/false też działają. */
   const navStyle = () => dash.nav === false ? 'none' : ['dots', 'tabs', 'none'].includes(dash.nav) ? dash.nav : 'dots';
 
-  const ENTITY_FIELDS = ['entity', 'entity2', 'state_entity', 'pv', 'home', 'grid', 'battery', 'output'];
+  const ENTITY_FIELDS = ['entity', 'entity2', 'state_entity', 'pv', 'home', 'grid', 'battery', 'output', 'remote'];
   const entitiesOf = t => {
     const def = widgets[t.type], rules = Array.isArray(t.rules) ? t.rules.map(r => r && r.entity) : [];
     return ENTITY_FIELDS.map(f => t[f]).concat(Array.isArray(t.entities) ? t.entities : [], def && def.entities ? def.entities(t) : [], rules).filter(DP.isEntity);
@@ -374,10 +374,25 @@
     if (sleeping) renderSaver();
   }
 
+  /** Kolejność stron na pasku i dla gestów „następna/poprzednia”.
+      Z wybraną stroną główną (i co najmniej 3 stronami) główna jest na środku. Strona z gestu „w lewo”
+      stoi po prawej (palec w lewo odsłania to, co jest po prawej), strona z gestu „w prawo” po lewej;
+      reszta po kolei, na zmianę, żeby po obu stronach było podobnie dużo. */
+  function navOrder() {
+    const all = pages.map((p, i) => i);
+    if (!dash.home || pages.length < 3) return all;
+    const hi = homeIndex(), g = dash.gestures || {}, used = new Set([hi]), left = [], right = [];
+    const target = d => { const x = g[d] || {}; return x.kind === 'page' ? pages.findIndex(p => p.name === x.page && !p.extra) : -1; };
+    const put = (side, i) => { if (i >= 0 && !used.has(i)) { side.push(i); used.add(i); } };
+    put(right, target('left')); put(left, target('right'));
+    all.forEach(i => { if (!used.has(i)) put(right.length <= left.length ? right : left, i); });
+    return left.reverse().concat(hi, right);
+  }
+
   function renderNav() {
     // Kropki: sama pozycja strony, bez nazw. Przy jednej stronie nie ma czego pokazywać.
     const dots = navStyle() === 'dots';
-    const list = dots && pages.length < 2 ? '' : pages.map((p, i) => '<button data-page="' + i + '"' + (i === page ? ' aria-current="page"' : '') + (dots ? ' class="dot" aria-label="' + esc(p.name) + '"><i></i>' : '>' + esc(p.name)) + '</button>').join('');
+    const list = dots && pages.length < 2 ? '' : navOrder().map(i => [pages[i], i]).map(([p, i]) => '<button data-page="' + i + '"' + (i === page ? ' aria-current="page"' : '') + (dots ? ' class="dot" aria-label="' + esc(p.name) + '"><i></i>' : '>' + esc(p.name)) + '</button>').join('');
     $('nav').innerHTML = '<span class="pg">' + list + '</span><span class="off">Brak połączenia</span><button class="act" data-act="settings" aria-label="Ustawienia">' + icon('gear') + '</button>';
   }
 
@@ -440,8 +455,10 @@
     };
     if (back && back.at === page && dir === back.dir) { const to = back.to; back = null; return go(to); }
     switch (kind) {
-      case 'next': return go(page + 1);
-      case 'prev': return go(page - 1);
+      case 'next': case 'prev': {
+        const order = navOrder(), at = order.indexOf(page) + (kind === 'next' ? 1 : -1);
+        return at >= 0 && at < order.length && go(order[at]);
+      }
       case 'page': return jump(pages.findIndex(p => p.name === g.page && !p.extra));
       case 'home': return jump(homeIndex());
       case 'saver': sleep(); return true;
