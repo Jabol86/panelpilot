@@ -4,7 +4,7 @@ Panel ścienny dla Home Assistant na **Sonoff NSPanel Pro 86** (kwadrat) i **NSP
 
 *Home Assistant wall panel for NSPanel Pro: visual dashboard editor inside HA, full HTML/CSS/JS mode, screensaver, sensors, doorbell with two-way audio. The interface is Polish only for now.*
 
-> **Wersja testowa 0.1.6.** Integracja ma testy automatyczne na Home Assistant 2026.10, a interfejs sprawdzono w przeglądarce. Nie sprawdzono jeszcze na fizycznym panelu: obrotu, czujników, mikrofonu ani rozmowy przez domofon.
+> **Wersja testowa 0.1.7.** Integracja ma testy automatyczne na Home Assistant 2026.10, a interfejs sprawdzono w przeglądarce. Nie sprawdzono jeszcze na fizycznym panelu: obrotu, czujników, mikrofonu ani rozmowy przez domofon.
 
 ## Co potrafi
 
@@ -13,7 +13,7 @@ Panel ścienny dla Home Assistant na **Sonoff NSPanel Pro 86** (kwadrat) i **NSP
 | **Edytor w Home Assistant** | *Urządzenia oraz usługi → PanelPilot → Konfiguruj* (opcjonalnie w menu bocznym); przeciąganie i zmiana rozmiaru kafelków na żywym podglądzie |
 | **Gesty** | przesunięcie palcem w górę, w dół, w lewo i w prawo: strona, wygaszacz, domofon, ustawienia albo dowolna akcja HA; pasek stron można ukryć |
 | **Wybór encji** | pogodę, czujniki, światła itd. wskazujesz z wyszukiwarki; nic nie jest wybierane za Ciebie |
-| **Trzy układy** | osobne rozmieszczenie dla kwadratu, pionu i poziomu; motywy, kolory, tapeta |
+| **Układy i formaty** | osobne rozmieszczenie dla kwadratu, pionu i poziomu oraz własne formaty dla innych tabletów (rozmiar i siatka kafelków); motywy, kolory, tapeta |
 | **Pełna dowolność** | własne kafelki HTML, cały ekran w HTML + CSS + JS z dostępem do WebSocketu albo gotowy moduł JS |
 | **Wygaszacz** | zegar, duże czujniki lub czarny ekran, ikony powiadomień (np. otwarte drzwi); budzi dotyk, zbliżenie, dzwonek i automatyzacja |
 | **Czujniki** | światło i zbliżenie jako encje HA, automatyczna jasność, suwak jasności na samym panelu |

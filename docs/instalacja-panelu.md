@@ -76,6 +76,13 @@ adb shell su 0 setprop persist.adb.tcp.port 5555
 
 Pobierz `panelpilot.apk` na tablet, włącz w ustawieniach *Instalowanie nieznanych aplikacji* i otwórz plik. Możesz też użyć `adb install` jak wyżej. Gdy Android zapyta, której aplikacji użyć jako ekranu głównego, wybierz **PanelPilot → Zawsze**.
 
+Tablet sam dopasuje jeden z formatów: pion, poziom albo kwadrat. Żeby mieć na dużym ekranie więcej kafelków, dodaj **własny format**:
+
+1. W edytorze kliknij **+ Format** obok przycisków Kwadrat, Pion i Poziom.
+2. Wpisz nazwę, rozmiar ekranu w pikselach CSS i siatkę kafelków, np. 1280×800 i 10×6. Piksele CSS to rozdzielczość podzielona przez skalę ekranu; panel pokazuje swój rozmiar w zakładce *Panele i jasność*.
+3. W zakładce *Panele i jasność* wybierz ten format w polu **Format ekranu** i kliknij *Zapisz*.
+4. Ułóż kafelki w nowym formacie. Każdy format ma własny układ.
+
 ## Aktualizacja
 
 Uruchom to samo polecenie co przy instalacji. Ustawienia i parowanie zostają. Integrację w HA aktualizuje HACS.

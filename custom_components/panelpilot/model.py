@@ -13,6 +13,10 @@ MAX_CODE = 100_000
 ID_RE = re.compile(r"^[A-Za-z0-9_-]{1,64}$")
 ENTITY_RE = re.compile(r"^[a-z0-9_]+\.[a-z0-9_]+$")
 FORMATS = {"square": (6, 5), "portrait": (6, 10), "landscape": (10, 5)}
+# Własne formaty (inne tablety): identyfikator c_…, siatka do 24×24, najwyżej 12 formatów.
+CUSTOM_FMT_RE = re.compile(r"^c_[a-z0-9]{1,12}$")
+MAX_GRID = 24
+MAX_FORMATS = 12
 SHAPES = ("auto", "square", "rect")
 ROTATIONS = (0, 90, 180, 270)
 MODES = ("tiles", "code", "module")
@@ -28,6 +32,8 @@ DEFAULT_SETTINGS: dict[str, Any] = {
     "nightTo": 6,
     "wakeOnProximity": True,
     "proximityHold": True,
+    # auto = wykryj z rozmiaru ekranu; albo square/portrait/landscape, albo własny format c_…
+    "format": "auto",
 }
 _NUMBER_LIMITS = {
     "dayBrightness": (1, 100),
@@ -70,7 +76,8 @@ def _rect(value: Any, fmt: str) -> list[int] | None:
     if not all(isinstance(v, int) and not isinstance(v, bool) for v in value):
         return None
     x, y, w, h = value
-    cols, rows = FORMATS[fmt]
+    # Własny format może się później zmienić, więc tu tylko górna granica; resztę sprawdza układ na panelu.
+    cols, rows = FORMATS.get(fmt, (MAX_GRID, MAX_GRID))
     if x < 0 or y < 0 or w < 1 or h < 1 or x + w > cols or y + h > rows:
         return None
     return [x, y, w, h]
@@ -84,7 +91,8 @@ def clean_tile(tile: Any) -> dict[str, Any]:
         out["id"] = new_id()
     layout = tile.get("l") if isinstance(tile.get("l"), dict) else {}
     clean: dict[str, Any] = {}
-    for fmt in FORMATS:
+    custom = [k for k in layout if isinstance(k, str) and CUSTOM_FMT_RE.match(k)][:MAX_FORMATS]
+    for fmt in [*FORMATS, *custom]:
         if layout.get(fmt) is False:
             clean[fmt] = False
         elif (rect := _rect(layout.get(fmt), fmt)) is not None:
@@ -181,6 +189,37 @@ def clean_settings(data: Any, current: dict[str, Any] | None = None) -> dict[str
     for key in ("wakeOnProximity", "proximityHold"):
         if isinstance(data.get(key), bool):
             out[key] = data[key]
+    fmt = data.get("format")
+    if isinstance(fmt, str) and (fmt == "auto" or fmt in FORMATS or CUSTOM_FMT_RE.match(fmt)):
+        out["format"] = fmt
+    return out
+
+
+def clean_formats(data: Any) -> dict[str, dict[str, Any]]:
+    """Własne formaty ekranu: nazwa, rozmiar w pikselach CSS (do podglądu) i siatka kafelków."""
+    if not isinstance(data, dict):
+        raise InvalidData("Nieprawidłowa lista formatów")
+    if len(data) > MAX_FORMATS:
+        raise InvalidData(f"Najwyżej {MAX_FORMATS} własnych formatów")
+    out: dict[str, dict[str, Any]] = {}
+    for fid, f in data.items():
+        if not isinstance(fid, str) or not CUSTOM_FMT_RE.match(fid) or not isinstance(f, dict):
+            raise InvalidData("Nieprawidłowy format")
+
+        def num(key: str, low: int, high: int) -> int:
+            try:
+                value = int(f.get(key))
+            except (TypeError, ValueError) as err:
+                raise InvalidData(f"Format „{_text(f.get('name'), 30)}”: brak wartości {key}") from err
+            if not low <= value <= high:
+                raise InvalidData(f"Format „{_text(f.get('name'), 30)}”: {key} musi być od {low} do {high}")
+            return value
+
+        out[fid] = {
+            "name": _text(f.get("name"), 30) or "Mój ekran",
+            "w": num("w", 200, 4000), "h": num("h", 200, 4000),
+            "cols": num("cols", 1, MAX_GRID), "rows": num("rows", 1, MAX_GRID),
+        }
     return out
 
 

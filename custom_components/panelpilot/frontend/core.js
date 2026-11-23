@@ -12,6 +12,14 @@
     portrait: { name: 'Pion', w: 500, h: 889, cols: 6, rows: 10 },
     landscape: { name: 'Poziom', w: 889, h: 500, cols: 10, rows: 5 },
   };
+  DP.BUILTIN = Object.keys(DP.FORMATS);
+  /** Własne formaty z Home Assistanta (c_…): podmienia poprzednie, wbudowanych nie rusza. */
+  DP.setFormats = custom => {
+    Object.keys(DP.FORMATS).forEach(k => { if (!DP.BUILTIN.includes(k)) delete DP.FORMATS[k]; });
+    Object.entries(custom || {}).forEach(([id, f]) => {
+      if (/^c_[a-z0-9]{1,12}$/.test(id) && f && f.cols > 0 && f.rows > 0) DP.FORMATS[id] = { name: f.name, w: +f.w, h: +f.h, cols: +f.cols, rows: +f.rows, custom: true };
+    });
+  };
   DP.formatFor = (shape, w, h) => {
     const ratio = w / h;
     if (shape === 'square' || (shape !== 'rect' && ratio > 0.85 && ratio < 1.18)) return 'square';

@@ -69,6 +69,11 @@ Fakty o NSPanel Pro 120: Android 8.1, 750×1334 przy 240 dpi. Czujniki światła
 - v0.1.5: zakładka „Panele i jasność” nie zapisuje od razu, tylko przyciskiem Zapisz (`pEdits`); przytrzymanie wygaszacza zbliżeniem najwyżej 3 min (u właściciela wygaszacz nie włączał się wcale; nie wiadomo, czy czujnik utknął na „blisko”); osobna zakładka Gesty; kafelki, które się nie mieszczą: wybór, × usuwa, „Przenieś na nową stronę”, „Wstaw w największe wolne miejsce”; wygaszacz: ikona i podpis każdej pozycji, wielkość, pogoda (ikona, temperatura, opis).
 - Edytor otwiera się na zakładce paneli, gdy jakiś panel czeka na kod.
 
+### v0.1.6 i v0.1.7
+
+- 0.1.6: po przeładowaniu wpisu integracji panel zostawał przypięty do starego `Hub` (rozłączony w HA, stary kod). Teraz unload wysyła `reload`, panel co minutę robi `panelpilot/ping` i subskrybuje od nowa, a `config` niesie `version` (zmiana = przeładowanie strony). Edytor startuje w formacie panelu pokazującego dany pulpit.
+- 0.1.7 (prośba właściciela: obsługa innych tabletów): **własne formaty** `c_…` (nazwa, w×h w px CSS do podglądu, siatka do 24×24, max 12) w `hub.formats`, WS `panelpilot/admin/formats_save`; panel dostaje je w `config.formats`; ustawienie panelu `settings.format` (auto / wbudowany / własny). W edytorze „+ Format”, „Edytuj format”, pole „Format ekranu” przy panelu.
+
 ## Instalacja przez HACS
 
 Właściciel chce instalować PanelPilot z GitHuba przez HACS. To **integracja**, nie dodatek Supervisora. HACS nie widzi prywatnych repozytoriów. Kiedy właściciel się zgodzi:

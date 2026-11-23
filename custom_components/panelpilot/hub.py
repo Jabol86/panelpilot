@@ -24,6 +24,7 @@ from .model import (
     Pairing,
     clean_dashboard,
     clean_doorbell,
+    clean_formats,
     clean_settings,
     new_id,
     public_doorbell,
@@ -52,6 +53,7 @@ class Hub:
         self.dashboards: dict[str, dict[str, Any]] = {}
         self.panels: dict[str, dict[str, Any]] = {}
         self.doorbell: dict[str, Any] = clean_doorbell({})
+        self.formats: dict[str, dict[str, Any]] = {}
         self.runtime: dict[str, Runtime] = {}
         self.pairing = Pairing()
 
@@ -60,6 +62,7 @@ class Hub:
         self.dashboards = data.get("dashboards", {})
         self.panels = data.get("panels", {})
         self.doorbell = data.get("doorbell") or clean_doorbell({})
+        self.formats = data.get("formats") or {}
         self.runtime = {pid: Runtime() for pid in self.panels}
 
     def ensure_dashboard(self) -> None:
@@ -75,7 +78,7 @@ class Hub:
 
     @callback
     def _data(self) -> dict[str, Any]:
-        return {"dashboards": self.dashboards, "panels": self.panels, "doorbell": self.doorbell}
+        return {"dashboards": self.dashboards, "panels": self.panels, "doorbell": self.doorbell, "formats": self.formats}
 
     async def async_flush(self) -> None:
         await self._store.async_save(self._data())
@@ -132,6 +135,18 @@ class Hub:
 
     def save_doorbell(self, data: Any) -> None:
         self.doorbell = clean_doorbell(data)
+        self.save()
+        for pid in self.panels:
+            self.push_config(pid)
+        self.notify_admin()
+
+    def save_formats(self, data: Any) -> None:
+        """Własne formaty ekranu; panel z usuniętym formatem wraca do wykrywania."""
+        self.formats = clean_formats(data)
+        for pid, panel in self.panels.items():
+            fmt = panel["settings"].get("format", "auto")
+            if fmt.startswith("c_") and fmt not in self.formats:
+                panel["settings"]["format"] = "auto"
         self.save()
         for pid in self.panels:
             self.push_config(pid)
@@ -211,6 +226,7 @@ class Hub:
             "panel": {"name": panel["name"], "shape": panel["shape"], "settings": panel["settings"]},
             "dashboard": self.dashboards[panel["dashboard"]],
             "doorbell": public_doorbell(self.doorbell),
+            "formats": self.formats,
             # Panel przeładowuje stronę, gdy po aktualizacji integracji wersja się zmieni.
             "version": VERSION,
         }
@@ -288,4 +304,5 @@ class Hub:
                 for pid, p in self.panels.items()
             },
             "pairing": self.pairing.pending(),
+            "formats": self.formats,
         }

@@ -57,6 +57,17 @@ class Other(unittest.TestCase):
         with self.assertRaises(model.InvalidData):
             model.clean_doorbell({"go2rtc": "ftp://x"})
 
+    def test_custom_formats(self):
+        f = model.clean_formats({"c_tab": {"name": "Tablet", "w": 1280, "h": 800, "cols": 10, "rows": 6}})
+        self.assertEqual(f["c_tab"]["cols"], 10)
+        for bad in ({"zle": {"w": 1, "h": 1, "cols": 1, "rows": 1}}, {"c_a": {"w": 1280, "h": 800, "cols": 99, "rows": 6}}, {"c_a": {"w": "x"}}, []):
+            with self.assertRaises(model.InvalidData):
+                model.clean_formats(bad)
+        t = model.clean_tile({"type": "toggle", "l": {"c_tab": [8, 4, 2, 2], "c_zly!": [0, 0, 1, 1], "portrait": [0, 0, 2, 1]}})
+        self.assertEqual(t["l"], {"portrait": [0, 0, 2, 1], "c_tab": [8, 4, 2, 2]})
+        self.assertEqual(model.clean_settings({"format": "c_tab"})["format"], "c_tab")
+        self.assertEqual(model.clean_settings({"format": "../x"})["format"], "auto")
+
     def test_doorbell_action_mode(self):
         d = model.clean_doorbell({"actions": [{"entity": "switch.a", "mode": "tap"}, {"entity": "switch.b", "mode": "zle"}]})
         self.assertEqual([a["mode"] for a in d["actions"]], ["tap", "hold"])

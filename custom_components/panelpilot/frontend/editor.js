@@ -67,6 +67,7 @@ class PanelPilotEditor extends HTMLElement {
   onData(d) {
     const first = !this.data;
     this.data = d;
+    this.syncFormats();
     if (!this.bellDirty) this.bell = clone(d.doorbell);
     // Ktoś przyszedł z powiadomienia o nowym panelu: od razu zakładka z kodem.
     if (first && d.pairing.length) this.tab = 'panels';
@@ -90,11 +91,56 @@ class PanelPilotEditor extends HTMLElement {
     if (this._ready) { this.header(); this.renderBody(); this.refresh(); }
   }
 
+  /** Własne formaty z HA trafiają do DP edytora; zniknięty format = powrót do pionu. */
+  syncFormats() {
+    if (!this.DP || !this.data) return;
+    this.DP.setFormats(this.data.formats || {});
+    if (!this.DP.FORMATS[this.fmt]) this.fmt = 'portrait';
+  }
+
+  /** Dodanie albo zmiana własnego formatu: rozmiar w pikselach CSS i siatka kafelków. */
+  formatDialog(id) {
+    const all = Object.assign({}, this.data.formats || {}), size = this.panelSize();
+    const f = Object.assign({ name: 'Tablet', w: 1280, h: 800, cols: 10, rows: 6 }, id ? all[id] : {});
+    const num = (label, key, hint) => field(label, text(f[key], v => { f[key] = Number(v); }, { type: 'number', min: 1, placeholder: hint || '' }));
+    const body = [
+      field('Nazwa', text(f.name, v => { f.name = v; })),
+      h('div', { class: 'row2' }, num('Szerokość (px CSS)', 'w'), num('Wysokość (px CSS)', 'h')),
+      h('div', { class: 'row2' }, num('Kolumny kafelków', 'cols'), num('Wiersze kafelków', 'rows')),
+      h('p', { class: 'dim' }, 'Rozmiar w pikselach CSS, czyli rozdzielczość podzielona przez skalę ekranu (np. 1920×1200 przy skali 1,5 to 1280×800). Panel pokazuje swój rozmiar w zakładce „Panele i jasność”. Rozmiar służy do podglądu; na tablecie kafelki wypełnią cały ekran według siatki.'),
+      size ? h('p', { class: 'dim' }, 'Podpowiedź z podłączonego panelu: ' + size[0] + '×' + size[1] + '.') : null,
+      h('p', { class: 'dim' }, 'Żeby panel używał tego formatu, wybierz go w zakładce „Panele i jasność” → Format ekranu.')];
+    const save = async list => {
+      try {
+        await this.hass.callWS({ type: 'panelpilot/admin/formats_save', data: list });
+        this.data.formats = list; this.syncFormats(); this.bar(); this.renderSides(); this.fit(); this.refresh();
+        this.toast('Formaty zapisane');
+      } catch (e) { this.toast(e.message || e.code, true); }
+    };
+    const buttons = [['Anuluj']];
+    if (id) buttons.push(['Usuń format', () => { const list = Object.assign({}, all); delete list[id]; if (this.fmt === id) this.fmt = 'portrait'; save(list); }]);
+    buttons.push(['Zapisz format', () => {
+      const fid = id || 'c_' + Math.random().toString(36).slice(2, 10);
+      this.fmt = fid;
+      save(Object.assign({}, all, { [fid]: { name: (f.name || 'Tablet').trim(), w: f.w, h: f.h, cols: f.cols, rows: f.rows } }));
+    }]);
+    this.dialog(id ? 'Format „' + f.name + '”' : 'Nowy format ekranu', h('div', {}, ...body.filter(Boolean)), ...buttons);
+  }
+
+  /** Rozmiar zgłoszony przez panel z tym pulpitem (np. „1280×800”), do podpowiedzi. */
+  panelSize() {
+    const list = Object.values(this.data.panels || {}).filter(p => p.dashboard === this.dashId);
+    const p = list.find(x => x.connected) || list[0], m = p && /(\d+)\D+(\d+)/.exec(p.size || '');
+    return m ? [+m[1], +m[2]] : null;
+  }
+
   /** Podgląd w formacie panelu, który pokazuje ten pulpit (najpierw połączonego), zamiast zawsze w pionie. */
   guessFmt() {
     const list = Object.values(this.data.panels || {}).filter(p => p.dashboard === this.dashId);
     const p = list.find(x => x.connected) || list[0];
     if (!p) return this.fmt;
+    const chosen = (p.settings || {}).format;
+    if (chosen && chosen !== 'auto' && (!this.DP || this.DP.FORMATS[chosen])) return chosen;
     if (p.shape === 'square') return 'square';
     const m = /(\d+)\D+(\d+)/.exec(p.size || '');
     if (m) { const w = +m[1], hh = +m[2]; return w > hh * 1.18 ? 'landscape' : hh > w * 1.18 ? 'portrait' : 'square'; }
@@ -169,6 +215,7 @@ class PanelPilotEditor extends HTMLElement {
     const w = this.frame.contentWindow;
     if (!w || !w.Panel || !w.DP) return;
     this.win = w; this.DP = w.DP;
+    this.syncFormats();
     const conn = this.hass.connection;
     this.bridge = {
       forecast: (id, cb) => conn.subscribeMessage(e => cb(e.forecast || []), { type: 'weather/subscribe_forecast', forecast_type: 'daily', entity_id: id }),
@@ -236,7 +283,7 @@ class PanelPilotEditor extends HTMLElement {
       const pages = this.DP.pagesFor(this.doc.pages, this.fmt, this.win.Panel.widgets);
       const at = Math.max(0, pages.findIndex(p => p.page === this.page && !p.extra));
       const mode = this.tab === 'saver' ? 'saver' : this.tab === 'bell' ? 'bell' : 'page';
-      this.win.Panel.setPreview({ bridge: this.bridge, states: this.hass.states, dashboard: clone(this.doc), doorbell: Object.assign({}, this.bell, { own: !!(this.bell.go2rtc && this.bell.stream) }), format: this.fmt, page: at, mode, night: this.night });
+      this.win.Panel.setPreview({ bridge: this.bridge, states: this.hass.states, dashboard: clone(this.doc), doorbell: Object.assign({}, this.bell, { own: !!(this.bell.go2rtc && this.bell.stream) }), formats: this.data.formats || {}, format: this.fmt, page: at, mode, night: this.night });
       this.drawOver();
       // Własny JS mógł dodać nowe rodzaje kafelków.
       const n = Object.keys(this.win.Panel.widgets).length;
@@ -407,10 +454,12 @@ class PanelPilotEditor extends HTMLElement {
   }
 
   bar() {
-    const formats = this.DP ? Object.entries(this.DP.FORMATS) : [];
+    const formats = this.DP ? Object.entries(this.DP.FORMATS) : [], cur = this.DP && this.DP.FORMATS[this.fmt];
     this.barEl.replaceChildren(...[
       h('div', { class: 'seg', role: 'group', 'aria-label': 'Format ekranu' }, formats.map(([id, f]) => h('button', { 'aria-pressed': String(this.fmt === id), onclick: () => { this.fmt = id; this.bar(); this.renderSides(); this.fit(); this.refresh(); } }, f.name))),
-      h('span', { class: 'dim' }, { square: 'NSPanel Pro 86', portrait: 'NSPanel Pro 120 pionowo', landscape: 'NSPanel Pro 120 poziomo' }[this.fmt]),
+      h('button', { title: 'Własny format: inny tablet albo inna siatka kafelków', onclick: () => this.formatDialog() }, '+ Format'),
+      cur && cur.custom ? h('button', { onclick: () => this.formatDialog(this.fmt) }, 'Edytuj format') : null,
+      h('span', { class: 'dim' }, cur && cur.custom ? cur.w + '×' + cur.h + ', siatka ' + cur.cols + '×' + cur.rows : { square: 'NSPanel Pro 86', portrait: 'NSPanel Pro 120 pionowo', landscape: 'NSPanel Pro 120 poziomo' }[this.fmt]),
       h('span', { style: 'flex:1' }),
       this.tab === 'tiles' ? h('button', { onclick: () => this.wizard() }, 'Wybierz, co pokazać') : null,
       this.tab === 'tiles' ? h('button', { title: 'Usuwa ręczny układ tylko w tym formacie', onclick: () => this.commit(() => this.tiles.forEach(t => { delete t.l[this.fmt]; })) }, 'Ułóż automatycznie') : null,
@@ -766,7 +815,8 @@ class PanelPilotEditor extends HTMLElement {
       return h('div', { class: 'card' }, h('div', { class: 'top' }, h('i', { class: 'dot' + (p.connected ? ' on' : '') }), h('h2', {}, p.name), h('span', { class: 'dim' }, [p.model, p.size, p.app, p.connected ? 'połączony' : 'rozłączony'].filter(Boolean).join(' · '))),
         this.pEdits[id] ? h('p', { class: 'dim', style: 'color:var(--warning-color,#c77700)' }, 'Niezapisane zmiany. Zapiszesz je przyciskiem „Zapisz” u góry.') : null,
         h('div', { class: 'cols' }, field('Nazwa', h('input', { value: p.name, oninput: e => { if (e.target.value.trim()) save({ name: e.target.value.trim() }); } })), field('Pulpit', select(p.dashboard, Object.entries(this.data.dashboards).map(([i, d]) => [i, d.name]), v => save({ dashboard: v }))),
-          field('Ekran', select(p.shape, [['auto', 'Wykryj'], ['square', 'Kwadrat (86)'], ['rect', 'Prostokąt (120)']], v => save({ shape: v }))), field('Obrót', select(String(s.rotation), [['0', '0°'], ['90', '90°'], ['180', '180°'], ['270', '270°']], v => setS('rotation', Number(v)))),
+          field('Ekran', select(p.shape, [['auto', 'Wykryj'], ['square', 'Kwadrat (86)'], ['rect', 'Prostokąt (120)']], v => save({ shape: v }))),
+          field('Format ekranu', select(s.format || 'auto', [['auto', 'Wykryj z ekranu']].concat(Object.entries(this.DP ? this.DP.FORMATS : {}).map(([fid, x]) => [fid, x.custom ? x.name + ' (' + x.cols + '×' + x.rows + ')' : x.name])), v => setS('format', v))), field('Obrót', select(String(s.rotation), [['0', '0°'], ['90', '90°'], ['180', '180°'], ['270', '270°']], v => setS('rotation', Number(v)))),
           num('Jasność w dzień (%)', 'dayBrightness'), num('Jasność w nocy (%)', 'nightBrightness'), num('Ciemno poniżej (lx)', 'darkLux'), num('Noc od godziny', 'nightFrom'), num('Noc do godziny', 'nightTo')),
         check('Budź, gdy ktoś podejdzie', s.wakeOnProximity, v => setS('wakeOnProximity', v)), check('Nie włączaj wygaszacza, gdy ktoś stoi przy panelu (najwyżej 3 minuty)', s.proximityHold, v => setS('proximityHold', v)),
         h('p', { class: 'dim' }, 'Zasięg czujnika zbliżenia ustala producent panelu; zwykle to kilkanaście–kilkadziesiąt centymetrów. Stan widać w encji „Zbliżenie” tego panelu w HA.'),

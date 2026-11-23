@@ -25,7 +25,7 @@ _LOGGER = logging.getLogger(__name__)
 def async_register(hass: HomeAssistant) -> None:
     for command in (
         ws_register, ws_subscribe, ws_ping, ws_state, ws_webrtc,
-        ws_admin_subscribe, ws_dashboard_save, ws_dashboard_delete, ws_doorbell_save,
+        ws_admin_subscribe, ws_dashboard_save, ws_dashboard_delete, ws_doorbell_save, ws_formats_save,
         ws_panel_save, ws_panel_delete, ws_panel_command, ws_pair_approve, ws_pair_reject,
     ):
         websocket_api.async_register_command(hass, command)
@@ -207,6 +207,13 @@ def ws_dashboard_delete(hass, connection, msg) -> None:
 @callback
 def ws_doorbell_save(hass, connection, msg) -> None:
     _admin_action(hass, connection, msg, lambda hub: hub.save_doorbell(msg["data"]))
+
+
+@websocket_api.websocket_command({vol.Required("type"): "panelpilot/admin/formats_save", vol.Required("data"): dict})
+@websocket_api.require_admin
+@callback
+def ws_formats_save(hass, connection, msg) -> None:
+    _admin_action(hass, connection, msg, lambda hub: hub.save_formats(msg["data"]))
 
 
 @websocket_api.websocket_command({vol.Required("type"): "panelpilot/admin/panel_save", vol.Required("device_id"): str, vol.Required("data"): dict})

@@ -14,7 +14,7 @@
     lightning: ['bolt', 'Burza'], 'lightning-rainy': ['bolt', 'Burza z deszczem'], windy: ['fan', 'Wietrznie'], 'windy-variant': ['fan', 'Wietrznie'], hail: ['snow', 'Grad'], exceptional: ['bolt', 'Zjawisko ekstremalne'],
   };
   const SAVER = { seconds: 60, style: 'zegar', entities: [] };
-  const SETTINGS = { rotation: 0, dayBrightness: 80, nightBrightness: 8, darkLux: 8, nightFrom: 22, nightTo: 6, wakeOnProximity: true, proximityHold: true };
+  const SETTINGS = { format: 'auto', rotation: 0, dayBrightness: 80, nightBrightness: 8, darkLux: 8, nightFrom: 22, nightTo: 6, wakeOnProximity: true, proximityHold: true };
 
   const widgets = {};
   const sensors = { lux: null, proximity: null };
@@ -142,6 +142,7 @@
       // Nowa wersja integracji (aktualizacja w HACS): wczytaj od nowa kod panelu, bez pamięci podręcznej.
       if (ev.version && loadedVersion && ev.version !== loadedVersion) return native && native.reload ? native.reload() : location.reload();
       loadedVersion = loadedVersion || ev.version;
+      DP.setFormats(ev.formats);
       cfg = Object.assign({}, SETTINGS, ev.panel.settings);
       shape = ev.panel.shape || shape;
       bell = ev.doorbell || {};
@@ -178,6 +179,7 @@
   function setPreview(o) {
     if (o.bridge) ha.bridge = o.bridge;
     if (o.states) ha.states = o.states;
+    if (o.formats) DP.setFormats(o.formats);
     if (o.format) fmt = o.format;
     if (o.page != null) page = o.page;
     if (o.changed) return onState(o.changed);
@@ -203,7 +205,9 @@
     r.style.width = turn ? w + 'px' : '100%'; r.style.height = turn ? h + 'px' : '100%';
     r.style.transform = 'translate(-50%,-50%) rotate(' + turn + 'deg)';
     r._turn = turn;
-    if (!ha.preview) fmt = DP.formatFor(shape, w, h);
+    // Format wybrany w HA dla tego panelu (np. własny dla innego tabletu) albo wykryty z ekranu.
+    if (!ha.preview) fmt = DP.FORMATS[cfg.format] ? cfg.format : DP.formatFor(shape, w, h);
+    if (!DP.FORMATS[fmt]) fmt = DP.formatFor(shape, w, h);
     r.className = 'fmt-' + fmt + (w > h * 1.18 ? ' land' : '');
     updateDark(true);
   }

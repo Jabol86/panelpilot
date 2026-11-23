@@ -102,6 +102,24 @@ async def test_editor(hass, entry, hass_ws_client):
     assert bad["error"]["code"] == "invalid"
 
 
+async def test_custom_format(hass, entry, hass_ws_client):
+    """Własny format trafia do panelu; po jego usunięciu panel wraca do wykrywania."""
+    ws = await hass_ws_client(hass)
+    assert (await ask(ws, REGISTER))["success"]
+    assert (await ask(ws, {"type": "panelpilot/subscribe", "device_id": "app_1"}))["success"]
+    await event(ws)
+    tablet = {"c_tab": {"name": "Tablet", "w": 1280, "h": 800, "cols": 10, "rows": 6}}
+    assert (await ask(ws, {"type": "panelpilot/admin/formats_save", "data": tablet}))["success"]
+    assert (await event(ws))["formats"]["c_tab"]["rows"] == 6
+    assert (await ask(ws, {"type": "panelpilot/admin/panel_save", "device_id": "app_1", "data": {"settings": {"format": "c_tab"}}}))["success"]
+    assert (await event(ws))["panel"]["settings"]["format"] == "c_tab"
+    assert (await ask(ws, {"type": "panelpilot/admin/formats_save", "data": {}}))["success"]
+    cfg = await event(ws)
+    assert cfg["formats"] == {} and cfg["panel"]["settings"]["format"] == "auto"
+    bad = await ask(ws, {"type": "panelpilot/admin/formats_save", "data": {"c_x": {"w": 1, "h": 1, "cols": 1, "rows": 1}}})
+    assert bad["error"]["code"] == "invalid"
+
+
 # Usunięcie konta zrywa gniazdo po stronie HA; zostaje zegar heartbeat z aiohttp (nie nasz).
 @pytest.mark.parametrize("expected_lingering_timers", [True])
 async def test_pairing(hass, entry, hass_ws_client, hass_client_no_auth):
