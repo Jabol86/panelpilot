@@ -71,6 +71,22 @@ async def test_panel_flow(hass, entry, hass_ws_client):
     assert (await event(ws))["panel"]["settings"]["rotation"] == 270
 
 
+async def test_reload_reconnect(hass, entry, hass_ws_client):
+    """Po przeładowaniu integracji panel dostaje „reload”, a ping mówi, że trzeba subskrybować od nowa."""
+    ws = await hass_ws_client(hass)
+    assert (await ask(ws, REGISTER))["success"]
+    assert (await ask(ws, {"type": "panelpilot/subscribe", "device_id": "app_1"}))["success"]
+    cfg = await event(ws)
+    assert cfg["version"]
+    assert (await ask(ws, {"type": "panelpilot/ping", "device_id": "app_1"}))["result"] == {"subscribed": True}
+    assert await hass.config_entries.async_reload(entry.entry_id)
+    await hass.async_block_till_done()
+    assert await event(ws) == {"type": "command", "command": "reload"}
+    assert (await ask(ws, {"type": "panelpilot/ping", "device_id": "app_1"}))["result"] == {"subscribed": False}
+    assert (await ask(ws, {"type": "panelpilot/subscribe", "device_id": "app_1"}))["success"]
+    assert (await ask(ws, {"type": "panelpilot/ping", "device_id": "app_1"}))["result"] == {"subscribed": True}
+
+
 async def test_editor(hass, entry, hass_ws_client):
     ws = await hass_ws_client(hass)
     assert (await ask(ws, {"type": "panelpilot/admin/subscribe"}))["success"]

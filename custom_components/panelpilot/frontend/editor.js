@@ -85,8 +85,20 @@ class PanelPilotEditor extends HTMLElement {
     this.rev = this.doc.rev; delete this.doc.rev;
     this.undo = []; this.redo = []; this.dirty = false; this.sel = null;
     this.page = same ? Math.min(this.page, this.doc.pages.length - 1) : 0;
+    if (!same) this.fmt = this.guessFmt();
     this.doc.pages.forEach(p => p.tiles.forEach(t => { t.id = t.id || uid(); t.l = t.l || {}; }));
     if (this._ready) { this.header(); this.renderBody(); this.refresh(); }
+  }
+
+  /** Podgląd w formacie panelu, który pokazuje ten pulpit (najpierw połączonego), zamiast zawsze w pionie. */
+  guessFmt() {
+    const list = Object.values(this.data.panels || {}).filter(p => p.dashboard === this.dashId);
+    const p = list.find(x => x.connected) || list[0];
+    if (!p) return this.fmt;
+    if (p.shape === 'square') return 'square';
+    const m = /(\d+)\D+(\d+)/.exec(p.size || '');
+    if (m) { const w = +m[1], hh = +m[2]; return w > hh * 1.18 ? 'landscape' : hh > w * 1.18 ? 'portrait' : 'square'; }
+    return [90, 270].includes((p.settings || {}).rotation) ? 'landscape' : 'portrait';
   }
 
   /* ---------- zmiany ---------- */

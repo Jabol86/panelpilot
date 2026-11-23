@@ -24,7 +24,7 @@ _LOGGER = logging.getLogger(__name__)
 @callback
 def async_register(hass: HomeAssistant) -> None:
     for command in (
-        ws_register, ws_subscribe, ws_state, ws_webrtc,
+        ws_register, ws_subscribe, ws_ping, ws_state, ws_webrtc,
         ws_admin_subscribe, ws_dashboard_save, ws_dashboard_delete, ws_doorbell_save,
         ws_panel_save, ws_panel_delete, ws_panel_command, ws_pair_approve, ws_pair_reject,
     ):
@@ -86,6 +86,14 @@ def ws_subscribe(hass, connection, msg) -> None:
     connection.subscriptions[msg["id"]] = hub.add_subscriber(msg["device_id"], connection, msg["id"])
     connection.send_result(msg["id"])
     connection.send_event(msg["id"], hub.config_event(msg["device_id"]))
+
+
+@websocket_api.websocket_command({vol.Required("type"): "panelpilot/ping", vol.Required("device_id"): str})
+@callback
+def ws_ping(hass, connection, msg) -> None:
+    """Panel pyta co minutę, czy integracja go widzi; po przeładowaniu integracji subskrybuje od nowa."""
+    hub = hass.data.get(DOMAIN)
+    connection.send_result(msg["id"], {"subscribed": bool(hub and hub.is_subscribed(msg["device_id"], connection))})
 
 
 @websocket_api.websocket_command(

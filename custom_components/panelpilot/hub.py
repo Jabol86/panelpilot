@@ -12,7 +12,7 @@ from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.dispatcher import async_dispatcher_send
 from homeassistant.helpers.storage import Store
 
-from .const import DOMAIN, EDITOR_PATH, MAX_PANELS, SIGNAL_ADMIN, SIGNAL_NEW_PANEL, SIGNAL_PANEL
+from .const import DOMAIN, EDITOR_PATH, MAX_PANELS, SIGNAL_ADMIN, SIGNAL_NEW_PANEL, SIGNAL_PANEL, VERSION
 
 PAIRING_NOTICE = "panelpilot_pairing"
 from .model import (
@@ -211,7 +211,14 @@ class Hub:
             "panel": {"name": panel["name"], "shape": panel["shape"], "settings": panel["settings"]},
             "dashboard": self.dashboards[panel["dashboard"]],
             "doorbell": public_doorbell(self.doorbell),
+            # Panel przeładowuje stronę, gdy po aktualizacji integracji wersja się zmieni.
+            "version": VERSION,
         }
+
+    @callback
+    def is_subscribed(self, pid: str, connection: ActiveConnection) -> bool:
+        rt = self.runtime.get(pid)
+        return rt is not None and any(c is connection for c, _ in rt.subscribers.values())
 
     @callback
     def push_config(self, pid: str) -> None:
@@ -248,6 +255,8 @@ class Hub:
 
     @callback
     def update_state(self, pid: str, state: dict[str, Any]) -> None:
+        if pid not in self.runtime:
+            return
         self.runtime[pid].state = state
         self.notify(pid)
 

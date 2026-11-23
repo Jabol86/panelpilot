@@ -95,6 +95,10 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         return False
     frontend.async_remove_panel(hass, EDITOR_PATH)
     hub: Hub = hass.data.pop(DOMAIN)
+    # Podłączone panele są przypięte do tej kopii integracji: niech przeładują stronę
+    # i połączą się z nową (to też wczytuje nowy kod panelu po aktualizacji).
+    for pid in list(hub.runtime):
+        hub.command(pid, "reload")
     await hub.async_flush()
     return True
 

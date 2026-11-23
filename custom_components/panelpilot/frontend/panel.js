@@ -20,7 +20,7 @@
   const sensors = { lux: null, proximity: null };
   let ha, dash = { pages: [], saver: {}, theme: {} }, bell = {}, cfg = {}, shape = info.shape || 'auto';
   let fmt = 'portrait', pages = [], page = 0, sleeping = false, screenOff = false, lastTouch = Date.now(), dark = false, manual = null;
-  let cleanup = [], jsRun = '', nearSince = 0;
+  let cleanup = [], jsRun = '', nearSince = 0, loadedVersion = '', lastPing = Date.now();
   const HOLD_MAX = 3 * 60 * 1000;
 
   const Panel = window.Panel = {
@@ -139,6 +139,9 @@
 
   function onIntegration(ev) {
     if (ev.type === 'config') {
+      // Nowa wersja integracji (aktualizacja w HACS): wczytaj od nowa kod panelu, bez pamięci podręcznej.
+      if (ev.version && loadedVersion && ev.version !== loadedVersion) return native && native.reload ? native.reload() : location.reload();
+      loadedVersion = loadedVersion || ev.version;
       cfg = Object.assign({}, SETTINGS, ev.panel.settings);
       shape = ev.panel.shape || shape;
       bell = ev.doorbell || {};
@@ -395,6 +398,11 @@
   function tick() {
     document.querySelectorAll('.tile[data-type=clock]').forEach(updateTile);
     if (ha.preview) return;
+    // Co minutę: czy integracja nadal nas widzi? Po jej przeładowaniu stara subskrypcja jest martwa.
+    if (ha.online && Date.now() - lastPing > 60000) {
+      lastPing = Date.now();
+      ha.send({ type: 'panelpilot/ping', device_id: ha.deviceId }).then(r => { if (r && r.subscribed === false) connectIntegration(); }, () => {});
+    }
     const s = dash.saver || SAVER;
     // Dopóki ktoś stoi przy panelu, wygaszacz nie wchodzi.
     // Najwyżej 3 minuty: czujnik, który utknął na „blisko”, nie może blokować wygaszacza na zawsze.
