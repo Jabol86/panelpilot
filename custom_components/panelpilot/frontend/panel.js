@@ -304,7 +304,7 @@
     const f = DP.FORMATS[fmt], grid = $('grid');
     pageTitle(dash.pages[pages[page].page], f);
     grid.style.gridTemplateColumns = 'repeat(' + f.cols + ',minmax(0,1fr))';
-    grid.style.gridTemplateRows = 'repeat(' + f.rows + ',minmax(0,1fr))';
+    grid.style.gridTemplateRows = DP.rowTracks(pages[page].placed, f.rows, widgets).map(v => 'minmax(0,' + v + 'fr)').join(' ');
     grid.replaceChildren(...pages[page].placed.map(p => {
       const t = p.tile, el = document.createElement('div'), def = widgets[t.type];
       el.className = 'tile ' + (p.h === 1 ? p.w === 1 ? 'mini' : 'row' : 'stack') + (def && def.plain ? ' plain' : '') + (t.text ? ' text-' + String(t.text).replace(/\W/g, '') : '');
@@ -322,6 +322,7 @@
         if (['left', 'center', 'right'].includes(ah)) el.dataset.ah = ah;
         if (['top', 'center', 'bottom'].includes(av)) el.dataset.av = av;
       }
+      if (t.type === 'section' && ['center', 'right'].includes(t.align)) el.dataset.align = t.align;
       // Stan pod nazwą („włączone”, „wyłączone”…): kafelek ma pierwszeństwo przed motywem.
       if (t.showState === false || (t.showState == null && th.state === 'hide')) el.classList.add('nost');
       el._tile = t;

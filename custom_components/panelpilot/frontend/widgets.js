@@ -22,6 +22,13 @@
     },
   });
 
+  // Sekcja: cienki pasek z napisem, dzieli stronę na działy (Kuchnia, Salon…). Wiersz z samymi sekcjami ma pół wysokości.
+  P.widget('section', {
+    name: 'Sekcja (nagłówek)', icon: 'text', group: 'Podstawowe', size: [24, 1], noEntity: true, noIcon: true, plain: true, thin: true,
+    fields: [{ k: 'align', l: 'Położenie napisu', t: 'select', o: [['', 'Do lewej'], ['center', 'Na środku'], ['right', 'Do prawej']] }, { k: 'line', l: 'Linia obok napisu', t: 'bool', def: true }],
+    html: t => '<span class="sec-t">' + esc(t.name || 'Sekcja') + '</span>' + (t.line === false ? '' : '<i class="sec-l"></i>'),
+  });
+
   P.widget('sensor', {
     name: 'Czujnik', icon: 'temp', group: 'Podstawowe', size: [2, 1], fields: [E('Encja'), { k: 'digits', l: 'Miejsca po przecinku', t: 'number' }, { k: 'max', l: 'Ostrzegaj powyżej', t: 'number' }, { k: 'min', l: 'Ostrzegaj poniżej', t: 'number' }],
     warn: t => { const n = P.num(t.entity); return t.max !== '' && t.max != null && n > +t.max || t.min !== '' && t.min != null && n < +t.min; },

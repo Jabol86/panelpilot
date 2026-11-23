@@ -71,6 +71,16 @@
     return { placed, overflow };
   };
 
+  /** Wysokości wierszy (w fr): wiersz z samymi cienkimi kafelkami (sekcje, h=1) ma połowę wysokości. */
+  DP.rowTracks = (placed, rows, widgets) => {
+    const thin = new Array(rows).fill(null);
+    placed.forEach(p => {
+      const ok = !!(widgets[p.tile.type] || {}).thin && p.h === 1;
+      for (let y = p.y; y < p.y + p.h; y++) thin[y] = ok ? thin[y] !== false : false;
+    });
+    return thin.map(t => t === true ? 0.5 : 1);
+  };
+
   /** Strony do pokazania na panelu; nadmiar trafia na dodatkowe strony, nic nie ginie. */
   DP.pagesFor = (pages, fmt, widgets) => {
     const out = [];

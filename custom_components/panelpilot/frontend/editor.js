@@ -338,17 +338,33 @@ class PanelPilotEditor extends HTMLElement {
   tile(id) { return this.tiles.find(t => t.id === id); }
   layout() { return this.DP.layout(this.tiles, this.fmt, this.win.Panel.widgets); }
 
+  /** Geometria siatki podglądu. Wiersze mogą mieć różną wysokość (wiersz sekcji = pół), więc bierzemy je z panelu. */
   geo() {
-    const g = this.win.document.getElementById('grid').getBoundingClientRect(), f = this.DP.FORMATS[this.fmt];
-    return { x: g.left, y: g.top, cw: (g.width - GAP * (f.cols - 1)) / f.cols, ch: (g.height - GAP * (f.rows - 1)) / f.rows, f };
+    const el = this.win.document.getElementById('grid'), g = el.getBoundingClientRect(), f = this.DP.FORMATS[this.fmt];
+    const ch = (g.height - GAP * (f.rows - 1)) / f.rows;
+    let hs = this.win.getComputedStyle(el).gridTemplateRows.split(' ').map(parseFloat);
+    if (hs.length !== f.rows || hs.some(isNaN)) hs = new Array(f.rows).fill(ch);
+    const tops = [];
+    hs.reduce((top, hh, i) => { tops[i] = top; return top + hh + GAP; }, 0);
+    return { x: g.left, y: g.top, cw: (g.width - GAP * (f.cols - 1)) / f.cols, ch, hs, tops, f };
+  }
+  /** Górna krawędź i wysokość wierszy od y do y+h (z zabezpieczeniem na krańcach siatki). */
+  rowSpan(g, y, hh) {
+    const a = Math.max(0, Math.min(g.hs.length - 1, y)), b = Math.max(a, Math.min(g.hs.length - 1, y + hh - 1));
+    return [g.tops[a], g.tops[b] + g.hs[b] - g.tops[a]];
   }
   css(r, g) {
-    const k = this.k;
-    return 'left:' + (g.x + r.x * (g.cw + GAP)) * k + 'px;top:' + (g.y + r.y * (g.ch + GAP)) * k + 'px;width:' + (r.w * g.cw + (r.w - 1) * GAP) * k + 'px;height:' + (r.h * g.ch + (r.h - 1) * GAP) * k + 'px';
+    const k = this.k, [top, height] = this.rowSpan(g, r.y, r.h);
+    return 'left:' + (g.x + r.x * (g.cw + GAP)) * k + 'px;top:' + (g.y + top) * k + 'px;width:' + (r.w * g.cw + (r.w - 1) * GAP) * k + 'px;height:' + height * k + 'px';
   }
   cell(e, g) {
-    const b = this.screen.getBoundingClientRect(), k = this.k;
-    return { x: ((e.clientX - b.left) / k - g.x) / (g.cw + GAP), y: ((e.clientY - b.top) / k - g.y) / (g.ch + GAP) };
+    const b = this.screen.getBoundingClientRect(), k = this.k, py = (e.clientY - b.top) / k - g.y;
+    // Numer wiersza z ułamkiem, liczony po rzeczywistych wysokościach wierszy.
+    let y = py / (g.ch + GAP);
+    if (py >= 0) for (let i = 0; i < g.hs.length; i++) {
+      if (py < g.tops[i] + g.hs[i] + GAP || i === g.hs.length - 1) { y = i + (py - g.tops[i]) / (g.hs[i] + GAP); break; }
+    }
+    return { x: ((e.clientX - b.left) / k - g.x) / (g.cw + GAP), y };
   }
 
   drawOver() {
@@ -357,7 +373,7 @@ class PanelPilotEditor extends HTMLElement {
     this.over.classList.toggle('off', coded && this.tab === 'code');
     if (this.tab !== 'tiles' || coded) { this.over.replaceChildren(); this.tray.replaceChildren(); return; }
     const g = this.geo(), { placed, overflow } = this.layout(), f = g.f;
-    const lines = h('div', { class: 'gridlines', style: this.css({ x: 0, y: 0, w: f.cols, h: f.rows }, g) + ';grid-template:repeat(' + f.rows + ',1fr)/repeat(' + f.cols + ',1fr);gap:' + GAP * this.k + 'px' }, Array.from({ length: f.cols * f.rows }, () => h('i')));
+    const lines = h('div', { class: 'gridlines', style: this.css({ x: 0, y: 0, w: f.cols, h: f.rows }, g) + ';grid-template:' + g.hs.map(v => v * this.k + 'px').join(' ') + '/repeat(' + f.cols + ',1fr);gap:' + GAP * this.k + 'px' }, Array.from({ length: f.cols * f.rows }, () => h('i')));
     this.over.replaceChildren(lines, ...placed.map(p => h('div', { class: 'box' + (p.tile.id === this.sel ? ' sel' : ''), style: this.css(p, g), 'data-id': p.tile.id }, h('div', { class: 'hd' }))));
     if (!this.tiles.length) this.over.append(h('div', { class: 'empty' }, h('b', {}, 'Pusta strona'), h('span', {}, 'Przeciągnij kafelek z lewej albo'), h('button', { class: 'primary', onclick: () => this.wizard(), onpointerdown: e => e.stopPropagation() }, 'Wybierz, co pokazać')));
     const hidden = this.tiles.filter(t => t.l[this.fmt] === false);
@@ -568,7 +584,8 @@ class PanelPilotEditor extends HTMLElement {
       h('h3', {}, w.name),
       field('Rodzaj kafelka', select(t.type, Object.entries(this.win.Panel.widgets).map(([id, x]) => [id, x.name]), v => this.commit(() => { t.type = v; if (v === 'music' && !t.stations) t.stations = []; }))),
       ...fields,
-      field('Nazwa (pusta = z Home Assistant)', text(t.name, v => set('name', v))),
+      field(w.thin ? 'Napis, np. Kuchnia' : 'Nazwa (pusta = z Home Assistant)', text(t.name, v => set('name', v))),
+      w.thin ? h('p', { class: 'dim', style: 'margin:-4px 0 8px' }, 'Wiersz, w którym są same sekcje, ma pół wysokości zwykłego wiersza. Sekcja zajmuje zwykle całą szerokość.') : null,
       w.noIcon ? null : field('Ikona', this.iconPicker(t.icon || w.icon, v => set('icon', v, true))),
       h('h3', {}, 'Wygląd'),
       h('div', { class: 'row2' }, this.color('Tło', t.bg, v => set('bg', v)), this.color('Kolor', t.color, v => set('color', v))),

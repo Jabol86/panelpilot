@@ -100,6 +100,13 @@ Fakty o NSPanel Pro 120: Android 8.1, 750×1334 przy 240 dpi. Czujniki światła
 - Strona główna `dashboard.home`: panel startuje na niej, wraca na nią po wygaszaczu i po jej zmianie. Jest gest `home`.
 - Gest „Wybrana strona” zapamiętuje drogę powrotu (`back`): przeciwny kierunek wraca na stronę, z której przyszliśmy. Sprawdzone na atrapie: Dom ←Oświetlenie →Dom →Muzyka ←Dom.
 
+### v0.1.12
+
+Kafelek `section` (Sekcja) dzieli stronę na działy, np. „Kuchnia”, „Salon”.
+- Ma flagę `thin` widżetu: wiersz z samymi sekcjami o h=1 ma 0.5fr (`DP.rowTracks`).
+- Edytor (`geo`, `rowSpan`, `cell`) bierze rzeczywiste wysokości wierszy z `gridTemplateRows` podglądu.
+- Nagłówek strony z 0.1.10 został, ale właścicielowi chodziło o sekcje w środku strony.
+
 ## Instalacja przez HACS
 
 Właściciel chce instalować PanelPilot z GitHuba przez HACS. To **integracja**, nie dodatek Supervisora. HACS nie widzi prywatnych repozytoriów. Kiedy właściciel się zgodzi:

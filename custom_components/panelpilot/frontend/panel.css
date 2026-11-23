@@ -49,6 +49,12 @@ small { font-size: .6em; color: var(--ink2); font-weight: 400; }
 .tile[data-ah=center] > .cbs, .tile[data-ah=right] > .cbs { margin-left: 0; }
 
 .tile.nost .st { display: none; }
+/* Sekcja: napis i cienka linia, bez tła kafelka. */
+.tile[data-type=section] { flex-direction: row; align-items: center; justify-content: flex-start; gap: 14px; padding: 0 6px; container-type: size; }
+.sec-t { font-size: clamp(13px, calc(52cqh * var(--scale)), 30px); font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--ink); }
+.sec-l { flex: 1; height: 1px; background: color-mix(in srgb, var(--ink2) 40%, transparent); }
+.tile[data-type=section][data-align=center] { justify-content: center; } .tile[data-type=section][data-align=center] .sec-l { display: none; }
+.tile[data-type=section][data-align=right] { flex-direction: row-reverse; }
 /* Nagłówek strony: pół wiersza wysokości, tekst skaluje się z wysokością. */
 #ptitle { flex: .5 1 0; min-height: 0; container-type: size; display: flex; align-items: center; padding: 0 12px; margin-bottom: var(--gap); overflow: hidden; }
 #ptitle span { font-size: clamp(14px, 62cqh, 40px); font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
