@@ -56,14 +56,14 @@ Później można zgłosić projekt do domyślnej listy HACS. Do tego czasu integ
 
 ## Pliki poza repo
 
-Te pliki są tylko na domowym komputerze właściciela, w folderze sesji. W biurze ich nie ma.
+Te pliki są w osobnym **prywatnym** repo `Jabol86/panelpilot-prywatne`, którego nigdy nie upubliczniamy. Jego README mówi, gdzie je skopiować. Nigdy nie wrzucaj ich do tego repo.
 
-- `android/panelpilot.keystore` i `android/keystore.properties`: **klucz podpisu APK**.
+- `android/panelpilot.keystore` i `android/keystore.properties`: **klucz podpisu APK** (w prywatnym repo: `klucz/`).
   - **Uwaga:** `tools/build-apk.ps1` przy braku klucza tworzy nowy. APK podpisany nowym kluczem nie zainstaluje się na panelu z wersją z v0.1.0; trzeba by ją najpierw odinstalować.
-  - Bez oryginalnego klucza nie buduj wydań dla użytkowników. Do prób wystarczy kompilacja w CI.
-  - Właściciel ma zrobić kopię klucza; nie wiadomo, czy już zrobił/a.
+  - Przed budowaniem wydania sprawdź, czy klucz z prywatnego repo jest w `android/`.
 - `_private/moj-pulpit.json`: pulpit właściciela z jego encjami, do wczytania w edytorze w zakładce *Eksport*. Ma 3 strony: Dom, Energia i Muzyka. Stacje radia nie mają jeszcze akcji.
 - `_private/prototyp`: stary prototyp z encjami właściciela.
+- `_private/wydanie.md`: opis wydania v0.1.0.
 - Narzędzia budowania (JDK 17, Gradle, Android SDK, Python, git, gh) były w `%TEMP%\dpb` na domowym komputerze. W biurze trzeba je zainstalować od nowa albo zdać się na CI.
 
 ## Czekamy od właściciela
