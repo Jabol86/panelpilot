@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>PanelPilot</title>
+<link rel="stylesheet" href="panel.css">
+<style id="custom-css"></style>
+</head>
+<body>
+<div id="root">
+  <main id="grid"></main>
+  <nav id="nav"></nav>
+  <div id="saver" hidden></div>
+  <div id="sheet" hidden></div>
+  <div id="toast" hidden role="status"></div>
+</div>
+<script src="core.js"></script>
+<script src="ha.js"></script>
+<script src="panel.js"></script>
+<script src="widgets.js"></script>
+<script src="doorbell.js"></script>
+<script src="code.js"></script>
+<script>Panel.start();</script>
+</body>
+</html>

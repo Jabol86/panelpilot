@@ -1,0 +1,11 @@
+# prywatne i generowane
+_private/
+.claude/
+dist/
+android/*.keystore
+android/keystore.properties
+android/local.properties
+.gradle/
+build/
+__pycache__/
+.pytest_cache/

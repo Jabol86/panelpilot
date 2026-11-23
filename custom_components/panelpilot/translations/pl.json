@@ -1,0 +1,30 @@
+{
+  "config": {
+    "step": { "user": { "title": "PanelPilot", "description": "Dodać PanelPilot? W menu bocznym pojawi się edytor pulpitów, a panele dodasz kodem pokazanym na ich ekranie." } },
+    "abort": { "single_instance_allowed": "PanelPilot jest już dodany." }
+  },
+  "entity": {
+    "light": { "screen": { "name": "Ekran" } },
+    "select": { "page": { "name": "Strona" }, "dashboard": { "name": "Pulpit" }, "rotation": { "name": "Obrót" } },
+    "sensor": { "illuminance": { "name": "Światło" } },
+    "binary_sensor": { "proximity": { "name": "Zbliżenie" }, "connection": { "name": "Połączenie" } },
+    "button": { "reload": { "name": "Odśwież" }, "doorbell": { "name": "Pokaż domofon" } }
+  },
+  "services": {
+    "show_message": {
+      "name": "Pokaż wiadomość",
+      "description": "Budzi panel i pokazuje wiadomość.",
+      "fields": {
+        "device_id": { "name": "Panele", "description": "Puste oznacza wszystkie panele." },
+        "title": { "name": "Tytuł", "description": "Nagłówek wiadomości." },
+        "message": { "name": "Treść", "description": "Tekst wiadomości." },
+        "seconds": { "name": "Zamknij po", "description": "0 oznacza, że wiadomość czeka na dotknięcie OK." }
+      }
+    },
+    "open_doorbell": {
+      "name": "Pokaż domofon",
+      "description": "Otwiera okno domofonu na panelu.",
+      "fields": { "device_id": { "name": "Panele", "description": "Puste oznacza wszystkie panele." } }
+    }
+  }
+}

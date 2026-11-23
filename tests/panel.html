@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="pl"><head><meta charset="utf-8"><title>Panel (test)</title>
+<base href="/panelpilot_static/"><link rel="stylesheet" href="panel.css"><style id="custom-css"></style></head>
+<body><div id="root"><main id="grid"></main><nav id="nav"></nav><div id="saver" hidden></div><div id="sheet" hidden></div><div id="toast" hidden role="status"></div></div>
+<script>
+// Udawany serwer HA: logowanie, parowanie i WebSocket. Encje zmyślone.
+if (location.hash !== '#sparowany') try { localStorage.removeItem('panelpilot_tokens'); } catch (e) {}
+window.sent = []; window.polls = 0; window.approved = false;
+const realFetch = window.fetch;
+window.fetch = async (url, o) => {
+  const u = String(url), res = (b, s) => new Response(JSON.stringify(b), { status: s || 200 });
+  if (u === '/api/panelpilot/pair') {
+    const b = JSON.parse(o.body);
+    if (!b.secret) { window.pairBody = b; return res({ code: '482913', secret: 'S' }); }
+    polls++; return res({ refresh_token: approved ? 'R' : null });
+  }
+  if (u === '/auth/token') { window.tokenBody = String(o.body); return res({ access_token: 'A' }); }
+  return realFetch(url, o);
+};
+const ent = { 'light.salon': { s: 'off', a: { friendly_name: 'Salon' } }, 'sensor.t': { s: '21.5', a: { unit_of_measurement: '°C', friendly_name: 'Temp' } }, 'binary_sensor.gosc': { s: 'off', a: {} }, 'switch.furtka': { s: 'off', a: { friendly_name: 'Furtka' } }, 'camera.brama': { s: 'idle', a: {} } };
+window.cfg = { type: 'config', panel: { name: 'P', shape: 'auto', settings: { rotation: 0, dayBrightness: 80, nightBrightness: 8, darkLux: 8, nightFrom: 0, nightTo: 0, wakeOnProximity: true, proximityHold: true } },
+  doorbell: { name: 'Brama', entity: 'binary_sensor.gosc', camera: 'camera.brama', seconds: 60, talk: true, chime: false, own: true, actions: [{ name: 'Furtka', entity: 'switch.furtka', icon: 'gate' }] },
+  dashboard: { name: 'D', mode: 'tiles', theme: {}, saver: { seconds: 60, style: 'zegar', entities: ['sensor.t'] }, pages: [{ name: 'Dom', tiles: [{ id: '1', type: 'clock', l: {} }, { id: '2', type: 'toggle', entity: 'light.salon', l: {} }, { id: '3', type: 'sensor', entity: 'sensor.t', l: {} }, { id: '4', type: 'hold', entity: 'switch.furtka', l: {} }] }, { name: 'Druga', tiles: [] }] } };
+window.WebSocket = class {
+  constructor(u) { this.readyState = 0; window.sock = this; setTimeout(() => { this.readyState = 1; this.msg({ type: 'auth_required' }); }); }
+  msg(m) { this.onmessage && this.onmessage({ data: JSON.stringify(m) }); }
+  event(id, e) { this.msg({ id, type: 'event', event: e }); }
+  close() { this.readyState = 3; this.onclose && this.onclose({}); }
+  send(t) {
+    const m = JSON.parse(t); sent.push(m);
+    const ok = r => setTimeout(() => this.msg({ id: m.id, type: 'result', success: true, result: r === undefined ? null : r }));
+    if (m.type === 'auth') return setTimeout(() => this.msg({ type: 'auth_ok' }));
+    if (m.type === 'ping') return setTimeout(() => this.msg({ id: m.id, type: 'pong' }));
+    if (m.type === 'panelpilot/subscribe') { ok(); this.panelSub = m.id; setTimeout(() => this.event(m.id, cfg), 5); return; }
+    if (m.type === 'subscribe_entities') { ok(); this.entSub = m.id; setTimeout(() => this.event(m.id, { a: Object.fromEntries(Object.entries(ent).filter(([k]) => !m.entity_ids || m.entity_ids.includes(k))) }), 5); return; }
+    if (m.type === 'panelpilot/webrtc') return setTimeout(() => this.msg({ id: m.id, type: 'result', success: false, error: { code: 'go2rtc', message: 'x' } }));
+    if (m.type === 'call_service') { ok(); const id = m.service_data.entity_id; if (m.service === 'toggle') { ent[id].s = ent[id].s === 'on' ? 'off' : 'on'; this.event(this.entSub, { c: { [id]: { '+': { s: ent[id].s } } } }); } return; }
+    ok(m.type === 'auth/current_user' ? { name: 'Panel', is_admin: false } : undefined);
+  }
+};
+window.setEnt = (id, s) => sock.event(sock.entSub, { c: { [id]: { '+': { s } } } });
+window.command = c => sock.event(sock.panelSub, Object.assign({ type: 'command' }, c));
+</script>
+<script src="core.js"></script><script src="ha.js"></script><script src="panel.js"></script><script src="widgets.js"></script><script src="doorbell.js"></script><script src="code.js"></script>
+<script>Panel.start();</script></body></html>

@@ -1,0 +1,14 @@
+{
+  "domain": "panelpilot",
+  "name": "PanelPilot",
+  "codeowners": ["@Jabol86"],
+  "config_flow": true,
+  "dependencies": ["http", "websocket_api", "frontend", "panel_custom"],
+  "documentation": "https://github.com/Jabol86/panelpilot",
+  "integration_type": "hub",
+  "iot_class": "local_push",
+  "issue_tracker": "https://github.com/Jabol86/panelpilot/issues",
+  "requirements": [],
+  "single_config_entry": true,
+  "version": "0.1.0"
+}

@@ -1,0 +1,30 @@
+{
+  "config": {
+    "step": { "user": { "title": "PanelPilot", "description": "Add PanelPilot? A dashboard editor appears in the sidebar, and panels are added with the code shown on their screen." } },
+    "abort": { "single_instance_allowed": "PanelPilot is already added." }
+  },
+  "entity": {
+    "light": { "screen": { "name": "Screen" } },
+    "select": { "page": { "name": "Page" }, "dashboard": { "name": "Dashboard" }, "rotation": { "name": "Rotation" } },
+    "sensor": { "illuminance": { "name": "Illuminance" } },
+    "binary_sensor": { "proximity": { "name": "Proximity" }, "connection": { "name": "Connection" } },
+    "button": { "reload": { "name": "Reload" }, "doorbell": { "name": "Show doorbell" } }
+  },
+  "services": {
+    "show_message": {
+      "name": "Show message",
+      "description": "Wakes the panel and shows a message.",
+      "fields": {
+        "device_id": { "name": "Panels", "description": "Empty means all panels." },
+        "title": { "name": "Title", "description": "Message heading." },
+        "message": { "name": "Message", "description": "Message text." },
+        "seconds": { "name": "Close after", "description": "0 means the message waits for OK." }
+      }
+    },
+    "open_doorbell": {
+      "name": "Show doorbell",
+      "description": "Opens the doorbell window on the panel.",
+      "fields": { "device_id": { "name": "Panels", "description": "Empty means all panels." } }
+    }
+  }
+}

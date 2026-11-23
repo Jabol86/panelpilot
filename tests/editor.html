@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="pl"><meta charset="utf-8"><title>Edytor (test)</title>
+<style>html,body{margin:0;height:100%}</style>
+<body><script type="module">
+// Udawany Home Assistant do sprawdzania edytora bez HA. Wszystkie encje są zmyślone.
+const s = (state, name, a) => ({ state: String(state), attributes: Object.assign({ friendly_name: name }, a) });
+let states = {
+  'weather.dom': s('cloudy', 'Pogoda dom', { temperature: 1.8, wind_speed: 14.8, wind_speed_unit: 'km/h' }),
+  'weather.inna': s('rainy', 'Pogoda inna', { temperature: 3 }),
+  'sensor.temp_salon': s(22.3, 'Temperatura salon', { unit_of_measurement: '°C', device_class: 'temperature' }),
+  'sensor.wilg_salon': s(41.2, 'Wilgotność salon', { unit_of_measurement: '%', device_class: 'humidity' }),
+  'sensor.moc': s(698, 'Moc domu', { unit_of_measurement: 'W', device_class: 'power' }),
+  'sensor.pv': s(2.14, 'Fotowoltaika', { unit_of_measurement: 'kW' }), 'sensor.siec': s(-1442, 'Sieć', { unit_of_measurement: 'W' }),
+  'light.salon': s('on', 'Salon', { brightness: 180 }), 'light.kuchnia': s('off', 'Kuchnia'), 'switch.schody': s('off', 'Schody'),
+  'binary_sensor.okno': s('off', 'Okno kuchnia'), 'binary_sensor.drzwi': s('on', 'Drzwi wejściowe'), 'binary_sensor.gosc': s('off', 'Gość'),
+  'cover.roleta': s('open', 'Roleta salon', { current_position: 60 }), 'climate.salon': s('heat', 'Termostat', { current_temperature: 21.4, temperature: 22 }),
+  'camera.brama': s('idle', 'Kamera brama'), 'switch.furtka': s('off', 'Furtka'),
+  'media_player.radio': s('playing', 'Radio', { volume_level: 0.3, media_title: 'Stacja 1', source: 'HDMI', source_list: ['HDMI', 'Głośniki'] }),
+};
+const db = { dashboards: { d1: { name: 'Pulpit', mode: 'tiles', pages: [{ name: 'Dom', tiles: [] }], theme: {}, saver: {}, css: '', js: '', rev: 1 } },
+  doorbell: { name: 'Domofon', entity: '', camera: '', go2rtc: '', stream: '', talk: false, chime: true, seconds: 60, actions: [] },
+  panels: { p1: { name: 'Korytarz', model: 'NSPanel Pro', app: '0.1.0', size: '500×889', shape: 'rect', dashboard: 'd1', connected: true, state: {}, settings: { rotation: 0, dayBrightness: 80, nightBrightness: 8, darkLux: 8, nightFrom: 22, nightTo: 6, wakeOnProximity: true, proximityHold: true } } },
+  pairing: [{ code: '482913', name: 'Panel', model: 'NSPanel Pro 120', remote: '192.0.2.50', device_id: 'x' }] };
+let admin; window.calls = [];
+const copy = o => JSON.parse(JSON.stringify(o));
+const push = () => admin && admin(copy(db));
+const callWS = async m => {
+  calls.push(copy(m));
+  const kind = m.type.split('/').pop();
+  if (kind === 'dashboard_save') {
+    const id = m.dashboard_id || 'd' + Date.now(), rev = ((db.dashboards[id] || {}).rev || 0) + 1;
+    if (m.dashboard_id && m.rev != null && m.rev !== rev - 1) throw { code: 'conflict', message: 'konflikt' };
+    db.dashboards[id] = { ...copy(m.data), rev }; setTimeout(push); return { id, rev };
+  }
+  if (kind === 'doorbell_save') { db.doorbell = copy(m.data); setTimeout(push); return; }
+  if (kind === 'pair_approve') { db.pairing = []; setTimeout(push); return; }
+  if (kind === 'history_during_period') return { [m.entity_ids[0]]: Array.from({ length: 40 }, (x, i) => ({ s: String(20 + Math.sin(i / 5) * 2), lu: Date.now() / 1000 - (40 - i) * 900 })) };
+};
+const connection = { subscribeMessage: async (cb, m) => {
+  if (m.type.endsWith('admin/subscribe')) { admin = cb; setTimeout(push); }
+  if (m.type === 'weather/subscribe_forecast') cb({ forecast: [1.7, 2.3, 0.6, -0.3, -0.3].map((t, i) => ({ datetime: new Date(Date.now() + i * 864e5).toISOString(), temperature: t, templow: t - 2, condition: ['rainy', 'snowy', 'partlycloudy', 'cloudy', 'sunny'][i] })) });
+  return () => {};
+} };
+window.db = db;
+await import('/panelpilot_static/editor.js?v=test');
+const el = document.createElement('panelpilot-editor');
+const hass = () => ({ states, callWS, connection, services: { script: { turn_on: {} }, media_player: { play_media: {} } } });
+el.hass = hass();
+document.body.append(el);
+window.editor = el;
+window.setState = (id, v) => { states = { ...states, [id]: { ...states[id], state: v } }; el.hass = hass(); };
+</script></body></html>

@@ -1,0 +1,30 @@
+show_message:
+  fields:
+    device_id:
+      selector:
+        device:
+          integration: panelpilot
+          multiple: true
+    title:
+      selector:
+        text:
+    message:
+      required: true
+      selector:
+        text:
+          multiline: true
+    seconds:
+      default: 0
+      selector:
+        number:
+          min: 0
+          max: 3600
+          unit_of_measurement: s
+          mode: box
+open_doorbell:
+  fields:
+    device_id:
+      selector:
+        device:
+          integration: panelpilot
+          multiple: true
