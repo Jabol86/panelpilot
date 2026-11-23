@@ -31,19 +31,16 @@ Panel ścienny dla Home Assistant na **Sonoff NSPanel Pro 86** (kwadrat) i **NSP
 
 ### 2. Aplikacja na panelu
 
-1. W eWeLink otwórz ustawienia panelu, dotknij *Device ID* kilka razy i włącz ADB (producent zastrzega, że może to wpłynąć na gwarancję).
-2. Pobierz `panelpilot.apk` z [wydań](https://github.com/Jabol86/panelpilot/releases).
-3. Windows: `.\tools\install-panel.ps1 -Ip ADRES_PANELU -Apk .\panelpilot.apk`
+Pełny opis krok po kroku: **[docs/instalacja-panelu.md](docs/instalacja-panelu.md)**. Jest tam też instalacja z Linuksa i macOS, na innych tabletach i rozwiązywanie problemów.
 
-Ręcznie, na dowolnym systemie:
+1. W eWeLink otwórz ustawienia panelu, dotknij *Device ID* 5–10 razy i włącz ADB (producent zastrzega, że może to wpłynąć na gwarancję).
+2. Na komputerze z Windows otwórz PowerShell i wpisz, podając adres IP panelu:
 
-```bash
-adb connect ADRES_PANELU:5555
-adb install -r panelpilot.apk
-adb shell pm grant pl.panelpilot.app android.permission.RECORD_AUDIO
-adb shell cmd package set-home-activity pl.panelpilot.app/.MainActivity
-adb shell am start -n pl.panelpilot.app/.MainActivity
+```powershell
+& ([scriptblock]::Create((irm https://raw.githubusercontent.com/Jabol86/panelpilot/main/tools/install-panel.ps1))) -Ip 192.168.1.50 -TimeZone Europe/Warsaw
 ```
+
+Skrypt sam pobierze adb i najnowsze APK, zainstaluje je i ustawi PanelPilot jako ekran główny.
 
 ### 3. Połączenie
 
