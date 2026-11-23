@@ -86,6 +86,8 @@ async def test_editor(hass, entry, hass_ws_client):
     assert bad["error"]["code"] == "invalid"
 
 
+# Usunięcie konta zrywa gniazdo po stronie HA; zostaje zegar heartbeat z aiohttp (nie nasz).
+@pytest.mark.parametrize("expected_lingering_timers", [True])
 async def test_pairing(hass, entry, hass_ws_client, hass_client_no_auth):
     http = await hass_client_no_auth()
     start = await (await http.post("/api/panelpilot/pair", json={"device_id": "app_1", "name": "Hol", "model": "NSPanel", "client_id": CLIENT})).json()
