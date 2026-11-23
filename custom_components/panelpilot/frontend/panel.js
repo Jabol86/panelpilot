@@ -267,6 +267,12 @@
       if (DP.isColor(t.bg)) el.style.setProperty('--tile', t.bg);
       if (DP.isColor(t.color)) ['--accent', '--on'].forEach(v => el.style.setProperty(v, t.color));
       if (DP.isColor(t.iconBg)) { el.classList.add('icbg'); el.style.setProperty('--icbg', t.iconBg); }
+      // Układ treści i wielkość ikony: z kafelka, a gdy brak, z motywu pulpitu.
+      if (def && !def.noIcon) {
+        const th = dash.theme || {}, lay = t.layout || th.layout, size = DP.ICON_SIZES[t.iconSize || th.iconSize];
+        if (lay === 'row' || lay === 'center') el.classList.add('lay-' + lay);
+        if (size) el.style.setProperty('--ic', size + 'px');
+      }
       el._tile = t;
       try { if (def && def.mount) { const stop = def.mount(el, t); if (stop) cleanup.push(stop); } } catch (e) { console.error(t.type, e); }
       updateTile(el);

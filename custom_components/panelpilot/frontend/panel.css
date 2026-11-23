@@ -16,8 +16,17 @@ small { font-size: .6em; color: var(--ink2); font-weight: 400; }
 .tile.row { align-items: center; }
 .tile.mini { flex-direction: column; align-items: center; justify-content: center; padding: 4px; text-align: center; gap: 2px; }
 .tile.plain { background: none; }
-.tile > .ic { color: var(--ink2); position: relative; }
-.tile.stack > .ic { width: 32px; height: 32px; }
+.tile > .ic { color: var(--ink2); position: relative; width: var(--ic, 26px); height: var(--ic, 26px); }
+.tile.stack > .ic { width: var(--ic, 32px); height: var(--ic, 32px); }
+.tile.mini > .ic { width: min(var(--ic, 26px), 34px); height: min(var(--ic, 26px), 34px); }
+/* Układ treści: ikona obok tekstu (row) albo wszystko na środku (center). Przyciski i suwaki idą do nowej linii. */
+.tile.stack.lay-row { flex-direction: row; flex-wrap: wrap; align-items: center; align-content: center; gap: 8px 14px; }
+.tile.lay-row > .tx { flex: 1; }
+.tile.lay-row > .cbs, .tile.lay-row > input[type=range] { flex-basis: 100%; margin: 0; }
+.tile.stack.lay-center { align-items: center; text-align: center; }
+.tile.row.lay-center { justify-content: center; }
+.tile.lay-center > .tx { justify-items: center; }
+.tile.lay-center > .cbs { margin-left: 0; }
 .tx { position: relative; min-width: 0; max-width: 100%; display: grid; gap: 1px; }
 .val { font-size: calc(21px * var(--scale)); font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-variant-numeric: tabular-nums; }
 .stack .val { font-size: calc(30px * var(--scale)); }
@@ -31,7 +40,9 @@ small { font-size: .6em; color: var(--ink2); font-weight: 400; }
 .tile.on > .ic, .tile.on .st { color: var(--on); }
 .tile.warn { background: color-mix(in srgb, var(--warn) 22%, var(--tile)); }
 .tile.warn > .ic, .tile.warn .val { color: var(--warn); }
-#root[data-icons=circle] .tile > .ic, .tile.icbg > .ic { box-sizing: content-box; padding: 8px; border-radius: 50%; color: var(--ink); background: var(--icbg, color-mix(in srgb, var(--accent) 22%, transparent)); }
+#root[data-on=outline] .tile.on { background: color-mix(in srgb, var(--on) 7%, var(--tile)); box-shadow: inset 0 0 0 2px var(--on), 0 0 16px color-mix(in srgb, var(--on) 30%, transparent); }
+#root[data-on=outline] .tile.on .nm, #root[data-on=outline] .tile.on .st { color: var(--ink); }
+#root[data-icons=circle] .tile > .ic, .tile.icbg > .ic { box-sizing: content-box; padding: calc(var(--ic, 30px) * .28); border-radius: 50%; color: var(--ink); background: var(--icbg, color-mix(in srgb, var(--accent) 22%, transparent)); }
 #root[data-icons=circle] .tile.on > .ic { color: var(--on); background: color-mix(in srgb, var(--on) 28%, transparent); }
 .tile.icbg.on > .ic { color: var(--on); background: var(--icbg); }
 #root[data-icons=circle] .tile.mini > .ic, .tile.mini.icbg > .ic { padding: 5px; width: 22px; height: 22px; }

@@ -5,6 +5,8 @@ import { h, field, group, check, text, select, clone, uid } from './ui.js';
 
 const BASE = new URL('.', import.meta.url);
 const GAP = 8;
+const LAYOUTS = [['column', 'Ikona nad tekstem'], ['row', 'Ikona obok tekstu'], ['center', 'Wszystko na środku']];
+const ICON_SIZES = [['S', 'Mała'], ['M', 'Zwykła'], ['L', 'Duża'], ['XL', 'Bardzo duża'], ['XXL', 'Ogromna']];
 
 class PanelPilotEditor extends HTMLElement {
   constructor() {
@@ -446,6 +448,9 @@ class PanelPilotEditor extends HTMLElement {
       h('div', { class: 'row2' }, this.color('Tło', t.bg, v => set('bg', v)), this.color('Kolor', t.color, v => set('color', v))),
       w.noIcon ? null : this.color('Tło ikony (kółko)', t.iconBg, v => set('iconBg', v)),
       field('Wielkość tekstu', select(t.text || '', [['S', 'Mała'], ['', 'Zwykła'], ['L', 'Duża'], ['XL', 'Bardzo duża']], v => set('text', v))),
+      w.noIcon ? null : h('div', { class: 'row2' },
+        field('Układ', select(t.layout || '', [['', 'Jak w motywie']].concat(LAYOUTS), v => set('layout', v, true))),
+        field('Wielkość ikony', select(t.iconSize || '', [['', 'Jak w motywie']].concat(ICON_SIZES), v => set('iconSize', v, true)))),
       h('h3', {}, 'Dotknięcie'),
       field('Co robi', select(tap.kind || 'default', [['default', 'Domyślnie dla tego kafelka'], ['none', 'Nic'], ['toggle', 'Przełącz encję'], ['page', 'Otwórz stronę'], ['service', 'Wywołaj akcję HA']], v => setTap({ kind: v }))),
       tap.kind === 'page' ? field('Strona', select(tap.page || '', [['', '–']].concat(this.doc.pages.map(x => [x.name, x.name])), v => setTap({ page: v }))) : null,
@@ -572,15 +577,21 @@ class PanelPilotEditor extends HTMLElement {
   /* ---------- wygląd, wygaszacz, domofon ---------- */
   lookTab() {
     const t = this.doc.theme || {}, set = (k, v) => this.commit(() => { this.doc.theme = this.doc.theme || {}; if (v === '') delete this.doc.theme[k]; else this.doc.theme[k] = v; }, { key: 'th' + k, quiet: true });
+    // Zmiana, po której prawy panel trzeba narysować od nowa (pojawiają się zależne pola).
+    const setFull = (k, v) => this.commit(() => { this.doc.theme = Object.assign({}, this.doc.theme); if (v) this.doc.theme[k] = v; else delete this.doc.theme[k]; });
     const cur = Object.assign({}, this.DP.THEMES.Grafit, t), range = (l, k, min, max, v, conv) => field(l, h('input', { type: 'range', min, max, value: v, oninput: e => set(k, conv(+e.target.value)) }));
     return [h('h3', {}, 'Gotowe motywy'), h('div', { class: 'themes' }, Object.entries(this.DP.THEMES).map(([n, v]) => h('button', { onclick: () => this.commit(() => { this.doc.theme = Object.assign({}, this.doc.theme, v); }) }, h('span', { class: 'sw', style: 'background:linear-gradient(90deg,' + v.bg + ' 33%,' + v.tile + ' 33% 66%,' + v.accent + ' 66%)' }), n))),
       h('h3', {}, 'Kolory'), h('div', { class: 'row2' }, Object.entries(this.DP.THEME_FIELDS).map(([k, l]) => field(l, h('input', { type: 'color', value: cur[k], oninput: e => set(k, e.target.value) })))),
       h('h3', {}, 'Kształt i tekst'), range('Zaokrąglenie rogów', 'radius', 0, 40, t.radius == null ? 16 : t.radius, v => v), range('Wielkość tekstu', 'scale', 80, 150, (t.scale || 1) * 100, v => v / 100), range('Krycie kafelków', 'opacity', 20, 100, t.opacity || 100, v => v),
       field('Tapeta (adres obrazka)', text(t.image, v => set('image', v.trim()), { placeholder: '/local/tapeta.jpg' })),
-      h('h3', {}, 'Ikony'),
-      field('Tło ikon', select(t.icons || '', [['', 'Bez tła'], ['circle', 'Kolorowe kółko']], v => this.commit(() => { this.doc.theme = Object.assign({}, this.doc.theme); if (v) this.doc.theme.icons = v; else delete this.doc.theme.icons; }))),
+      h('h3', {}, 'Kafelki i ikony'),
+      field('Włączony kafelek', select(t.onStyle || '', [['', 'Wypełniony kolorem'], ['outline', 'Świecąca ramka']], v => setFull('onStyle', v))),
+      h('div', { class: 'row2' },
+        field('Układ treści', select(t.layout || '', [['', 'Ikona nad tekstem']].concat(LAYOUTS.slice(1)), v => setFull('layout', v))),
+        field('Wielkość ikon', select(t.iconSize || '', [['', 'Zwykła']].concat(ICON_SIZES.filter(s => s[0] !== 'M')), v => setFull('iconSize', v)))),
+      field('Tło ikon', select(t.icons || '', [['', 'Bez tła'], ['circle', 'Kolorowe kółko']], v => setFull('icons', v))),
       t.icons === 'circle' ? this.color('Kolor kółka (puste = z akcentu)', t.icbg, v => set('icbg', v)) : null,
-      h('p', { class: 'dim' }, 'Kolor kółka pojedynczego kafelka ustawisz po kliknięciu kafelka.'),
+      h('p', { class: 'dim' }, 'Układ, wielkość ikony i kolor kółka pojedynczego kafelka ustawisz po kliknięciu kafelka.'),
       h('h3', {}, 'Nawigacja'),
       check('Pasek stron na dole ekranu', this.doc.nav !== false, v => this.commit(() => { this.doc.nav = v; })),
       this.doc.nav === false ? h('p', { class: 'dim' }, 'Bez paska ustawienia panelu otwiera mały przycisk w prawym dolnym rogu albo gest poniżej.') : null,

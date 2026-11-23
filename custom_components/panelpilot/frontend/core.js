@@ -150,6 +150,9 @@
     return '<svg class="ic mdi" viewBox="0 0 24 24" aria-hidden="true" data-mdi="' + n + '">' + (paths[n] ? '<path d="' + DP.esc(paths[n]) + '"/>' : '') + '</svg>';
   };
 
+  /** Wielkość ikony kafelka w pikselach (S, M, L, XL, XXL). */
+  DP.ICON_SIZES = { S: 20, M: 30, L: 42, XL: 56, XXL: 76 };
+
   /* ---------- motywy ---------- */
   DP.THEME_FIELDS = { bg: 'Tło', tile: 'Kafelek', tile2: 'Przycisk', ink: 'Tekst', ink2: 'Tekst pomocniczy', accent: 'Akcent', on: 'Włączone', good: 'W porządku', warn: 'Ostrzeżenie' };
   DP.THEMES = {
@@ -169,6 +172,8 @@
     root.style.setProperty('--image', url);
     // Ikony na kolorowym kółku: dla całego pulpitu (motyw) albo pojedynczego kafelka (tile.iconBg).
     root.dataset.icons = t.icons === 'circle' ? 'circle' : '';
+    // Włączony kafelek: wypełnienie kolorem (domyślnie) albo świecąca ramka.
+    root.dataset.on = t.onStyle === 'outline' ? 'outline' : '';
     if (DP.isColor(t.icbg)) root.style.setProperty('--icbg', t.icbg); else root.style.removeProperty('--icbg');
   };
 })();
