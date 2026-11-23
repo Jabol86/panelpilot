@@ -106,6 +106,13 @@ class Other(unittest.TestCase):
         self.assertEqual((d["saver"]["weather"], d["saver"]["days"]), ("weather.dom", 7))
         self.assertEqual(model.clean_dashboard({"pages": [{"tiles": []}], "saver": {"weather": "sensor.x"}})["saver"]["weather"], "")
 
+    def test_home_page(self):
+        pages = [{"name": "Dom", "tiles": []}, {"name": "Muzyka", "tiles": []}]
+        self.assertEqual(model.clean_dashboard({"pages": pages, "home": "Muzyka"})["home"], "Muzyka")
+        self.assertEqual(model.clean_dashboard({"pages": pages, "home": "Brak"})["home"], "")
+        g = model.clean_dashboard({"pages": pages, "gestures": {"up": {"kind": "home"}}})["gestures"]["up"]
+        self.assertEqual(g, {"kind": "home"})
+
     def test_doorbell_after(self):
         self.assertEqual(model.clean_doorbell({})["after"], 10)
         self.assertEqual(model.clean_doorbell({"after": 500})["after"], 120)

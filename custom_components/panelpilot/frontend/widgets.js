@@ -241,21 +241,42 @@
 
   P.widget('music', {
     name: 'Muzyka / radio', icon: 'music', group: 'Sterowanie', size: [6, 4], controls: true, noIcon: true,
-    fields: [E('Odtwarzacz', ['media_player']), E('Wyjście (puste = źródła odtwarzacza)', ['select', 'input_select'], 'output'), { k: 'stations', l: 'Przyciski stacji', t: 'stations' }],
+    fields: [E('Odtwarzacz', ['media_player']), E('Wyjście (puste = źródła odtwarzacza)', ['select', 'input_select'], 'output'),
+      { k: 'vol', l: 'Głośność', t: 'select', o: [['', 'Przyciski − i + ze wskaźnikiem'], ['slider', 'Suwak'], ['none', 'Bez regulacji']] },
+      { k: 'volStep', l: 'Krok przycisków głośności (%)', t: 'number' },
+      { k: 'perRow', l: 'Stacji w rzędzie (puste = tyle, ile się zmieści)', t: 'number' },
+      { k: 'stations', l: 'Przyciski stacji', t: 'stations' }],
     mount(el, t) {
-      el.innerHTML = '<div class="mu"><div class="mu-top"><div class="mu-title"></div><select aria-label="Wyjście dźwięku"></select></div><div class="mu-ctl"><button class="cb" data-m="play" aria-label="Odtwarzaj lub wstrzymaj"></button><input type="range" min="0" max="100" aria-label="Głośność"><button class="cb" data-m="next" aria-label="Następny">' + ic('next') + '</button></div><div class="mu-st">'
+      const vol = t.vol === 'slider' ? '<input type="range" min="0" max="100" aria-label="Głośność">'
+        : t.vol === 'none' ? '' : '<div class="mu-vol"><div class="mu-meter" aria-hidden="true">' + '<i></i>'.repeat(10) + '<span></span></div>'
+          + '<div class="mu-vb"><button class="cb" data-v="-1" aria-label="Ciszej">' + ic('minus') + '</button><button class="cb" data-v="1" aria-label="Głośniej">' + ic('plus') + '</button></div></div>';
+      el.innerHTML = '<div class="mu"><div class="mu-top"><div class="mu-title"></div><select aria-label="Wyjście dźwięku"></select></div><div class="mu-ctl"><button class="cb" data-m="play" aria-label="Odtwarzaj lub wstrzymaj"></button><button class="cb" data-m="next" aria-label="Następny">' + ic('next') + '</button><span class="mu-sp"></span>' + vol + '</div><div class="mu-st">'
         + (t.stations || []).map((s, i) => '<button data-s="' + i + '">' + (/^(\/|https?:)/.test(s.image || '') ? '<img src="' + esc(s.image) + '" alt="' + esc(s.name) + '">' : esc(s.name)) + '</button>').join('') + '</div></div>';
+      // Ile stacji w rzędzie: reszta przechodzi do kolejnych rzędów, które dzielą wysokość kafelka.
+      const per = Math.max(0, Math.min(12, parseInt(t.perRow, 10) || 0));
+      if (per) el.querySelector('.mu-st').style.gridTemplateColumns = 'repeat(' + per + ',minmax(0,1fr))';
       const range = el.querySelector('input'), sel = el.querySelector('select');
       let timer;
-      range.addEventListener('input', () => {
-        el._drag = true; clearTimeout(timer);
-        timer = setTimeout(() => P.service('media_player.volume_set', { entity_id: t.entity, volume_level: range.value / 100 }), 150);
-      });
-      range.addEventListener('change', () => setTimeout(() => { el._drag = false; }, 1500));
+      const setVol = v => { clearTimeout(timer); timer = setTimeout(() => P.service('media_player.volume_set', { entity_id: t.entity, volume_level: v / 100 }), 250); };
+      if (range) {
+        range.addEventListener('input', () => { el._drag = true; setVol(+range.value); });
+        range.addEventListener('change', () => setTimeout(() => { el._drag = false; }, 1500));
+      }
       sel.addEventListener('change', () => t.output ? P.service(t.output.split('.')[0] + '.select_option', { entity_id: t.output, option: sel.value }) : P.service('media_player.select_source', { entity_id: t.entity, source: sel.value }));
       el.addEventListener('click', e => {
         const b = e.target.closest('button');
-        if (!b || P.ha.preview) return;
+        if (!b) return;
+        if (b.dataset.v) {
+          // Przyciski od razu pokazują nową głośność; do HA idzie jedna zmiana po serii dotknięć.
+          const a = (P.state(t.entity) || {}).attributes || {}, step = Math.max(1, Math.min(25, +t.volStep || 5));
+          const cur = el._vol != null ? el._vol : Math.round((a.volume_level || 0) * 100);
+          el._vol = Math.max(0, Math.min(100, Math.round((cur + step * b.dataset.v) / step) * step));
+          meter(el, el._vol);
+          clearTimeout(el._volT); el._volT = setTimeout(() => { el._vol = null; }, 3000);
+          if (!P.ha.preview) setVol(el._vol);
+          return;
+        }
+        if (P.ha.preview) return;
         if (b.dataset.m) return P.service(b.dataset.m === 'play' ? 'media_player.media_play_pause' : 'media_player.media_next_track', { entity_id: t.entity });
         const s = t.stations[+b.dataset.s];
         s.service ? P.service(s.service, s.data) : P.toast('Stacja „' + s.name + '” nie ma jeszcze akcji', true);
@@ -267,12 +288,21 @@
       el.querySelector('.mu-title').textContent = a.media_title || t.name || 'Radio';
       el.querySelector('[data-m=play]').innerHTML = ic(s && s.state === 'playing' ? 'pause' : 'play');
       const range = el.querySelector('input'), sel = el.querySelector('select');
-      if (!el._drag && a.volume_level != null) range.value = Math.round(a.volume_level * 100);
+      if (range && !el._drag && a.volume_level != null) range.value = Math.round(a.volume_level * 100);
+      if (el.querySelector('.mu-meter') && el._vol == null) meter(el, a.volume_level == null ? null : Math.round(a.volume_level * 100));
       sel.hidden = !list.length;
       if (document.activeElement !== sel) sel.innerHTML = list.map(x => '<option' + (x === now ? ' selected' : '') + '>' + esc(x) + '</option>').join('');
       el.querySelectorAll('[data-s]').forEach((b, i) => b.classList.toggle('active', !!a.media_title && a.media_title === t.stations[i].name));
     },
   });
+
+  /** Wskaźnik głośności: 10 kresek rosnącej wysokości i procent. */
+  function meter(el, v) {
+    const m = el.querySelector('.mu-meter');
+    if (!m) return;
+    m.querySelectorAll('i').forEach((b, i) => b.classList.toggle('on', v != null && v > i * 10));
+    m.querySelector('span').textContent = v == null ? '–' : v + ' %';
+  }
 
   P.widget('device', {
     name: 'Czujniki panelu', icon: 'tablet', group: 'Podgląd', size: [6, 3], fields: [], noIcon: true, noEntity: true,

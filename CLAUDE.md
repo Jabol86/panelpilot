@@ -91,6 +91,15 @@ Fakty o NSPanel Pro 120: Android 8.1, 750×1334 przy 240 dpi. Czujniki światła
   - panel pogody na wygaszaczu: `saver.weather` i `saver.days` (0–7);
   - w zakładce Gesty pola zależne są wcięte pod kierunkiem.
 
+### v0.1.11
+
+- Odtwarzacz:
+  - `vol` = przyciski − i + ze wskaźnikiem (domyślnie) / `slider` / `none`, krok `volStep` (domyślnie 5%);
+  - `perRow` ustala liczbę stacji w rzędzie, dzięki czemu mieszczą się w kilku rzędach;
+  - okrągłe przyciski play/next.
+- Strona główna `dashboard.home`: panel startuje na niej, wraca na nią po wygaszaczu i po jej zmianie. Jest gest `home`.
+- Gest „Wybrana strona” zapamiętuje drogę powrotu (`back`): przeciwny kierunek wraca na stronę, z której przyszliśmy. Sprawdzone na atrapie: Dom ←Oświetlenie →Dom →Muzyka ←Dom.
+
 ## Instalacja przez HACS
 
 Właściciel chce instalować PanelPilot z GitHuba przez HACS. To **integracja**, nie dodatek Supervisora. HACS nie widzi prywatnych repozytoriów. Kiedy właściciel się zgodzi:

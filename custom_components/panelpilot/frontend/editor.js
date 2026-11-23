@@ -796,9 +796,12 @@ class PanelPilotEditor extends HTMLElement {
 
   gestureFields() {
     const g = this.doc.gestures || {};
-    const kinds = [['default', ''], ['none', 'Nic'], ['next', 'Następna strona'], ['prev', 'Poprzednia strona'], ['page', 'Wybrana strona'], ['saver', 'Wygaszacz'], ['bell', 'Domofon'], ['settings', 'Ustawienia panelu (jasność)'], ['service', 'Akcja Home Assistant']];
+    const kinds = [['default', ''], ['none', 'Nic'], ['next', 'Następna strona'], ['prev', 'Poprzednia strona'], ['page', 'Wybrana strona'], ['home', 'Strona główna'], ['saver', 'Wygaszacz'], ['bell', 'Domofon'], ['settings', 'Ustawienia panelu (jasność)'], ['service', 'Akcja Home Assistant']];
     const defaults = { left: 'Następna strona', right: 'Poprzednia strona', up: 'Nic', down: 'Nic' };
-    const out = [h('h3', {}, 'Przesunięcie palcem')];
+    const out = [h('h3', {}, 'Strona główna'),
+      field('Od niej panel startuje i do niej wraca po wygaszaczu', select(this.doc.home || '', [['', 'Pierwsza (' + this.doc.pages[0].name + ')']].concat(this.doc.pages.map(x => [x.name, x.name])), v => this.commit(() => { if (v) this.doc.home = v; else delete this.doc.home; }))),
+      h('p', { class: 'dim', style: 'margin:-4px 0 8px' }, 'Gest na „Wybraną stronę” działa w obie strony: np. ze strony głównej w lewo na Oświetlenie, potem w prawo z powrotem na główną, a kolejne w prawo na Muzykę.'),
+      h('h3', {}, 'Przesunięcie palcem')];
     [['up', 'W górę ↑'], ['down', 'W dół ↓'], ['left', 'W lewo ←'], ['right', 'W prawo →']].forEach(([dir, label]) => {
       const cur = g[dir] || { kind: 'default' }, set = o => this.commit(() => { this.doc.gestures = Object.assign({}, this.doc.gestures, { [dir]: Object.assign({}, cur, o) }); });
       // Szczegóły (strona, akcja) wcięte pod swoim kierunkiem, żeby było widać, do czego należą.

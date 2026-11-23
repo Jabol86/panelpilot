@@ -22,7 +22,7 @@ ROTATIONS = (0, 90, 180, 270)
 MODES = ("tiles", "code", "module")
 GESTURES = ("up", "down", "left", "right")
 NAV_STYLES = ("dots", "tabs", "none")
-GESTURE_KINDS = ("default", "none", "next", "prev", "page", "saver", "bell", "settings", "service")
+GESTURE_KINDS = ("default", "none", "next", "prev", "page", "home", "saver", "bell", "settings", "service")
 
 DEFAULT_SETTINGS: dict[str, Any] = {
     "rotation": 0,
@@ -168,6 +168,8 @@ def clean_dashboard(data: Any) -> dict[str, Any]:
         # Format, w którym pulpit jest projektowany; panel bez własnego wyboru go używa. Pusty = z ekranu panelu.
         "format": fmt if isinstance(fmt, str) and (fmt in FORMATS or CUSTOM_FMT_RE.match(fmt)) else "",
         "gestures": {g: _gesture(gestures.get(g)) for g in GESTURES},
+        # Strona główna: od niej panel startuje i do niej wraca po wygaszaczu (nazwa strony, pusta = pierwsza).
+        "home": home if (home := _text(data.get("home"), 30)) in {p["name"] for p in pages} else "",
         "name": _text(data.get("name"), 40) or "Pulpit",
         "mode": data.get("mode") if data.get("mode") in MODES else "tiles",
         "html": str(data.get("html") or "")[:MAX_CODE],

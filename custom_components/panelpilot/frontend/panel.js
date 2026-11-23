@@ -20,7 +20,7 @@
   const sensors = { lux: null, proximity: null };
   let ha, dash = { pages: [], saver: {}, theme: {} }, bell = {}, cfg = {}, shape = info.shape || 'auto';
   let fmt = 'portrait', pages = [], page = 0, sleeping = false, screenOff = false, lastTouch = Date.now(), dark = false, manual = null;
-  let cleanup = [], jsRun = '', nearSince = 0, loadedVersion = '', lastPing = Date.now();
+  let homed = null, cleanup = [], jsRun = '', nearSince = 0, loadedVersion = '', lastPing = Date.now();
   const HOLD_MAX = 3 * 60 * 1000;
 
   const Panel = window.Panel = {
@@ -73,7 +73,7 @@
       report();
     },
     wake: () => wake(),
-    openPage(i) { page = i; render(); report(); },
+    openPage(i) { page = i; back = null; render(); report(); },
     start, setPreview,
     geometry: () => ({ fmt, pages }),
   };
@@ -297,6 +297,8 @@
     gear(navStyle() === 'none');
     pages = DP.pagesFor(dash.pages, fmt, widgets);
     if (!pages.length) { pageTitle(null); renderNav(); return; }
+    // Po uruchomieniu (i po zmianie strony głównej w edytorze) panel przechodzi na stronę główną.
+    if (!ha.preview && homed !== (dash.home || '')) { homed = dash.home || ''; page = homeIndex(); back = null; }
     page = Math.max(0, Math.min(page, pages.length - 1));
     cleanup.forEach(f => f()); cleanup = [];
     const f = DP.FORMATS[fmt], grid = $('grid');
@@ -413,15 +415,30 @@
   }
 
   /** Przesunięcie palcem; zwraca true, gdy coś się stało (wtedy dotknięcie kafelka się nie liczy). */
+  /** Strona główna pulpitu (indeks na liście stron panelu); bez wyboru pierwsza. */
+  const homeIndex = () => Math.max(0, pages.findIndex(p => !p.extra && p.name === dash.home));
+  // Powrót tą samą drogą: po geście „w lewo” na wybraną stronę gest „w prawo” wraca tam, skąd przyszliśmy.
+  let back = null;
+  const OPPOSITE = { left: 'right', right: 'left', up: 'down', down: 'up' };
+
   function gesture(dir) {
     const g = (dash.gestures || {})[dir] || {};
     let kind = g.kind || 'default';
     if (kind === 'default') kind = { left: 'next', right: 'prev' }[dir] || 'none';
     const go = n => { if (n < 0 || n >= pages.length) return false; Panel.openPage(n); return true; };
+    const jump = n => {
+      if (n < 0 || n === page) return false;
+      const from = page;
+      if (!go(n)) return false;
+      back = { dir: OPPOSITE[dir], to: from, at: n };
+      return true;
+    };
+    if (back && back.at === page && dir === back.dir) { const to = back.to; back = null; return go(to); }
     switch (kind) {
       case 'next': return go(page + 1);
       case 'prev': return go(page - 1);
-      case 'page': { const i = pages.findIndex(p => p.name === g.page); return i >= 0 && go(i); }
+      case 'page': return jump(pages.findIndex(p => p.name === g.page && !p.extra));
+      case 'home': return jump(homeIndex());
       case 'saver': sleep(); return true;
       case 'bell': Panel.doorbell.open(); return true;
       case 'settings': openSettings(); return true;
@@ -492,7 +509,7 @@
     report();
   }
 
-  function sleep() { sleeping = true; $('saver').hidden = false; closeSheet(); page = 0; render(); renderSaver(true); updateDark(true); report(); }
+  function sleep() { sleeping = true; $('saver').hidden = false; closeSheet(); page = homeIndex(); back = null; render(); renderSaver(true); updateDark(true); report(); }
   function wake() {
     lastTouch = Date.now();
     if (!sleeping && !screenOff) return;
