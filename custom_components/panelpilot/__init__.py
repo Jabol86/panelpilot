@@ -104,5 +104,7 @@ async def async_remove_config_entry_device(hass: HomeAssistant, entry: ConfigEnt
 @callback
 def async_remove_device(hass: HomeAssistant, pid: str) -> None:
     registry = dr.async_get(hass)
-    if device := registry.async_get_device(identifiers={(DOMAIN, pid)}):
-        registry.async_remove_device(device.id)
+    for entry in hass.config_entries.async_entries(DOMAIN):
+        for device in dr.async_entries_for_config_entry(registry, entry.entry_id):
+            if (DOMAIN, pid) in device.identifiers:
+                registry.async_remove_device(device.id)

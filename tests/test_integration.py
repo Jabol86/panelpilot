@@ -116,6 +116,9 @@ async def test_pairing(hass, entry, hass_ws_client, hass_client_no_auth):
     # Usunięcie panelu kasuje konto.
     assert (await ask(admin, {"type": "panelpilot/admin/panel_delete", "device_id": "app_1"}))["success"]
     assert await hass.auth.async_get_user(user.id) is None
+    await panel.close()
+    await admin.close()
+    await hass.async_block_till_done()
 
 
 async def test_panel_of_other_user(hass, entry, hass_ws_client, hass_read_only_access_token):
