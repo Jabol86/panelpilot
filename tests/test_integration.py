@@ -11,7 +11,7 @@ STATE = {"type": "panelpilot/state", "device_id": "app_1", "screen_on": True, "b
 
 
 @pytest.fixture(autouse=True)
-def _custom(enable_custom_integrations):
+def _custom(_our_components, enable_custom_integrations):
     return
 
 
