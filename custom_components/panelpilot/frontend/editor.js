@@ -574,9 +574,8 @@ class PanelPilotEditor extends HTMLElement {
       w.noIcon ? null : h('div', { class: 'row2' },
         field('Układ', select(t.layout || '', [['', 'Jak w motywie']].concat(LAYOUTS), v => set('layout', v, true))),
         field('Wielkość ikony', select(t.iconSize || '', [['', 'Jak w motywie']].concat(ICON_SIZES), v => set('iconSize', v, true)))),
-      w.plain ? null : h('div', { class: 'row2' },
-        field('Wyrównanie w poziomie', select(t.align || '', [['', 'Jak w motywie']].concat(ALIGN_H), v => set('align', v, true))),
-        field('Wyrównanie w pionie', select(t.valign || '', [['', 'Jak w motywie']].concat(ALIGN_V), v => set('valign', v, true)))),
+      w.plain ? null : this.posPicker('Położenie treści w kafelku', t.align, t.valign, 'Jak w motywie',
+        (a, v) => this.commit(() => { if (a) t.align = a; else delete t.align; if (v) t.valign = v; else delete t.valign; })),
       w.noIcon ? null : field('Animacja ikony, gdy włączony', select(t.anim || '', [['', 'Jak w motywie']].concat([['none', 'Bez animacji']], ANIMS), v => set('anim', v, true))),
       ...this.rulesFields(t),
       h('h3', {}, 'Dotknięcie'),
@@ -633,6 +632,18 @@ class PanelPilotEditor extends HTMLElement {
     out.push(h('div', { class: 'btns', style: 'justify-content:flex-start' },
       h('button', { onclick: () => upd(list => list.push({ op: 'on', color: '#ee1c25', lit: true })) }, '+ Warunek')));
     return out;
+  }
+
+  /** Siatka 3×3: jedno kliknięcie ustawia położenie w poziomie i w pionie naraz. */
+  posPicker(label, ah, av, resetLabel, fn) {
+    const cells = [];
+    ALIGN_V.forEach(([v, vn]) => ALIGN_H.forEach(([a, an]) => {
+      const on = !!(ah || av) && (ah || 'left') === a && (av || 'center') === v;
+      cells.push(h('button', { type: 'button', class: 'pos' + (on ? ' on' : ''), title: vn + ', ' + an.toLowerCase(), 'aria-label': vn + ', ' + an.toLowerCase(), 'aria-pressed': String(on), onclick: () => fn(a, v) }, h('i')));
+    }));
+    const now = ah || av ? [(ALIGN_V.find(x => x[0] === av) || [0, 'Środek'])[1], (ALIGN_H.find(x => x[0] === ah) || [0, 'do lewej'])[1].toLowerCase()].join(', ') : resetLabel;
+    return group(label, h('div', { class: 'posrow' }, h('div', { class: 'posgrid' }, cells),
+      h('div', {}, h('div', {}, now), ah || av ? h('button', { type: 'button', style: 'margin-top:6px', onclick: () => fn('', '') }, resetLabel.split(' (')[0]) : null)));
   }
 
   color(label, value, fn) {
@@ -760,9 +771,8 @@ class PanelPilotEditor extends HTMLElement {
       h('div', { class: 'row2' },
         field('Układ treści', select(t.layout || '', [['', 'Ikona nad tekstem']].concat(LAYOUTS.slice(1)), v => setFull('layout', v))),
         field('Wielkość ikon', select(t.iconSize || '', [['', 'Zwykła']].concat(ICON_SIZES.filter(s => s[0] !== 'M')), v => setFull('iconSize', v)))),
-      h('div', { class: 'row2' },
-        field('Wyrównanie w poziomie', select(t.align || '', [['', 'Domyślne']].concat(ALIGN_H), v => setFull('align', v))),
-        field('Wyrównanie w pionie', select(t.valign || '', [['', 'Domyślne']].concat(ALIGN_V), v => setFull('valign', v)))),
+      this.posPicker('Położenie treści w kafelkach', t.align, t.valign, 'Domyślne (lewo, środek)',
+        (a, v) => this.commit(() => { const th = this.doc.theme = Object.assign({}, this.doc.theme); if (a) th.align = a; else delete th.align; if (v) th.valign = v; else delete th.valign; })),
       field('Animacja ikony włączonego kafelka', select(t.anim || '', [['', 'Bez animacji']].concat(ANIMS), v => setFull('anim', v))),
       field('Tło ikon', select(t.icons || '', [['', 'Bez tła'], ['circle', 'Kolorowe kółko']], v => setFull('icons', v))),
       t.icons === 'circle' ? this.color('Kolor kółka (puste = z akcentu)', t.icbg, v => set('icbg', v)) : null,

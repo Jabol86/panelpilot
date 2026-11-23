@@ -20,6 +20,13 @@ svg.ic.mdi { fill: currentColor; stroke: none; }
 header { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 8px 12px; background: var(--e-card); border-bottom: 1px solid var(--e-line); }
 header select { width: auto; max-width: 210px; }
 header select.fmt { max-width: 300px; }
+.posrow { display: flex; gap: 14px; align-items: center; }
+.posgrid { display: grid; grid-template-columns: repeat(3, 30px); grid-template-rows: repeat(3, 30px); gap: 3px; padding: 4px; border-radius: 10px; border: 1px solid var(--e-line); flex: none; }
+.posgrid .pos { display: grid; place-items: center; padding: 0; min-width: 0; height: 30px; border-radius: 6px; background: none; border: 0; cursor: pointer; }
+.posgrid .pos i { width: 8px; height: 8px; border-radius: 50%; background: currentColor; opacity: .35; }
+.posgrid .pos:hover i { opacity: .8; }
+.posgrid .pos.on { background: var(--e-acc); }
+.posgrid .pos.on i { opacity: 1; background: var(--e-onacc); }
 header .sp { flex: 1; }
 .tabs { display: flex; gap: 2px; padding: 0 12px; background: var(--e-card); border-bottom: 1px solid var(--e-line); overflow-x: auto; flex: none; }
 .tabs button { border: 0; border-radius: 0; background: none; border-bottom: 3px solid transparent; color: var(--e-ink2); min-height: 42px; white-space: nowrap; }
