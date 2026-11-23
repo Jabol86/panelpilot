@@ -76,7 +76,7 @@ public class MainActivity extends Activity implements SensorEventListener {
             startActivity(new Intent(this, SetupActivity.class));
             return;
         }
-        String key = config.url() + "|" + config.shape() + "|" + config.name() + "|" + config.cssRotation();
+        String key = config.url() + "|" + config.shape() + "|" + config.name() + "|" + config.cssRotation() + "|" + config.rotation();
         if (!key.equals(loadedFor)) {
             loadedFor = key;
             rotate(config.rotation());

@@ -44,6 +44,13 @@ Fakty o NSPanel Pro 120: Android 8.1, 750×1334 przy 240 dpi. Czujniki światła
 - Edytor i panel sprawdzono tylko w przeglądarce, na atrapie HA.
 - **Niesprawdzone:** fizyczny panel (obrót, czujniki, jasność, mikrofon, rozmowa, mDNS), prawdziwy HA właściciela, dźwięk domofonu przez go2rtc, Winamp, `tablet-dashboard` właściciela jako moduł, HACS.
 
+### Aktualizacja 23.11.2026, po południu
+
+- Repo `panelpilot` jest **publiczne**; integracja zainstalowana u właściciela przez HACS.
+- APK zainstalowane na NSPanel Pro 120 przez `tools/install-panel.ps1`. Ekran konfiguracji działa, mDNS znalazł HA. Ekran zgłasza 750×1262 w pionie; panel wisi poziomo, więc potrzebny jest obrót 90° albo 270°.
+- v0.1.1: ekran konfiguracji przepisany na HTML (`android/app/src/main/assets/setup.html`, most JS `Setup` w `SetupActivity`) w stylu terminala HUD inspirowanym Evangelionem (czarne tło, pomarańcz, sześciokąty, pasy ostrzegawcze). Bez logo i nazw z anime. Obrót działa od razu jako podgląd. Podgląd w przeglądarce: `tools/serve.ps1`, potem `/setup/setup.html`.
+- Właściciel lubi tę estetykę; można ją też zaproponować jako motyw pulpitu.
+
 ## Instalacja przez HACS
 
 Właściciel chce instalować PanelPilot z GitHuba przez HACS. To **integracja**, nie dodatek Supervisora. HACS nie widzi prywatnych repozytoriów. Kiedy właściciel się zgodzi:

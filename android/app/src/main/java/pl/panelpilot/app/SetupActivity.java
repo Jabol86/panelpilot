@@ -1,103 +1,79 @@
 package pl.panelpilot.app;
 
+import android.annotation.SuppressLint;
 import android.app.Activity;
-import android.app.AlertDialog;
 import android.content.ActivityNotFoundException;
 import android.content.Context;
 import android.content.Intent;
+import android.content.pm.ActivityInfo;
+import android.content.pm.PackageManager;
+import android.graphics.Color;
 import android.net.Uri;
 import android.net.nsd.NsdManager;
 import android.net.nsd.NsdServiceInfo;
 import android.net.wifi.WifiManager;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import android.provider.Settings;
-import android.text.InputType;
 import android.util.DisplayMetrics;
 import android.util.Log;
 import android.view.View;
-import android.view.ViewGroup;
 import android.webkit.CookieManager;
+import android.webkit.JavascriptInterface;
+import android.webkit.WebResourceRequest;
+import android.webkit.WebSettings;
 import android.webkit.WebStorage;
-import android.widget.Button;
-import android.widget.CheckBox;
-import android.widget.EditText;
-import android.widget.LinearLayout;
-import android.widget.RadioButton;
-import android.widget.RadioGroup;
-import android.widget.ScrollView;
-import android.widget.TextView;
+import android.webkit.WebView;
+import android.webkit.WebViewClient;
+import android.widget.Toast;
 
-import java.util.LinkedHashSet;
-import java.util.Set;
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
 
-/** Pierwsze uruchomienie: wybór Home Assistanta znalezionego w sieci, kształt ekranu, obrót. */
+import java.util.LinkedHashMap;
+import java.util.Map;
+
+/**
+ * Pierwsze uruchomienie: wybór Home Assistanta znalezionego w sieci, kształt ekranu, obrót.
+ * Wygląd jest w assets/setup.html, a ta klasa daje mu dostęp do ustawień (obiekt JS „Setup”).
+ */
 public class SetupActivity extends Activity {
     private static final String TAG = "Setup";
+    private static final String PAGE = "file:///android_asset/setup.html";
 
+    private final Handler ui = new Handler(Looper.getMainLooper());
+    private final Map<String, String> found = new LinkedHashMap<>();
     private Config config;
-    private EditText url;
-    private EditText name;
-    private RadioGroup shape;
-    private RadioGroup rotation;
-    private CheckBox css;
-    private LinearLayout found;
-    private TextView searching;
+    private WebView web;
+    private String scan = "searching";
     private NsdManager nsd;
     private NsdManager.DiscoveryListener listener;
     private WifiManager.MulticastLock lock;
-    private final Set<String> seen = new LinkedHashSet<>();
 
+    @SuppressLint({"SetJavaScriptEnabled", "AddJavascriptInterface"})
     @Override
     protected void onCreate(Bundle state) {
         super.onCreate(state);
         config = new Config(this);
-        int pad = dp(16);
-        LinearLayout box = new LinearLayout(this);
-        box.setOrientation(LinearLayout.VERTICAL);
-        box.setPadding(pad, pad, pad, pad);
-        ScrollView scroll = new ScrollView(this);
-        scroll.addView(box);
-        setContentView(scroll);
-
-        box.addView(text("PanelPilot", 26));
-        box.addView(text("Home Assistant w Twojej sieci", 14));
-        searching = text("Szukam…", 16);
-        box.addView(searching);
-        found = new LinearLayout(this);
-        found.setOrientation(LinearLayout.VERTICAL);
-        box.addView(found);
-
-        box.addView(text("Adres Home Assistant", 14));
-        url = edit(config.url().isEmpty() ? "" : config.url(), InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_URI);
-        url.setHint("http://192.168.1.10:8123");
-        box.addView(url);
-
-        box.addView(text("Nazwa panelu", 14));
-        name = edit(config.name(), InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_CAP_SENTENCES);
-        box.addView(name);
-
-        box.addView(text("Ekran", 14));
-        shape = new RadioGroup(this);
-        radio(shape, 1, "Wykryj automatycznie (" + detected() + ")", config.shape().equals("auto"));
-        radio(shape, 2, "Kwadrat – NSPanel Pro (86)", config.shape().equals("square"));
-        radio(shape, 3, "Prostokąt – NSPanel Pro 120", config.shape().equals("rect"));
-        box.addView(shape);
-
-        box.addView(text("Obrót na start (potem zmienisz go w Home Assistant)", 14));
-        rotation = new RadioGroup(this);
-        rotation.setOrientation(LinearLayout.HORIZONTAL);
-        int[] degrees = {0, 90, 180, 270};
-        for (int i = 0; i < 4; i++) radio(rotation, 10 + i, degrees[i] + "°", config.rotation() == degrees[i]);
-        box.addView(rotation);
-        css = new CheckBox(this);
-        css.setText("Obracaj obraz w aplikacji (zaznacz, gdy ekran się nie obraca)");
-        css.setChecked(config.cssRotation());
-        box.addView(css);
-
-        box.addView(button("Zapisz i uruchom", v -> save()));
-        box.addView(button("Ustaw jako ekran główny", v -> open(Settings.ACTION_HOME_SETTINGS)));
-        box.addView(button("Ustawienia Androida", v -> open(Settings.ACTION_SETTINGS)));
-        if (!config.url().isEmpty()) box.addView(button("Zapomnij logowanie", v -> forget()));
+        web = new WebView(this);
+        web.setBackgroundColor(Color.BLACK);
+        web.setOverScrollMode(View.OVER_SCROLL_NEVER);
+        WebSettings s = web.getSettings();
+        s.setJavaScriptEnabled(true);
+        s.setTextZoom(100);
+        s.setAllowFileAccess(false);
+        s.setAllowContentAccess(false);
+        web.addJavascriptInterface(new Bridge(), "Setup");
+        web.setWebViewClient(new WebViewClient() {
+            @Override
+            public boolean shouldOverrideUrlLoading(WebView v, WebResourceRequest r) {
+                return !PAGE.equals(r.getUrl().toString());
+            }
+        });
+        setContentView(web);
+        web.loadUrl(PAGE);
     }
 
     @Override
@@ -113,57 +89,129 @@ public class SetupActivity extends Activity {
     }
 
     @Override
+    protected void onDestroy() {
+        ui.removeCallbacksAndMessages(null);
+        web.destroy();
+        super.onDestroy();
+    }
+
+    @Override
     public void onBackPressed() {
         if (!config.url().isEmpty()) super.onBackPressed();
     }
 
-    private String detected() {
-        DisplayMetrics m = getResources().getDisplayMetrics();
-        float r = (float) m.widthPixels / m.heightPixels;
-        return m.widthPixels + "×" + m.heightPixels + (r > 0.85f && r < 1.18f ? ", kwadrat" : ", prostokąt");
-    }
+    // ---- most JS ----
 
-    private void save() {
-        String u = url.getText().toString().trim();
-        if (!u.isEmpty() && !u.contains("://")) u = "http://" + u;
-        while (u.endsWith("/")) u = u.substring(0, u.length() - 1);
-        Uri p = Uri.parse(u);
-        boolean scheme = "http".equals(p.getScheme()) || "https".equals(p.getScheme());
-        if (!scheme || p.getHost() == null || p.getHost().isEmpty()) {
-            url.setError("Podaj adres, np. http://192.168.1.10:8123");
-            return;
+    private class Bridge {
+        @JavascriptInterface
+        public String info() {
+            DisplayMetrics m = getResources().getDisplayMetrics();
+            int w = Math.min(m.widthPixels, m.heightPixels), h = Math.max(m.widthPixels, m.heightPixels);
+            try {
+                JSONArray list = new JSONArray();
+                synchronized (found) {
+                    for (Map.Entry<String, String> e : found.entrySet()) list.put(new JSONObject().put("address", e.getKey()).put("name", e.getValue()));
+                }
+                return new JSONObject()
+                        .put("url", config.url()).put("name", config.name()).put("shape", config.shape())
+                        .put("rotation", config.rotation()).put("cssRotation", config.cssRotation())
+                        .put("width", w).put("height", h).put("kind", (float) w / h > 0.85f ? "kwadrat" : "prostokąt")
+                        .put("model", Config.model()).put("version", version())
+                        .put("configured", !config.url().isEmpty()).put("scan", scan).put("found", list).toString();
+            } catch (JSONException e) {
+                return "{}";
+            }
         }
-        // Tylko serwer: ścieżka z przeglądarki nie jest potrzebna.
-        String clean = p.getScheme() + "://" + p.getHost() + (p.getPort() > 0 ? ":" + p.getPort() : "");
-        int s = shape.getCheckedRadioButtonId();
-        int r = Math.max(0, rotation.getCheckedRadioButtonId() - 10);
-        String n = name.getText().toString().trim();
-        config.save(clean, n.isEmpty() ? "Panel" : n, s == 2 ? "square" : s == 3 ? "rect" : "auto", r * 90, css.isChecked());
-        startActivity(new Intent(this, MainActivity.class).addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP));
-        finish();
+
+        /** Podgląd obrotu od razu, jeszcze przed zapisaniem. */
+        @JavascriptInterface
+        public void rotate(int degrees, boolean css) {
+            ui.post(() -> orient(degrees, css));
+        }
+
+        /** Zwraca pusty tekst albo opis błędu do pokazania przy polu adresu. */
+        @JavascriptInterface
+        public String save(String json) {
+            try {
+                JSONObject o = new JSONObject(json);
+                String u = o.optString("url").trim();
+                if (!u.isEmpty() && !u.contains("://")) u = "http://" + u;
+                while (u.endsWith("/")) u = u.substring(0, u.length() - 1);
+                Uri p = Uri.parse(u);
+                boolean scheme = "http".equals(p.getScheme()) || "https".equals(p.getScheme());
+                if (!scheme || p.getHost() == null || p.getHost().isEmpty()) return "Podaj adres, np. http://192.168.1.10:8123";
+                // Tylko serwer: ścieżka z przeglądarki nie jest potrzebna.
+                String clean = p.getScheme() + "://" + p.getHost() + (p.getPort() > 0 ? ":" + p.getPort() : "");
+                String shape = o.optString("shape", "auto");
+                if (!shape.equals("square") && !shape.equals("rect")) shape = "auto";
+                int r = o.optInt("rotation", 0);
+                if (r != 90 && r != 180 && r != 270) r = 0;
+                String n = o.optString("name").trim();
+                config.save(clean, n.isEmpty() ? "Panel" : n, shape, r, o.optBoolean("cssRotation"));
+                ui.post(() -> {
+                    startActivity(new Intent(SetupActivity.this, MainActivity.class).addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP));
+                    finish();
+                });
+                return "";
+            } catch (JSONException e) {
+                return "Błędne dane";
+            }
+        }
+
+        @JavascriptInterface
+        public void home() { ui.post(() -> open(Settings.ACTION_HOME_SETTINGS)); }
+
+        @JavascriptInterface
+        public void system() { ui.post(() -> open(Settings.ACTION_SETTINGS)); }
+
+        @JavascriptInterface
+        public void forget() {
+            ui.post(() -> {
+                WebStorage.getInstance().deleteAllData();
+                CookieManager.getInstance().removeAllCookies(null);
+                Toast.makeText(SetupActivity.this, "Logowanie usunięte", Toast.LENGTH_SHORT).show();
+            });
+        }
     }
 
-    private void forget() {
-        new AlertDialog.Builder(this).setMessage("Usunąć zapisane logowanie? Panel trzeba będzie sparować od nowa.")
-                .setPositiveButton("Usuń", (d, w) -> {
-                    WebStorage.getInstance().deleteAllData();
-                    CookieManager.getInstance().removeAllCookies(null);
-                }).setNegativeButton("Anuluj", null).show();
+    private String version() {
+        try {
+            return getPackageManager().getPackageInfo(getPackageName(), 0).versionName;
+        } catch (PackageManager.NameNotFoundException e) {
+            return "?";
+        }
+    }
+
+    private void orient(int degrees, boolean css) {
+        int o;
+        if (css) o = ActivityInfo.SCREEN_ORIENTATION_NOSENSOR;
+        else if (degrees == 90) o = ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE;
+        else if (degrees == 180) o = ActivityInfo.SCREEN_ORIENTATION_REVERSE_PORTRAIT;
+        else if (degrees == 270) o = ActivityInfo.SCREEN_ORIENTATION_REVERSE_LANDSCAPE;
+        else o = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT;
+        if (getRequestedOrientation() != o) setRequestedOrientation(o);
     }
 
     private void open(String action) {
         try {
             startActivity(new Intent(action));
         } catch (ActivityNotFoundException | SecurityException e) {
-            new AlertDialog.Builder(this).setMessage("Ten panel nie udostępnia tego ekranu. Użyj ADB, jak w instrukcji.").setPositiveButton("OK", null).show();
+            Toast.makeText(this, "Ten panel nie udostępnia tego ekranu. Użyj ADB, jak w instrukcji.", Toast.LENGTH_LONG).show();
         }
+    }
+
+    private void js(String code) {
+        ui.post(() -> web.evaluateJavascript(code, null));
     }
 
     // ---- wyszukiwanie HA (mDNS) ----
 
     private void discover() {
         nsd = getSystemService(NsdManager.class);
-        if (nsd == null) return;
+        if (nsd == null) {
+            setScan("failed");
+            return;
+        }
         WifiManager wifi = (WifiManager) getApplicationContext().getSystemService(Context.WIFI_SERVICE);
         if (wifi != null) {
             lock = wifi.createMulticastLock("panelpilot");
@@ -175,7 +223,7 @@ public class SetupActivity extends Activity {
             @Override public void onServiceLost(NsdServiceInfo s) { }
             @Override public void onDiscoveryStarted(String t) { }
             @Override public void onDiscoveryStopped(String t) { }
-            @Override public void onStartDiscoveryFailed(String t, int e) { runOnUiThread(() -> searching.setText("Wpisz adres ręcznie")); }
+            @Override public void onStartDiscoveryFailed(String t, int e) { setScan("failed"); }
             @Override public void onStopDiscoveryFailed(String t, int e) { }
         };
         try {
@@ -183,10 +231,18 @@ public class SetupActivity extends Activity {
         } catch (RuntimeException e) {
             Log.w(TAG, "mDNS", e);
             listener = null;
+            setScan("failed");
         }
-        searching.postDelayed(() -> {
-            if (seen.isEmpty()) searching.setText("Nie znaleziono. Wpisz adres ręcznie.");
+        ui.postDelayed(() -> {
+            boolean empty;
+            synchronized (found) { empty = found.isEmpty(); }
+            if (empty && scan.equals("searching")) setScan("none");
         }, 10_000);
+    }
+
+    private void setScan(String s) {
+        scan = s;
+        js("window.onScan&&onScan(" + JSONObject.quote(s) + ")");
     }
 
     private void resolve(NsdServiceInfo service) {
@@ -199,19 +255,18 @@ public class SetupActivity extends Activity {
                     byte[] internal = s.getAttributes().get("internal_url");
                     String ip = s.getHost() == null ? null : s.getHost().getHostAddress();
                     String address = internal != null && internal.length > 0 ? new String(internal) : ip == null ? null : "http://" + (ip.contains(":") ? "[" + ip + "]" : ip) + ":" + s.getPort();
-                    if (address != null) runOnUiThread(() -> add(s.getServiceName(), address));
+                    if (address == null) return;
+                    synchronized (found) {
+                        if (found.containsKey(address)) return;
+                        found.put(address, s.getServiceName());
+                    }
+                    scan = "found";
+                    js("window.onFound&&onFound(" + JSONObject.quote(s.getServiceName()) + "," + JSONObject.quote(address) + ")");
                 }
             });
         } catch (RuntimeException e) {
             Log.w(TAG, "resolve", e);
         }
-    }
-
-    private void add(String label, String address) {
-        if (!seen.add(address)) return;
-        searching.setVisibility(View.GONE);
-        found.addView(button(label + "\n" + address, v -> url.setText(address)));
-        if (url.getText().length() == 0) url.setText(address);
     }
 
     private void stopDiscovery() {
@@ -224,43 +279,5 @@ public class SetupActivity extends Activity {
             listener = null;
         }
         if (lock != null) lock.release();
-    }
-
-    // ---- widoki ----
-
-    private int dp(int v) { return Math.round(v * getResources().getDisplayMetrics().density); }
-
-    private TextView text(String s, int size) {
-        TextView t = new TextView(this);
-        t.setText(s);
-        t.setTextSize(size);
-        t.setPadding(0, dp(10), 0, dp(2));
-        return t;
-    }
-
-    private EditText edit(String s, int type) {
-        EditText e = new EditText(this);
-        e.setText(s);
-        e.setInputType(type);
-        e.setSingleLine();
-        return e;
-    }
-
-    private void radio(RadioGroup g, int id, String label, boolean checked) {
-        RadioButton r = new RadioButton(this);
-        r.setId(id);
-        r.setText(label);
-        r.setMinHeight(dp(44));
-        g.addView(r);
-        if (checked) g.check(id);
-    }
-
-    private Button button(String s, View.OnClickListener l) {
-        Button b = new Button(this);
-        b.setText(s);
-        b.setAllCaps(false);
-        b.setOnClickListener(l);
-        b.setLayoutParams(new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
-        return b;
     }
 }

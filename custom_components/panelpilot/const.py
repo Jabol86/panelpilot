@@ -1,7 +1,7 @@
 """Stałe integracji PanelPilot."""
 
 DOMAIN = "panelpilot"
-VERSION = "0.1.0"
+VERSION = "0.1.1"
 PLATFORMS = ["binary_sensor", "button", "light", "select", "sensor"]
 
 STATIC_URL = "/panelpilot_static"
