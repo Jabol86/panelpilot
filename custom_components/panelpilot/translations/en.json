@@ -1,7 +1,16 @@
 {
   "config": {
-    "step": { "user": { "title": "PanelPilot", "description": "Add PanelPilot? A dashboard editor appears in the sidebar, and panels are added with the code shown on their screen." } },
+    "step": { "user": { "title": "PanelPilot", "description": "Add PanelPilot? Open the dashboard editor later with the Configure button of the integration; panels are added with the code shown on their screen." } },
     "abort": { "single_instance_allowed": "PanelPilot is already added." }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "PanelPilot",
+        "description": "**[Open the dashboard editor]({editor})**\n\nThe Visit button on each panel's device page opens it too.",
+        "data": { "sidebar": "Show the editor in the sidebar" }
+      }
+    }
   },
   "entity": {
     "light": { "screen": { "name": "Screen" } },

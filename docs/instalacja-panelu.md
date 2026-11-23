@@ -69,7 +69,7 @@ adb shell su 0 setprop persist.adb.tcp.port 5555
 
 1. Na panelu wybierz swój Home Assistant z listy znalezionych w sieci. Jeśli go tam nie ma, wpisz adres, np. `http://192.168.1.10:8123`.
 2. Wybierz kształt ekranu: **kwadrat** dla NSPanel Pro 86 albo **prostokąt** dla NSPanel Pro 120.
-3. Panel pokaże **6-cyfrowy kod**. W HA otwórz w menu bocznym **PanelPilot → Panele** i zatwierdź ten kod. Hasło nie jest potrzebne.
+3. Panel pokaże **6-cyfrowy kod**. W HA pojawi się powiadomienie **PanelPilot**: kliknij link i zatwierdź ten kod. Hasło nie jest potrzebne. (Edytor otworzysz też w *Ustawienia → Urządzenia oraz usługi → PanelPilot → Konfiguruj*).
 4. W edytorze kliknij **Wybierz, co pokazać** i dodaj kafelki. Zmiany pojawiają się na panelu od razu po zapisaniu.
 
 ## Inne tablety z Androidem 8 lub nowszym

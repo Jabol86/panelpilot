@@ -15,7 +15,7 @@ from homeassistant.helpers import config_validation as cv, device_registry as dr
 from homeassistant.helpers.typing import ConfigType
 
 from . import websocket
-from .const import DOMAIN, EDITOR_PATH, PLATFORMS, STATIC_URL, VERSION
+from .const import CONF_SIDEBAR, DOMAIN, EDITOR_PATH, PLATFORMS, STATIC_URL, VERSION
 from .http import PairView
 from .hub import Hub
 
@@ -70,17 +70,24 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     hass.data[DOMAIN] = hub
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     if EDITOR_PATH not in hass.data.get(frontend.DATA_PANELS, {}):
+        # Bez pozycji w menu edytor jest pod /panelpilot: link w „Konfiguruj” i na stronie każdego panelu.
+        sidebar = entry.options.get(CONF_SIDEBAR, False)
         await panel_custom.async_register_panel(
             hass,
             frontend_url_path=EDITOR_PATH,
             webcomponent_name="panelpilot-editor",
             module_url=f"{STATIC_URL}/editor.js?v={VERSION}",
-            sidebar_title="PanelPilot",
-            sidebar_icon="mdi:tablet-dashboard",
+            sidebar_title="PanelPilot" if sidebar else None,
+            sidebar_icon="mdi:tablet-dashboard" if sidebar else None,
             require_admin=True,
             config={"static": STATIC_URL, "version": VERSION},
         )
+    entry.async_on_unload(entry.add_update_listener(_options_changed))
     return True
+
+
+async def _options_changed(hass: HomeAssistant, entry: ConfigEntry) -> None:
+    await hass.config_entries.async_reload(entry.entry_id)
 
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:

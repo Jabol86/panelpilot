@@ -57,6 +57,24 @@ class Other(unittest.TestCase):
         with self.assertRaises(model.InvalidData):
             model.clean_doorbell({"go2rtc": "ftp://x"})
 
+    def test_doorbell_action_mode(self):
+        d = model.clean_doorbell({"actions": [{"entity": "switch.a", "mode": "tap"}, {"entity": "switch.b", "mode": "zle"}]})
+        self.assertEqual([a["mode"] for a in d["actions"]], ["tap", "hold"])
+
+    def test_nav_gestures_alerts(self):
+        d = model.clean_dashboard({
+            "pages": [{"tiles": []}], "nav": False,
+            "gestures": {"up": {"kind": "page", "page": "Energia"}, "down": {"kind": "service", "service": "script.turn_on", "data": "zle"}, "left": {"kind": "hack"}},
+            "saver": {"alerts": ["binary_sensor.drzwi", "zle"]},
+        })
+        self.assertFalse(d["nav"])
+        self.assertEqual(d["gestures"]["up"], {"kind": "page", "page": "Energia"})
+        self.assertEqual(d["gestures"]["down"], {"kind": "service", "service": "script.turn_on", "data": {}})
+        self.assertEqual(d["gestures"]["left"], {"kind": "default"})
+        self.assertEqual(d["gestures"]["right"], {"kind": "default"})
+        self.assertEqual(d["saver"]["alerts"], ["binary_sensor.drzwi"])
+        self.assertTrue(model.clean_dashboard({"pages": [{"tiles": []}]})["nav"])
+
 
 class Pairing(unittest.TestCase):
     def setUp(self):

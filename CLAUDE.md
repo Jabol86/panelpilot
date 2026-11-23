@@ -52,6 +52,17 @@ Fakty o NSPanel Pro 120: Android 8.1, 750×1334 przy 240 dpi. Czujniki światła
 - Właściciel uznał v0.1.1 za „zbyt agresywne”. Spośród 4 pokazanych wariantów wybrał „D · Nocne szkło” (spokojne karty, cienkie linie, delikatne sześciokąty), ale w kolorach: **czysta czerń, intensywna czerwień #ee1c25, biały tekst**. Kolor ustala projekt, nie użytkownik (wyraźnie tak chciał). To jest v0.1.2.
 - Tę estetykę można zaproponować jako motyw pulpitu.
 
+### v0.1.3: uwagi właściciela po pierwszym użyciu (8 punktów)
+
+1. Nie znalazł jasności → zakładka nazywa się „Panele i jasność”, a na panelu w ustawieniach (koło zębate) jest suwak jasności z „Automatycznie”.
+2. Kolor tła ikon → motyw: „Tło ikon: kolorowe kółko” plus kolor; per kafelek `iconBg`.
+3. „Formatowanie przycisków się rozjeżdża” (zrzut: kafelki ucięte z lewej) → `#root` bez obrotu ma teraz 100% zamiast px z `innerWidth`. **Nie potwierdzono**, czy to była przyczyna; zapytać, czy zrzut był z panelu, czy z edytora.
+4. Ukrycie paska stron → `dashboard.nav = false` (wtedy przycisk ustawień w rogu).
+5. Gesty → `dashboard.gestures.{up,down,left,right}` = default/none/next/prev/page/saver/bell/settings/service.
+6. Ikony powiadomień na wygaszaczu → `saver.alerts` (pokazują się tylko aktywne encje).
+7. Domofon: furtka, brama, rozmowa → przyciski z trybem `hold`/`tap`, szybkie „+ Furtka/+ Brama”, opis, że rozmowa wymaga go2rtc.
+8. Edytor nie w menu bocznym → opcja integracji „Pokaż edytor w menu bocznym” (domyślnie wyłączona), link w „Konfiguruj”, `configuration_url` urządzenia, powiadomienie HA przy parowaniu.
+
 ## Instalacja przez HACS
 
 Właściciel chce instalować PanelPilot z GitHuba przez HACS. To **integracja**, nie dodatek Supervisora. HACS nie widzi prywatnych repozytoriów. Kiedy właściciel się zgodzi:

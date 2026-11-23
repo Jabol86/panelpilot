@@ -6,12 +6,15 @@ from dataclasses import dataclass, field
 import logging
 from typing import Any
 
+from homeassistant.components import persistent_notification
 from homeassistant.components.websocket_api import ActiveConnection
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.dispatcher import async_dispatcher_send
 from homeassistant.helpers.storage import Store
 
-from .const import DOMAIN, MAX_PANELS, SIGNAL_ADMIN, SIGNAL_NEW_PANEL, SIGNAL_PANEL
+from .const import DOMAIN, EDITOR_PATH, MAX_PANELS, SIGNAL_ADMIN, SIGNAL_NEW_PANEL, SIGNAL_PANEL
+
+PAIRING_NOTICE = "panelpilot_pairing"
 from .model import (
     DEFAULT_SETTINGS,
     ID_RE,
@@ -255,6 +258,16 @@ class Hub:
     @callback
     def notify_admin(self) -> None:
         async_dispatcher_send(self.hass, SIGNAL_ADMIN)
+        # Edytora zwykle nie ma w menu bocznym, więc o czekającym panelu mówi powiadomienie HA.
+        # Bez nazwy z panelu: przychodzi z sieci bez logowania i nie powinna trafić do treści z linkami.
+        if self.pairing.pending():
+            persistent_notification.async_create(
+                self.hass,
+                f"Nowy panel czeka na zatwierdzenie. [Otwórz PanelPilot](/{EDITOR_PATH}) i porównaj kod z ekranem panelu.",
+                title="PanelPilot", notification_id=PAIRING_NOTICE,
+            )
+        else:
+            persistent_notification.async_dismiss(self.hass, PAIRING_NOTICE)
 
     def admin_data(self) -> dict[str, Any]:
         self.ensure_dashboard()

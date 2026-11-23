@@ -10,7 +10,7 @@ from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.dispatcher import async_dispatcher_connect
 from homeassistant.helpers.entity import Entity
 
-from .const import DOMAIN, SIGNAL_NEW_PANEL, SIGNAL_PANEL
+from .const import DOMAIN, EDITOR_PATH, SIGNAL_NEW_PANEL, SIGNAL_PANEL
 from .hub import Hub
 
 
@@ -59,6 +59,8 @@ class PanelEntity(Entity):
         return DeviceInfo(
             identifiers={(DOMAIN, self.pid)}, name=self.panel.get("name", "Panel"), manufacturer="PanelPilot",
             model=self.panel.get("model") or None, sw_version=self.panel.get("app") or None,
+            # Przycisk „Odwiedź” na stronie urządzenia otwiera edytor.
+            configuration_url=f"homeassistant://{EDITOR_PATH}",
         )
 
     async def async_added_to_hass(self) -> None:

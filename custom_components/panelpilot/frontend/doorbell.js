@@ -42,10 +42,12 @@
       + '<div class="bell-bar"><div class="bell-title"><b>' + esc(d.name || 'Domofon') + '</b><span id="bell-left"></span></div><div class="bell-actions"></div>'
       + '<div class="bell-audio"><button data-b="listen">' + P.icon('speaker') + '<span>Słuchaj</span></button>' + (d.talk ? '<button data-b="talk">' + P.icon('mic') + '<span>Rozmawiaj</span></button>' : '') + '<button data-b="close">' + P.icon('close') + '<span>Zamknij</span></button></div></div>';
     (d.actions || []).forEach(a => {
-      const b = document.createElement('div');
-      b.className = 'holdable';
-      b.innerHTML = '<i class="fill"></i>' + P.icon(a.icon || 'gate') + '<b>' + esc(a.name) + '</b><span>przytrzymaj</span>';
+      // Przytrzymanie chroni przed przypadkowym otwarciem; „tap” otwiera od razu.
+      const tap = a.mode === 'tap', b = document.createElement(tap ? 'button' : 'div');
+      b.className = tap ? 'holdable tapnow' : 'holdable';
+      b.innerHTML = (tap ? '' : '<i class="fill"></i>') + P.icon(a.icon || 'gate') + '<b>' + esc(a.name) + '</b><span>' + (tap ? 'dotknij' : 'przytrzymaj') + '</span>';
       b._tile = Object.assign({ type: 'hold', done: () => { endAt = Math.min(endAt, Date.now() + 2000); } }, a);
+      if (tap) b.addEventListener('click', () => { if (!P.ha.preview) P.trigger(b._tile); });
       el.querySelector('.bell-actions').append(b);
     });
     el.addEventListener('click', e => { const b = e.target.closest('[data-b]'); if (b && !P.ha.preview) ({ listen, talk, close })[b.dataset.b](); });

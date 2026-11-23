@@ -167,5 +167,8 @@
     root.style.setProperty('--alpha', Math.max(20, Math.min(100, +t.opacity || 100)) + '%');
     const url = typeof t.image === 'string' && /^(\/|https?:\/\/)[^"'()\\\s]+$/.test(t.image) ? 'url("' + t.image + '")' : 'none';
     root.style.setProperty('--image', url);
+    // Ikony na kolorowym kółku: dla całego pulpitu (motyw) albo pojedynczego kafelka (tile.iconBg).
+    root.dataset.icons = t.icons === 'circle' ? 'circle' : '';
+    if (DP.isColor(t.icbg)) root.style.setProperty('--icbg', t.icbg); else root.style.removeProperty('--icbg');
   };
 })();

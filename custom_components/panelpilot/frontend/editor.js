@@ -64,6 +64,8 @@ class PanelPilotEditor extends HTMLElement {
     const first = !this.data;
     this.data = d;
     if (!this.bellDirty) this.bell = clone(d.doorbell);
+    // Ktoś przyszedł z powiadomienia o nowym panelu: od razu zakładka z kodem.
+    if (first && d.pairing.length) this.tab = 'panels';
     if (first) { this.openDash(Object.keys(d.dashboards)[0]); this.build(); return; }
     if (!d.dashboards[this.dashId]) this.openDash(Object.keys(d.dashboards)[0]);
     else if (!this.dirty && d.dashboards[this.dashId].rev > this.rev) this.openDash(this.dashId);
@@ -173,7 +175,7 @@ class PanelPilotEditor extends HTMLElement {
       h('button', { class: 'primary', disabled: !dirty, onclick: () => this.save() }, dirty ? 'Zapisz' : 'Zapisane'));
     const tiles = mode === 'tiles';
     if (!tiles && this.tab === 'tiles') this.tab = 'code';
-    const tabs = [tiles && ['tiles', 'Kafelki'], ['look', 'Wygląd'], ['saver', 'Wygaszacz'], ['bell', 'Domofon'], ['code', tiles ? 'CSS i JS' : 'Kod'], ['json', 'Eksport'], ['panels', 'Panele']].filter(Boolean);
+    const tabs = [tiles && ['tiles', 'Kafelki'], ['look', 'Wygląd'], ['saver', 'Wygaszacz'], ['bell', 'Domofon'], ['code', tiles ? 'CSS i JS' : 'Kod'], ['json', 'Eksport'], ['panels', 'Panele i jasność']].filter(Boolean);
     this.tabsEl.replaceChildren(...tabs.map(([id, name]) => h('button', { role: 'tab', 'aria-selected': String(this.tab === id), onclick: () => { this.tab = id; this.sel = null; this.header(); this.renderBody(); this.refresh(); } }, name, id === 'panels' && waiting ? h('span', { class: 'badge' }, String(waiting)) : null)));
   }
 
@@ -442,6 +444,7 @@ class PanelPilotEditor extends HTMLElement {
       w.noIcon ? null : field('Ikona', this.iconPicker(t.icon || w.icon, v => set('icon', v, true))),
       h('h3', {}, 'Wygląd'),
       h('div', { class: 'row2' }, this.color('Tło', t.bg, v => set('bg', v)), this.color('Kolor', t.color, v => set('color', v))),
+      w.noIcon ? null : this.color('Tło ikony (kółko)', t.iconBg, v => set('iconBg', v)),
       field('Wielkość tekstu', select(t.text || '', [['S', 'Mała'], ['', 'Zwykła'], ['L', 'Duża'], ['XL', 'Bardzo duża']], v => set('text', v))),
       h('h3', {}, 'Dotknięcie'),
       field('Co robi', select(tap.kind || 'default', [['default', 'Domyślnie dla tego kafelka'], ['none', 'Nic'], ['toggle', 'Przełącz encję'], ['page', 'Otwórz stronę'], ['service', 'Wywołaj akcję HA']], v => setTap({ kind: v }))),
@@ -573,7 +576,29 @@ class PanelPilotEditor extends HTMLElement {
     return [h('h3', {}, 'Gotowe motywy'), h('div', { class: 'themes' }, Object.entries(this.DP.THEMES).map(([n, v]) => h('button', { onclick: () => this.commit(() => { this.doc.theme = Object.assign({}, this.doc.theme, v); }) }, h('span', { class: 'sw', style: 'background:linear-gradient(90deg,' + v.bg + ' 33%,' + v.tile + ' 33% 66%,' + v.accent + ' 66%)' }), n))),
       h('h3', {}, 'Kolory'), h('div', { class: 'row2' }, Object.entries(this.DP.THEME_FIELDS).map(([k, l]) => field(l, h('input', { type: 'color', value: cur[k], oninput: e => set(k, e.target.value) })))),
       h('h3', {}, 'Kształt i tekst'), range('Zaokrąglenie rogów', 'radius', 0, 40, t.radius == null ? 16 : t.radius, v => v), range('Wielkość tekstu', 'scale', 80, 150, (t.scale || 1) * 100, v => v / 100), range('Krycie kafelków', 'opacity', 20, 100, t.opacity || 100, v => v),
-      field('Tapeta (adres obrazka)', text(t.image, v => set('image', v.trim()), { placeholder: '/local/tapeta.jpg' }))];
+      field('Tapeta (adres obrazka)', text(t.image, v => set('image', v.trim()), { placeholder: '/local/tapeta.jpg' })),
+      h('h3', {}, 'Ikony'),
+      field('Tło ikon', select(t.icons || '', [['', 'Bez tła'], ['circle', 'Kolorowe kółko']], v => this.commit(() => { this.doc.theme = Object.assign({}, this.doc.theme); if (v) this.doc.theme.icons = v; else delete this.doc.theme.icons; }))),
+      t.icons === 'circle' ? this.color('Kolor kółka (puste = z akcentu)', t.icbg, v => set('icbg', v)) : null,
+      h('p', { class: 'dim' }, 'Kolor kółka pojedynczego kafelka ustawisz po kliknięciu kafelka.'),
+      h('h3', {}, 'Nawigacja'),
+      check('Pasek stron na dole ekranu', this.doc.nav !== false, v => this.commit(() => { this.doc.nav = v; })),
+      this.doc.nav === false ? h('p', { class: 'dim' }, 'Bez paska ustawienia panelu otwiera mały przycisk w prawym dolnym rogu albo gest poniżej.') : null,
+      ...this.gestureFields()].filter(Boolean);
+  }
+
+  gestureFields() {
+    const g = this.doc.gestures || {};
+    const kinds = [['default', ''], ['none', 'Nic'], ['next', 'Następna strona'], ['prev', 'Poprzednia strona'], ['page', 'Wybrana strona'], ['saver', 'Wygaszacz'], ['bell', 'Domofon'], ['settings', 'Ustawienia panelu (jasność)'], ['service', 'Akcja Home Assistant']];
+    const defaults = { left: 'Następna strona', right: 'Poprzednia strona', up: 'Nic', down: 'Nic' };
+    const out = [h('h3', {}, 'Przesunięcie palcem')];
+    [['up', 'W górę ↑'], ['down', 'W dół ↓'], ['left', 'W lewo ←'], ['right', 'W prawo →']].forEach(([dir, label]) => {
+      const cur = g[dir] || { kind: 'default' }, set = o => this.commit(() => { this.doc.gestures = Object.assign({}, this.doc.gestures, { [dir]: Object.assign({}, cur, o) }); });
+      out.push(field(label, select(cur.kind, kinds.map(([k, n]) => [k, k === 'default' ? 'Domyślnie (' + defaults[dir].toLowerCase() + ')' : n]), v => set({ kind: v }))));
+      if (cur.kind === 'page') out.push(field('Strona', select(cur.page || '', [['', '–']].concat(this.doc.pages.map(x => [x.name, x.name])), v => set({ page: v }))));
+      if (cur.kind === 'service') out.push(...this.serviceFields(cur, set));
+    });
+    return out;
   }
 
   saverTab() {
@@ -582,7 +607,10 @@ class PanelPilotEditor extends HTMLElement {
       field('Wygląd', select(s.style, [['zegar', 'Zegar'], ['czujniki', 'Duże czujniki'], ['czarny', 'Czarny ekran']], v => set('style', v))),
       group('Co pokazać pod zegarem', this.entityList(s.entities || [], ['sensor', 'binary_sensor', 'weather', 'input_number'], v => set('entities', v.slice(0, 8), true))),
       ...(s.entities || []).map(id => field('Podpis: ' + this.ename(id), text((s.names || {})[id], v => this.commit(() => { const n = Object.assign({}, this.doc.saver.names); if (v) n[id] = v; else delete n[id]; this.doc.saver.names = n; }, { key: 'svn' + id, quiet: true })))),
-      h('p', { class: 'dim' }, 'Jasność w dzień i w nocy, próg ciemności i budzenie zbliżeniem ustawiasz osobno dla każdego panelu w zakładce Panele.')];
+      h('h3', {}, 'Ikony powiadomień'),
+      h('p', { class: 'dim', style: 'margin-bottom:8px' }, 'Ikona pojawia się nad zegarem tylko wtedy, gdy coś wymaga uwagi: drzwi otwarte, alarm uzbrojony, czujnik zgłasza problem, licznik większy od zera.'),
+      this.entityList(s.alerts || [], ['binary_sensor', 'cover', 'lock', 'alarm_control_panel', 'input_boolean', 'switch', 'sensor', 'group'], v => set('alerts', v.slice(0, 12), true)),
+      h('p', { class: 'dim' }, 'Jasność w dzień i w nocy, próg ciemności i budzenie zbliżeniem ustawiasz dla każdego panelu w zakładce „Panele i jasność”. Na samym panelu jasność zmienisz suwakiem w ustawieniach (koło zębate).')];
   }
 
   bellTab() {
@@ -592,9 +620,19 @@ class PanelPilotEditor extends HTMLElement {
       field('Dzwonek: otwiera okno', this.entityPicker(b.entity, ['binary_sensor', 'event', 'input_boolean'], v => set('entity', v, true))),
       field('Kamera', this.entityPicker(b.camera, ['camera'], v => set('camera', v, true))),
       field('Zamknij okno po (s)', text(b.seconds, v => set('seconds', Number(v) || 60), { type: 'number', min: 10 })),
-      check('Gong na panelu', b.chime !== false, v => set('chime', v)), check('Przycisk rozmowy (mikrofon)', b.talk, v => set('talk', v, true)),
-      h('h3', {}, 'Przyciski (na przytrzymanie)'), ...b.actions.map((a, i) => h('div', { class: 'st' }, h('div', { style: 'display:flex;gap:6px' }, text(a.name, v => { a.name = v; set('actions', b.actions); }, { placeholder: 'Nazwa' }), h('button', { class: 'icon danger', 'aria-label': 'Usuń przycisk', onclick: () => { b.actions.splice(i, 1); set('actions', b.actions, true); } }, '×')), this.entityPicker(a.entity, ['switch', 'button', 'input_button', 'cover', 'lock', 'script'], v => { a.entity = v; set('actions', b.actions, true); }), this.iconPicker(a.icon || 'gate', v => { a.icon = v; set('actions', b.actions, true); }))),
-      b.actions.length < 4 ? h('button', { onclick: () => { b.actions.push({ name: 'Furtka', entity: '', icon: 'gate' }); set('actions', b.actions, true); } }, '+ Dodaj przycisk') : null,
+      check('Gong na panelu', b.chime !== false, v => set('chime', v)),
+      check('Przycisk „Rozmawiaj” (mikrofon panelu)', b.talk, v => set('talk', v, true)),
+      b.talk && !(b.go2rtc && b.stream) ? h('p', { class: 'dim' }, 'Rozmowa wymaga go2rtc ze źródłem z dźwiękiem zwrotnym (sekcja na dole). Bez niego przycisk się pokaże, ale głos nie dotrze do bramki.') : null,
+      h('h3', {}, 'Przyciski otwierania'),
+      ...b.actions.map((a, i) => h('div', { class: 'st' },
+        h('div', { style: 'display:flex;gap:6px' }, text(a.name, v => { a.name = v; set('actions', b.actions); }, { placeholder: 'Nazwa, np. Otwórz furtkę' }), h('button', { class: 'icon danger', 'aria-label': 'Usuń przycisk', onclick: () => { b.actions.splice(i, 1); set('actions', b.actions, true); } }, '×')),
+        this.entityPicker(a.entity, ['switch', 'button', 'input_button', 'cover', 'lock', 'script'], v => { a.entity = v; set('actions', b.actions, true); }),
+        h('div', { class: 'row2' }, this.iconPicker(a.icon || 'gate', v => { a.icon = v; set('actions', b.actions, true); }), select(a.mode || 'hold', [['hold', 'Przytrzymaj, aby otworzyć'], ['tap', 'Jedno dotknięcie']], v => { a.mode = v; set('actions', b.actions, true); })))),
+      b.actions.length < 4 ? h('div', { class: 'btns', style: 'justify-content:flex-start' },
+        h('button', { onclick: () => { b.actions.push({ name: 'Otwórz furtkę', entity: '', icon: 'gate', mode: 'hold' }); set('actions', b.actions, true); } }, '+ Furtka'),
+        h('button', { onclick: () => { b.actions.push({ name: 'Otwórz bramę', entity: '', icon: 'garage', mode: 'hold' }); set('actions', b.actions, true); } }, '+ Brama'),
+        h('button', { onclick: () => { b.actions.push({ name: 'Przycisk', entity: '', icon: 'touch', mode: 'tap' }); set('actions', b.actions, true); } }, '+ Inny')) : null,
+      b.actions.some(a => !a.entity) ? h('p', { class: 'dim' }, 'Przycisk bez wybranej encji nie zostanie zapisany.') : null,
       h('h3', {}, 'Obraz i rozmowa przez własne go2rtc'), h('p', { class: 'dim', style: 'margin-bottom:8px' }, 'Puste = obraz z kamery HA. Do rozmowy wpisz go2rtc ze źródłem obsługującym dźwięk zwrotny.'),
       field('Adres go2rtc', text(b.go2rtc, v => set('go2rtc', v.trim()), { placeholder: 'http://192.168.1.10:1984' })), field('Nazwa strumienia', text(b.stream, v => set('stream', v.trim()), { placeholder: 'brama' }))];
   }

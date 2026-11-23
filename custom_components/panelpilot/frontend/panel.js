@@ -112,7 +112,7 @@
     const show = html => { $('grid').innerHTML = '<div class="empty">' + html + '<button class="login" type="button">Zaloguj hasłem</button></div>'; $('grid').querySelector('.login').onclick = () => ha.login(); };
     show('<b>Łączenie…</b>');
     ha.pair({ device_id: ha.deviceId, name: info.name || 'Przeglądarka', model: info.model || 'Przeglądarka' }, code => {
-      show('<span>W Home Assistant otwórz <b>PanelPilot → Panele</b> i zatwierdź kod:</span><div class="code">' + esc(code.slice(0, 3) + ' ' + code.slice(3)) + '</div>');
+      show('<span>W Home Assistant kliknij powiadomienie <b>PanelPilot</b> i zatwierdź kod:</span><div class="code">' + esc(code.slice(0, 3) + ' ' + code.slice(3)) + '</div>');
     }).then(() => location.reload(), e => {
       show('<b>Parowanie nieudane</b><span>' + esc(e.message) + '</span>');
       setTimeout(pairing, 20000);
@@ -194,7 +194,8 @@
     if (system) native.setRotation(rot);
     const turn = system ? 0 : rot, swap = turn === 90 || turn === 270;
     const w = swap ? innerHeight : innerWidth, h = swap ? innerWidth : innerHeight, r = $('root');
-    r.style.width = w + 'px'; r.style.height = h + 'px';
+    // Bez obrotu rozmiar bierze się z CSS (100%), więc nie rozjedzie się przy spóźnionym „resize”.
+    r.style.width = turn ? w + 'px' : '100%'; r.style.height = turn ? h + 'px' : '100%';
     r.style.transform = 'translate(-50%,-50%) rotate(' + turn + 'deg)';
     r._turn = turn;
     if (!ha.preview) fmt = DP.formatFor(shape, w, h);
@@ -214,7 +215,7 @@
   function watched() {
     // Własny kod może czytać dowolne encje; listę można ograniczyć w edytorze.
     if (coded() && !(dash.watch || []).length) return null;
-    const ids = new Set((dash.saver.entities || []).concat(coded() ? dash.watch : []));
+    const ids = new Set((dash.saver.entities || []).concat(dash.saver.alerts || [], coded() ? dash.watch : []));
     [bell.entity, bell.camera].concat((bell.actions || []).map(a => a.entity)).forEach(id => ids.add(id));
     dash.pages.forEach(p => p.tiles.forEach(t => entitiesOf(t).forEach(id => ids.add(id))));
     return [...ids].filter(DP.isEntity);
@@ -231,19 +232,26 @@
     codeKey = key;
     cleanup.forEach(f => f()); cleanup = [];
     Panel.code.mount($('grid'), dash);
+    gear(true);
+  }
+
+  /** Mały przycisk ustawień, gdy nie ma paska stron (własny kod albo ukryty pasek). */
+  function gear(show) {
     let g = document.querySelector('.gearbtn');
-    if (!g) {
-      g = document.createElement('button');
-      g.className = 'gearbtn'; g.setAttribute('aria-label', 'Ustawienia panelu'); g.innerHTML = icon('gear');
-      g.onclick = () => ha.preview || openSettings();
-      $('root').append(g);
-    }
+    if (!show) { if (g) g.remove(); return; }
+    if (g) return;
+    g = document.createElement('button');
+    g.className = 'gearbtn'; g.setAttribute('aria-label', 'Ustawienia panelu'); g.innerHTML = icon('gear');
+    g.onclick = () => ha.preview || openSettings();
+    $('root').append(g);
   }
 
   function render() {
     if (coded() && (ha.preview || ha.online || codeKey)) return renderCode();
-    if (codeKey) { codeKey = ''; Panel.code.unmount(); const g = document.querySelector('.gearbtn'); if (g) g.remove(); }
+    if (codeKey) { codeKey = ''; Panel.code.unmount(); }
     $('root').classList.remove('full');
+    $('root').classList.toggle('nonav', dash.nav === false);
+    gear(dash.nav === false);
     pages = DP.pagesFor(dash.pages, fmt, widgets);
     if (!pages.length) { renderNav(); return; }
     page = Math.max(0, Math.min(page, pages.length - 1));
@@ -258,6 +266,7 @@
       el.style.gridArea = (p.y + 1) + '/' + (p.x + 1) + '/span ' + p.h + '/span ' + p.w;
       if (DP.isColor(t.bg)) el.style.setProperty('--tile', t.bg);
       if (DP.isColor(t.color)) ['--accent', '--on'].forEach(v => el.style.setProperty(v, t.color));
+      if (DP.isColor(t.iconBg)) { el.classList.add('icbg'); el.style.setProperty('--icbg', t.iconBg); }
       el._tile = t;
       try { if (def && def.mount) { const stop = def.mount(el, t); if (stop) cleanup.push(stop); } } catch (e) { console.error(t.type, e); }
       updateTile(el);
@@ -298,7 +307,7 @@
     addEventListener('pointerdown', e => {
       lastTouch = Date.now(); swiped = false;
       down = { x: e.clientX, y: e.clientY, grid: !!e.target.closest('#grid') && !e.target.closest('input,select') };
-      const held = e.target.closest('.holdable,.tile[data-type=hold]');
+      const held = e.target.closest('.holdable:not(.tapnow),.tile[data-type=hold]');
       if (held) startHold(held);
     }, true);
     addEventListener('pointermove', e => { if (down && Math.hypot(e.clientX - down.x, e.clientY - down.y) > 14) stopHold(); });
@@ -307,11 +316,11 @@
       if (!down) return;
       const d = down; down = null;
       const [dx, dy] = local(e.clientX - d.x, e.clientY - d.y);
-      if (d.grid && !sleeping && Math.abs(dx) > 60 && Math.abs(dx) > 1.5 * Math.abs(dy)) {
-        swiped = true;
-        const n = page + (dx < 0 ? 1 : -1);
-        if (n >= 0 && n < pages.length) Panel.openPage(n);
-      }
+      if (!d.grid || sleeping) return;
+      // Kierunek to strona, w którą jedzie palec.
+      const dir = Math.abs(dx) > 60 && Math.abs(dx) > 1.5 * Math.abs(dy) ? (dx < 0 ? 'left' : 'right')
+        : Math.abs(dy) > 70 && Math.abs(dy) > 1.5 * Math.abs(dx) ? (dy < 0 ? 'up' : 'down') : null;
+      if (dir) swiped = gesture(dir);
     });
     addEventListener('pointercancel', () => { stopHold(); down = null; });
     addEventListener('contextmenu', e => { if (!e.target.closest('input')) e.preventDefault(); });
@@ -327,6 +336,24 @@
     });
     // Pierwszy dotyk tylko budzi ekran i nie naciska niczego pod spodem.
     $('saver').addEventListener('click', e => { e.stopPropagation(); if (!ha.preview) wake(); });
+  }
+
+  /** Przesunięcie palcem; zwraca true, gdy coś się stało (wtedy dotknięcie kafelka się nie liczy). */
+  function gesture(dir) {
+    const g = (dash.gestures || {})[dir] || {};
+    let kind = g.kind || 'default';
+    if (kind === 'default') kind = { left: 'next', right: 'prev' }[dir] || 'none';
+    const go = n => { if (n < 0 || n >= pages.length) return false; Panel.openPage(n); return true; };
+    switch (kind) {
+      case 'next': return go(page + 1);
+      case 'prev': return go(page - 1);
+      case 'page': { const i = pages.findIndex(p => p.name === g.page); return i >= 0 && go(i); }
+      case 'saver': sleep(); return true;
+      case 'bell': Panel.doorbell.open(); return true;
+      case 'settings': openSettings(); return true;
+      case 'service': if (g.service) Panel.service(g.service, g.data || {}).then(ok => ok && Panel.toast('Wysłano')); return !!g.service;
+      default: return false;
+    }
   }
 
   function tap(t, el, e) {
@@ -347,13 +374,13 @@
     if (ha.preview || !ha.online || !Panel.ok(el._tile.entity)) return;
     stopHold();
     el.classList.add('holding');
-    hold = { el, timer: setTimeout(async () => {
-      const t = el._tile;
-      stopHold();
-      const service = /^(lock)\./.test(t.entity) ? 'unlock' : /^(button|input_button)\./.test(t.entity) ? 'press' : /^cover\./.test(t.entity) ? 'toggle' : 'turn_on';
-      if (await Panel.call(t.entity, service)) { Panel.toast((t.name || Panel.name(t.entity)) + ': wysłano'); if (t.done) t.done(); }
-    }, 900) };
+    hold = { el, timer: setTimeout(() => { stopHold(); Panel.trigger(el._tile); }, 900) };
   }
+  /** Otwiera/uruchamia encję bramy, furtki, zamka, przycisku albo skryptu. */
+  Panel.trigger = async t => {
+    const service = /^(lock)\./.test(t.entity) ? 'unlock' : /^(button|input_button)\./.test(t.entity) ? 'press' : /^cover\./.test(t.entity) ? 'toggle' : 'turn_on';
+    if (await Panel.call(t.entity, service)) { Panel.toast((t.name || Panel.name(t.entity)) + ': wysłano'); if (t.done) t.done(); }
+  };
   function stopHold() { if (hold) { clearTimeout(hold.timer); hold.el.classList.remove('holding'); hold = null; } }
 
   /* ---------- wygaszacz i jasność ---------- */
@@ -405,9 +432,26 @@
       const t = all.find(k => k.entity === id);
       return '<div><b>' + Panel.value(id) + '</b><span>' + esc((s.names || {})[id] || t && t.name || Panel.name(id)) + '</span></div>';
     }).join('');
-    const html = '<div class="sv" style="transform:translate(' + x + 'px,' + y + 'px)"><div class="sv-time">' + now.toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit' })
+    const html = '<div class="sv" style="transform:translate(' + x + 'px,' + y + 'px)">' + alerts(all) + '<div class="sv-time">' + now.toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit' })
       + '</div><div class="sv-date">' + now.toLocaleDateString('pl-PL', { weekday: 'long', day: 'numeric', month: 'long' }) + '</div><div class="sv-items">' + items + '</div></div>';
     if (force || renderSaver.last !== html || !el.firstChild) { el.innerHTML = html; renderSaver.last = html; }
+  }
+
+  /** Ikony powiadomień nad zegarem: tylko encje, które są teraz „aktywne”. */
+  const ALERT_ICONS = { door: 'window', window: 'window', opening: 'window', garage_door: 'garage', moisture: 'drop', smoke: 'bell', gas: 'bell', safety: 'shield', problem: 'bell', motion: 'eye', occupancy: 'eye', lock: 'shield' };
+  function active(id) {
+    if (!Panel.ok(id)) return false;
+    const s = Panel.state(id).state, n = Number(s);
+    return Panel.isOn(id) || ['detected', 'problem', 'triggered', 'pending', 'arming'].includes(s) || (s !== '' && !isNaN(n) && n > 0);
+  }
+  function alerts(all) {
+    const list = (dash.saver.alerts || []).filter(active);
+    if (!list.length) return '';
+    return '<div class="sv-alerts">' + list.map(id => {
+      const t = all.find(k => k.entity === id || (k.entities || []).includes(id)), dc = Panel.state(id).attributes.device_class;
+      const ic = t && t.icon || ALERT_ICONS[dc] || ALERT_ICONS[id.split('.')[0]] || 'bell';
+      return '<span>' + icon(ic) + '<em>' + esc((dash.saver.names || {})[id] || Panel.name(id)) + '</em></span>';
+    }).join('') + '</div>';
   }
 
   /* ---------- raport stanu do HA ---------- */
@@ -445,8 +489,14 @@
   }
 
   function openSettings() {
-    const el = sheet('Panel', '<p>Pulpit edytujesz w Home Assistant, w menu bocznym: <b>PanelPilot</b>.</p><p class="dim">' + esc(info.name || 'Przeglądarka') + ' · ' + DP.FORMATS[fmt].name + ' ' + innerWidth + '×' + innerHeight + ' · ' + esc(info.version || 'web') + '</p>',
+    const now = Math.round((manual != null ? manual : updateDark.level == null ? 204 : updateDark.level) / 2.55);
+    const el = sheet('Panel', '<div class="bright"><span>Jasność</span><input type="range" min="1" max="100" value="' + now + '" aria-label="Jasność"><b>' + now + '%</b>'
+      + btn('auto', manual == null ? 'Automatycznie ✓' : 'Automatycznie') + '</div>'
+      + '<p class="dim">Pulpit, jasność w dzień i w nocy oraz obrót ustawisz w Home Assistant: Ustawienia → Urządzenia oraz usługi → PanelPilot → Konfiguruj.</p><p class="dim">' + esc(info.name || 'Przeglądarka') + ' · ' + DP.FORMATS[fmt].name + ' ' + innerWidth + '×' + innerHeight + ' · ' + esc(info.version || 'web') + '</p>',
       (bell.entity || bell.camera ? btn('bell', 'Domofon') : '') + btn('reload', 'Odśwież') + btn('out', 'Wyloguj') + (native && native.openSetup ? btn('setup', 'Ustawienia aplikacji') : '') + btn('close', 'Zamknij', 'primary'));
+    const range = el.querySelector('.bright input'), label = el.querySelector('.bright b');
+    range.addEventListener('input', () => { manual = Math.max(3, Math.round(range.value * 2.55)); label.textContent = range.value + '%'; el.querySelector('[data-act=auto]').textContent = 'Automatycznie'; updateDark(true); });
+    on(el, 'auto', () => { manual = null; updateDark(true); closeSheet(); });
     on(el, 'close', closeSheet);
     on(el, 'bell', () => { closeSheet(); Panel.doorbell.open(); });
     on(el, 'reload', () => native && native.reload ? native.reload() : location.reload());

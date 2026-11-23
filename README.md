@@ -4,19 +4,20 @@ Panel ścienny dla Home Assistant na **Sonoff NSPanel Pro 86** (kwadrat) i **NSP
 
 *Home Assistant wall panel for NSPanel Pro: visual dashboard editor inside HA, full HTML/CSS/JS mode, screensaver, sensors, doorbell with two-way audio. The interface is Polish only for now.*
 
-> **Wersja testowa 0.1.2.** Integracja ma testy automatyczne na Home Assistant 2026.10, a interfejs sprawdzono w przeglądarce. Nie sprawdzono jeszcze na fizycznym panelu: obrotu, czujników, mikrofonu ani rozmowy przez domofon.
+> **Wersja testowa 0.1.3.** Integracja ma testy automatyczne na Home Assistant 2026.10, a interfejs sprawdzono w przeglądarce. Nie sprawdzono jeszcze na fizycznym panelu: obrotu, czujników, mikrofonu ani rozmowy przez domofon.
 
 ## Co potrafi
 
 | | |
 |---|---|
-| **Edytor w Home Assistant** | pozycja „PanelPilot” w menu bocznym; przeciąganie i zmiana rozmiaru kafelków na żywym podglądzie |
+| **Edytor w Home Assistant** | *Urządzenia oraz usługi → PanelPilot → Konfiguruj* (opcjonalnie w menu bocznym); przeciąganie i zmiana rozmiaru kafelków na żywym podglądzie |
+| **Gesty** | przesunięcie palcem w górę, w dół, w lewo i w prawo: strona, wygaszacz, domofon, ustawienia albo dowolna akcja HA; pasek stron można ukryć |
 | **Wybór encji** | pogodę, czujniki, światła itd. wskazujesz z wyszukiwarki; nic nie jest wybierane za Ciebie |
 | **Trzy układy** | osobne rozmieszczenie dla kwadratu, pionu i poziomu; motywy, kolory, tapeta |
 | **Pełna dowolność** | własne kafelki HTML, cały ekran w HTML + CSS + JS z dostępem do WebSocketu albo gotowy moduł JS |
-| **Wygaszacz** | zegar, duże czujniki lub czarny ekran; budzi dotyk, zbliżenie, dzwonek i automatyzacja |
-| **Czujniki** | światło i zbliżenie jako encje HA, automatyczna jasność |
-| **Domofon** | okno po dzwonku, obraz WebRTC, rozmowa, bramy na przytrzymanie |
+| **Wygaszacz** | zegar, duże czujniki lub czarny ekran, ikony powiadomień (np. otwarte drzwi); budzi dotyk, zbliżenie, dzwonek i automatyzacja |
+| **Czujniki** | światło i zbliżenie jako encje HA, automatyczna jasność, suwak jasności na samym panelu |
+| **Domofon** | okno po dzwonku, obraz WebRTC, rozmowa, przyciski furtki i bramy (przytrzymanie albo jedno dotknięcie) |
 | **Muzyka** | odtwarzacz, głośność, wyjście, przyciski stacji z dowolną akcją |
 | **Sterowanie z HA** | ekran i jasność, strona, pulpit, obrót, wiadomości, odświeżenie |
 
@@ -28,6 +29,7 @@ Panel ścienny dla Home Assistant na **Sonoff NSPanel Pro 86** (kwadrat) i **NSP
 
 1. W HACS pobierz **PanelPilot** i uruchom ponownie Home Assistant. (Bez HACS: skopiuj `custom_components/panelpilot` do `config/custom_components`).
 2. *Ustawienia → Urządzenia oraz usługi → Dodaj integrację → PanelPilot*. Nie ma nic do wypełniania.
+3. Edytor otwierasz przyciskiem *Konfiguruj* przy integracji PanelPilot. Tam też włączysz go w menu bocznym, jeśli wolisz.
 
 ### 2. Aplikacja na panelu
 
@@ -45,7 +47,7 @@ Skrypt sam pobierze adb i najnowsze APK, zainstaluje je i ustawi PanelPilot jako
 ### 3. Połączenie
 
 1. Na panelu wybierz Home Assistant znaleziony w sieci oraz kształt ekranu: **kwadrat** lub **prostokąt**.
-2. Panel pokaże **6-cyfrowy kod**. W HA otwórz *PanelPilot → Panele* i zatwierdź go. Hasło nie jest potrzebne.
+2. Panel pokaże **6-cyfrowy kod**. W HA pojawi się powiadomienie PanelPilot: kliknij link i zatwierdź kod. Hasło nie jest potrzebne.
 3. W edytorze kliknij *Wybierz, co pokazać*.
 
 Gdy ekran się nie obraca, zaznacz w aplikacji *Obracaj obraz w aplikacji*.

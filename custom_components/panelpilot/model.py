@@ -16,6 +16,8 @@ FORMATS = {"square": (6, 5), "portrait": (6, 10), "landscape": (10, 5)}
 SHAPES = ("auto", "square", "rect")
 ROTATIONS = (0, 90, 180, 270)
 MODES = ("tiles", "code", "module")
+GESTURES = ("up", "down", "left", "right")
+GESTURE_KINDS = ("default", "none", "next", "prev", "page", "saver", "bell", "settings", "service")
 
 DEFAULT_SETTINGS: dict[str, Any] = {
     "rotation": 0,
@@ -91,6 +93,23 @@ def clean_tile(tile: Any) -> dict[str, Any]:
     return out
 
 
+def _gesture(value: Any) -> dict[str, Any]:
+    """Co robi przesunięcie palcem: default = strony w lewo/prawo, nic w górę/dół."""
+    if not isinstance(value, dict) or value.get("kind") not in GESTURE_KINDS:
+        return {"kind": "default"}
+    out: dict[str, Any] = {"kind": value["kind"]}
+    if out["kind"] == "page":
+        out["page"] = _text(value.get("page"), 30)
+    if out["kind"] == "service":
+        out["service"] = _text(value.get("service"), 80)
+        out["data"] = value.get("data") if isinstance(value.get("data"), dict) else {}
+    return out
+
+
+def _entities(value: Any, limit: int) -> list[str]:
+    return [e for e in value or [] if isinstance(e, str) and ENTITY_RE.match(e)][:limit]
+
+
 def clean_dashboard(data: Any) -> dict[str, Any]:
     """Sprawdza pulpit z edytora; nieznane pola kafelków zostają (własne kafelki)."""
     if not isinstance(data, dict) or not isinstance(data.get("pages"), list) or not data["pages"]:
@@ -119,7 +138,10 @@ def clean_dashboard(data: Any) -> dict[str, Any]:
     except (TypeError, ValueError):
         seconds = 60
     theme = data.get("theme") if isinstance(data.get("theme"), dict) else {}
+    gestures = data.get("gestures") if isinstance(data.get("gestures"), dict) else {}
     return {
+        "nav": data.get("nav") is not False,
+        "gestures": {g: _gesture(gestures.get(g)) for g in GESTURES},
         "name": _text(data.get("name"), 40) or "Pulpit",
         "mode": data.get("mode") if data.get("mode") in MODES else "tiles",
         "html": str(data.get("html") or "")[:MAX_CODE],
@@ -132,8 +154,10 @@ def clean_dashboard(data: Any) -> dict[str, Any]:
         "saver": {
             "seconds": seconds,
             "style": _text(saver.get("style"), 20) or "zegar",
-            "entities": [e for e in saver.get("entities") or [] if isinstance(e, str) and ENTITY_RE.match(e)][:8],
+            "entities": _entities(saver.get("entities"), 8),
             "names": {k: _text(v, 40) for k, v in (saver.get("names") or {}).items() if isinstance(k, str)},
+            # Ikony powiadomień: pokazują się tylko, gdy encja jest „aktywna” (otwarte, włączone, problem…).
+            "alerts": _entities(saver.get("alerts"), 12),
         },
         "css": str(data.get("css") or "")[:MAX_CODE],
         "js": str(data.get("js") or "")[:MAX_CODE],
@@ -169,7 +193,11 @@ def clean_doorbell(data: Any) -> dict[str, Any]:
     actions = []
     for a in (data.get("actions") or [])[:4]:
         if isinstance(a, dict) and ENTITY_RE.match(str(a.get("entity", ""))):
-            actions.append({"name": _text(a.get("name"), 30) or a["entity"], "entity": a["entity"], "icon": _text(a.get("icon"), 60)})
+            actions.append({
+                "name": _text(a.get("name"), 30) or a["entity"], "entity": a["entity"], "icon": _text(a.get("icon"), 60),
+                # hold = przytrzymaj (bezpieczniej), tap = jedno dotknięcie
+                "mode": "tap" if a.get("mode") == "tap" else "hold",
+            })
     try:
         seconds = max(10, min(600, int(data.get("seconds", 60))))
     except (TypeError, ValueError):
