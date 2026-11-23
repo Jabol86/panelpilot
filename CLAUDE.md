@@ -82,6 +82,15 @@ Fakty o NSPanel Pro 120: Android 8.1, 750×1334 przy 240 dpi. Czujniki światła
 4. Wyrównanie `align` (left/center/right) i `valign` (top/center/bottom) w kafelku i w motywie.
 5. `anim` (pulse/spin/blink/bounce/shake/glow) dla włączonego kafelka i w motywie; `rules`: [{entity?, op on/off/eq/ne/gt/lt, value, color, bg, lit, anim, icon}], działa pierwszy spełniony.
 
+### v0.1.9 i v0.1.10
+
+- 0.1.9: położenie treści kafelka to siatka 3×3 (`posPicker`), bo dwie osobne listy myliły (właściciel ustawił tylko pion).
+- 0.1.10:
+  - nagłówek strony `page.title` i `titleAlign` (#ptitle, wysokość pół wiersza przez flex 0.5 : liczba wierszy);
+  - ukrywanie stanu: `tile.showState` (true/false) albo `theme.state = "hide"` (klasa `nost`);
+  - panel pogody na wygaszaczu: `saver.weather` i `saver.days` (0–7);
+  - w zakładce Gesty pola zależne są wcięte pod kierunkiem.
+
 ## Instalacja przez HACS
 
 Właściciel chce instalować PanelPilot z GitHuba przez HACS. To **integracja**, nie dodatek Supervisora. HACS nie widzi prywatnych repozytoriów. Kiedy właściciel się zgodzi:

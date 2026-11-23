@@ -115,6 +115,13 @@ def _gesture(value: Any) -> dict[str, Any]:
     return out
 
 
+def _int(value: Any, low: int, high: int, default: int) -> int:
+    try:
+        return max(low, min(high, int(value)))
+    except (TypeError, ValueError):
+        return default
+
+
 def _entities(value: Any, limit: int) -> list[str]:
     return [e for e in value or [] if isinstance(e, str) and ENTITY_RE.match(e)][:limit]
 
@@ -132,7 +139,12 @@ def clean_dashboard(data: Any) -> dict[str, Any]:
         tiles = page.get("tiles")
         if not isinstance(tiles, list) or len(tiles) > 200:
             raise InvalidData("Nieprawidłowa lista kafelków")
-        pages.append({"name": _text(page.get("name"), 30) or f"Strona {i + 1}", "tiles": [clean_tile(t) for t in tiles]})
+        clean_page = {"name": _text(page.get("name"), 30) or f"Strona {i + 1}", "tiles": [clean_tile(t) for t in tiles]}
+        # Nagłówek nad kafelkami (wysokość pół wiersza), np. „Kuchnia”.
+        if title := _text(page.get("title"), 60):
+            clean_page["title"] = title
+            clean_page["titleAlign"] = page.get("titleAlign") if page.get("titleAlign") in ("left", "center", "right") else "left"
+        pages.append(clean_page)
     # Nazwa strony jest wartością encji select, więc musi być jednoznaczna.
     seen: set[str] = set()
     for page in pages:
@@ -174,6 +186,9 @@ def clean_dashboard(data: Any) -> dict[str, Any]:
             "size": saver.get("size") if saver.get("size") in ("S", "M", "L", "XL") else "M",
             # Ikony powiadomień: pokazują się tylko, gdy encja jest „aktywna” (otwarte, włączone, problem…).
             "alerts": _entities(saver.get("alerts"), 12),
+            # Panel pogody pod zegarem: bieżące warunki i prognoza na kilka dni.
+            "weather": w if isinstance(w := saver.get("weather"), str) and re.match(r"^weather\.[a-z0-9_]+$", w) else "",
+            "days": _int(saver.get("days"), 0, 7, 5),
         },
         "css": str(data.get("css") or "")[:MAX_CODE],
         "js": str(data.get("js") or "")[:MAX_CODE],

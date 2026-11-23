@@ -48,6 +48,13 @@ small { font-size: .6em; color: var(--ink2); font-weight: 400; }
 .tile.row[data-ah] > .tx, .tile.lay-row[data-ah] > .tx { flex: 0 1 auto; }
 .tile[data-ah=center] > .cbs, .tile[data-ah=right] > .cbs { margin-left: 0; }
 
+.tile.nost .st { display: none; }
+/* Nagłówek strony: pół wiersza wysokości, tekst skaluje się z wysokością. */
+#ptitle { flex: .5 1 0; min-height: 0; container-type: size; display: flex; align-items: center; padding: 0 12px; margin-bottom: var(--gap); overflow: hidden; }
+#ptitle span { font-size: clamp(14px, 62cqh, 40px); font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#ptitle[data-align=center] { justify-content: center; } #ptitle[data-align=right] { justify-content: flex-end; }
+#root.full #ptitle { display: none; }
+
 /* Animacja ikony włączonego kafelka (albo z warunku). */
 .tile[class*=anim-] > .ic, .tile[class*=anim-] .ic.main { transform-origin: 50% 50%; }
 .anim-pulse > .ic { animation: pp-pulse 1.6s ease-in-out infinite; }
@@ -213,6 +220,19 @@ input[type=range] { accent-color: var(--on); min-width: 0; height: 40px; width: 
 .fmt-portrait .style-czujniki .sv-items { flex-direction: column; gap: 26px; }
 .fmt-square .style-czujniki .sv-items b { font-size: 40px; }
 .dark .sv { color: #6a6f73; } .dark .sv-items span { color: #555b5f; }
+/* Panel pogody pod zegarem. */
+.sv-wx { display: inline-flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 14px 28px; margin-top: 22px; padding: 14px 22px; border-radius: 22px; border: 1px solid rgba(255, 255, 255, .12); background: rgba(255, 255, 255, .04); }
+.sv-wx-now { display: grid; grid-template-columns: auto auto; align-items: center; column-gap: 10px; text-align: left; }
+.sv-wx-now .ic { grid-row: span 2; width: calc(52px * var(--svs)); height: calc(52px * var(--svs)); color: #c9d2d7; }
+.sv-wx-now b { font-size: calc(40px * var(--svs)); font-weight: 300; line-height: 1; }
+.sv-wx-now span { font-size: calc(15px * var(--svs)); color: #87939a; }
+.sv-wx-fc { display: flex; gap: calc(16px * var(--svs)); padding-left: 24px; border-left: 1px solid rgba(255, 255, 255, .12); }
+.sv-wx-fc div { display: grid; justify-items: center; gap: 3px; font-size: calc(14px * var(--svs)); }
+.sv-wx-fc span { color: #87939a; text-transform: capitalize; }
+.sv-wx-fc .ic { width: calc(26px * var(--svs)); height: calc(26px * var(--svs)); color: #c9d2d7; }
+.sv-wx-fc b { font-weight: 500; } .sv-wx-fc em { font-style: normal; color: #87939a; }
+.fmt-square .sv-wx-fc, .fmt-portrait .sv-wx-fc { padding-left: 0; border-left: 0; }
+.dark .sv-wx { border-color: rgba(255, 255, 255, .06); } .dark .sv-wx .ic { color: #6a6f73; }
 .sv-alerts { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px 22px; margin-bottom: 18px; }
 .sv-alerts span { display: flex; align-items: center; gap: 8px; color: var(--warn); font-size: 16px; }
 .sv-alerts .ic { width: 30px; height: 30px; }

@@ -535,6 +535,9 @@ class PanelPilotEditor extends HTMLElement {
     const p = this.doc.pages[this.page], i = this.page, n = this.doc.pages.length;
     const move = d => this.commit(() => { this.doc.pages.splice(i + d, 0, this.doc.pages.splice(i, 1)[0]); this.page = i + d; });
     return [h('h3', {}, 'Strona'), field('Nazwa strony', text(p.name, v => { this.commit(() => { p.name = v; }, { key: 'page' + i, quiet: true }); this.palette(); })),
+      field('Nagłówek nad kafelkami (pusty = bez)', text(p.title, v => this.commit(() => { if (v.trim()) p.title = v; else delete p.title; }, { key: 'title' + i, quiet: true }), { placeholder: 'np. Kuchnia' })),
+      p.title ? field('Położenie nagłówka', select(p.titleAlign || 'left', ALIGN_H, v => this.commit(() => { p.titleAlign = v; }))) : null,
+      h('p', { class: 'dim', style: 'margin:-4px 0 8px' }, 'Nagłówek ma wysokość pół kafelka i zajmuje całą szerokość nad siatką.'),
       h('div', { class: 'btns', style: 'justify-content:flex-start' }, h('button', { disabled: i === 0, onclick: () => move(-1) }, 'Wcześniej'), h('button', { disabled: i === n - 1, onclick: () => move(1) }, 'Później'), h('button', { class: 'danger', disabled: n === 1, onclick: () => this.commit(() => { this.doc.pages.splice(i, 1); this.page = Math.max(0, i - 1); }) }, 'Usuń stronę')),
       h('h3', {}, 'Pulpit'), field('Nazwa pulpitu', text(this.doc.name, v => this.commit(() => { this.doc.name = v; }, { key: 'name', quiet: true }))),
       h('button', { class: 'danger', disabled: Object.keys(this.data.dashboards).length < 2, onclick: () => this.dialog('Usunąć pulpit „' + this.doc.name + '”?', h('p', {}, 'Tego nie da się cofnąć. Panele z tym pulpitem dostaną inny.'), ['Anuluj'], ['Usuń', () => { this.dirty = false; this.hass.callWS({ type: 'panelpilot/admin/dashboard_delete', dashboard_id: this.dashId }).catch(e => this.toast(e.message, true)); }]) }, 'Usuń pulpit'),
@@ -570,6 +573,7 @@ class PanelPilotEditor extends HTMLElement {
       h('h3', {}, 'Wygląd'),
       h('div', { class: 'row2' }, this.color('Tło', t.bg, v => set('bg', v)), this.color('Kolor', t.color, v => set('color', v))),
       w.noIcon ? null : this.color('Tło ikony (kółko)', t.iconBg, v => set('iconBg', v)),
+      w.plain ? null : field('Stan pod nazwą (np. „włączone”)', select(t.showState == null ? '' : t.showState ? '1' : '0', [['', 'Jak w motywie'], ['1', 'Pokaż'], ['0', 'Ukryj']], v => this.commit(() => { if (v === '') delete t.showState; else t.showState = v === '1'; }))),
       field('Wielkość tekstu', select(t.text || '', [['S', 'Mała'], ['', 'Zwykła'], ['L', 'Duża'], ['XL', 'Bardzo duża']], v => set('text', v))),
       w.noIcon ? null : h('div', { class: 'row2' },
         field('Układ', select(t.layout || '', [['', 'Jak w motywie']].concat(LAYOUTS), v => set('layout', v, true))),
@@ -773,6 +777,7 @@ class PanelPilotEditor extends HTMLElement {
         field('Wielkość ikon', select(t.iconSize || '', [['', 'Zwykła']].concat(ICON_SIZES.filter(s => s[0] !== 'M')), v => setFull('iconSize', v)))),
       this.posPicker('Położenie treści w kafelkach', t.align, t.valign, 'Domyślne (lewo, środek)',
         (a, v) => this.commit(() => { const th = this.doc.theme = Object.assign({}, this.doc.theme); if (a) th.align = a; else delete th.align; if (v) th.valign = v; else delete th.valign; })),
+      check('Stan pod nazwą kafelka (np. „włączone”, „wyłączone”)', t.state !== 'hide', v => setFull('state', v ? '' : 'hide')),
       field('Animacja ikony włączonego kafelka', select(t.anim || '', [['', 'Bez animacji']].concat(ANIMS), v => setFull('anim', v))),
       field('Tło ikon', select(t.icons || '', [['', 'Bez tła'], ['circle', 'Kolorowe kółko']], v => setFull('icons', v))),
       t.icons === 'circle' ? this.color('Kolor kółka (puste = z akcentu)', t.icbg, v => set('icbg', v)) : null,
@@ -796,9 +801,11 @@ class PanelPilotEditor extends HTMLElement {
     const out = [h('h3', {}, 'Przesunięcie palcem')];
     [['up', 'W górę ↑'], ['down', 'W dół ↓'], ['left', 'W lewo ←'], ['right', 'W prawo →']].forEach(([dir, label]) => {
       const cur = g[dir] || { kind: 'default' }, set = o => this.commit(() => { this.doc.gestures = Object.assign({}, this.doc.gestures, { [dir]: Object.assign({}, cur, o) }); });
-      out.push(field(label, select(cur.kind, kinds.map(([k, n]) => [k, k === 'default' ? 'Domyślnie (' + defaults[dir].toLowerCase() + ')' : n]), v => set({ kind: v }))));
-      if (cur.kind === 'page') out.push(field('Strona', select(cur.page || '', [['', '–']].concat(this.doc.pages.map(x => [x.name, x.name])), v => set({ page: v }))));
-      if (cur.kind === 'service') out.push(...this.serviceFields(cur, set));
+      // Szczegóły (strona, akcja) wcięte pod swoim kierunkiem, żeby było widać, do czego należą.
+      const sub = cur.kind === 'page' ? [field('Strona', select(cur.page || '', [['', '–']].concat(this.doc.pages.map(x => [x.name, x.name])), v => set({ page: v })))]
+        : cur.kind === 'service' ? this.serviceFields(cur, set) : [];
+      out.push(h('div', { class: 'gest' }, field(label, select(cur.kind, kinds.map(([k, n]) => [k, k === 'default' ? 'Domyślnie (' + defaults[dir].toLowerCase() + ')' : n]), v => set({ kind: v }))),
+        sub.length ? h('div', { class: 'sub' }, sub) : null));
     });
     return out;
   }
@@ -809,6 +816,10 @@ class PanelPilotEditor extends HTMLElement {
       field('Wygląd', select(s.style, [['zegar', 'Zegar'], ['czujniki', 'Duże czujniki'], ['czarny', 'Czarny ekran']], v => set('style', v))),
       group('Co pokazać pod zegarem (czujniki, pogoda…)', this.entityList(s.entities || [], ['sensor', 'binary_sensor', 'weather', 'input_number'], v => set('entities', v.slice(0, 8), true))),
       h('p', { class: 'dim', style: 'margin:-4px 0 8px' }, 'Pogoda (weather.*) pokazuje ikonę warunków, temperaturę i opis.'),
+      h('h3', {}, 'Panel pogody'),
+      field('Pogoda (pusta = bez panelu)', this.entityPicker(s.weather, ['weather'], v => set('weather', v, true))),
+      s.weather ? field('Prognoza: ile dni (0 = tylko teraz)', select(String(s.days == null ? 5 : s.days), [0, 1, 2, 3, 4, 5, 6, 7].map(n => [String(n), String(n)]), v => set('days', +v, true))) : null,
+      h('h3', {}, 'Pod zegarem'),
       field('Wielkość pozycji pod zegarem', select(s.size || 'M', [['S', 'Mała'], ['M', 'Zwykła'], ['L', 'Duża'], ['XL', 'Bardzo duża']], v => set('size', v, true))),
       ...(s.entities || []).map(id => h('div', { class: 'st' },
         h('b', {}, this.ename(id)),

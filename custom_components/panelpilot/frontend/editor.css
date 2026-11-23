@@ -20,6 +20,8 @@ svg.ic.mdi { fill: currentColor; stroke: none; }
 header { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 8px 12px; background: var(--e-card); border-bottom: 1px solid var(--e-line); }
 header select { width: auto; max-width: 210px; }
 header select.fmt { max-width: 300px; }
+.gest { margin-bottom: 6px; }
+.gest .sub { margin: -2px 0 8px 18px; padding-left: 12px; border-left: 2px solid var(--e-acc); }
 .posrow { display: flex; gap: 14px; align-items: center; }
 .posgrid { display: grid; grid-template-columns: repeat(3, 30px); grid-template-rows: repeat(3, 30px); gap: 3px; padding: 4px; border-radius: 10px; border: 1px solid var(--e-line); flex: none; }
 .posgrid .pos { display: grid; place-items: center; padding: 0; min-width: 0; height: 30px; border-radius: 6px; background: none; border: 0; cursor: pointer; }

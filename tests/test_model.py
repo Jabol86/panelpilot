@@ -98,6 +98,14 @@ class Other(unittest.TestCase):
         self.assertEqual(model.clean_dashboard({**base, "format": "c_tab"})["format"], "c_tab")
         self.assertEqual(model.clean_dashboard({**base, "format": "<x>"})["format"], "")
 
+    def test_page_title_and_saver_weather(self):
+        d = model.clean_dashboard({"pages": [{"tiles": [], "title": "Kuchnia", "titleAlign": "zle"}, {"tiles": [], "title": "  "}],
+                                   "saver": {"weather": "weather.dom", "days": 9}})
+        self.assertEqual((d["pages"][0]["title"], d["pages"][0]["titleAlign"]), ("Kuchnia", "left"))
+        self.assertNotIn("title", d["pages"][1])
+        self.assertEqual((d["saver"]["weather"], d["saver"]["days"]), ("weather.dom", 7))
+        self.assertEqual(model.clean_dashboard({"pages": [{"tiles": []}], "saver": {"weather": "sensor.x"}})["saver"]["weather"], "")
+
     def test_doorbell_after(self):
         self.assertEqual(model.clean_doorbell({})["after"], 10)
         self.assertEqual(model.clean_doorbell({"after": 500})["after"], 120)

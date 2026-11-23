@@ -257,7 +257,7 @@
   function watched() {
     // Własny kod może czytać dowolne encje; listę można ograniczyć w edytorze.
     if (coded() && !(dash.watch || []).length) return null;
-    const ids = new Set((dash.saver.entities || []).concat(dash.saver.alerts || [], coded() ? dash.watch : []));
+    const ids = new Set((dash.saver.entities || []).concat(dash.saver.alerts || [], [dash.saver.weather], coded() ? dash.watch : []));
     [bell.entity, bell.camera].concat((bell.actions || []).map(a => a.entity)).forEach(id => ids.add(id));
     dash.pages.forEach(p => p.tiles.forEach(t => entitiesOf(t).forEach(id => ids.add(id))));
     return [...ids].filter(DP.isEntity);
@@ -266,7 +266,8 @@
   let codeKey = '';
   function renderCode() {
     $('root').classList.add('full');
-    pages = [{ name: dash.name || 'Pulpit', placed: [] }]; page = 0;
+    pageTitle(null);
+    pages =[{ name: dash.name || 'Pulpit', placed: [] }]; page = 0;
     if (ha.online && !ha.preview) ha.watch(watched()).catch(e => console.warn(e));
     // Kod uruchamiany ponownie tylko po zmianie, żeby nie gubić jego stanu.
     const key = JSON.stringify([dash.mode, dash.html, dash.css, dash.code, dash.module, dash.element, fmt]);
@@ -295,10 +296,11 @@
     $('root').classList.toggle('nonav', navStyle() === 'none');
     gear(navStyle() === 'none');
     pages = DP.pagesFor(dash.pages, fmt, widgets);
-    if (!pages.length) { renderNav(); return; }
+    if (!pages.length) { pageTitle(null); renderNav(); return; }
     page = Math.max(0, Math.min(page, pages.length - 1));
     cleanup.forEach(f => f()); cleanup = [];
     const f = DP.FORMATS[fmt], grid = $('grid');
+    pageTitle(dash.pages[pages[page].page], f);
     grid.style.gridTemplateColumns = 'repeat(' + f.cols + ',minmax(0,1fr))';
     grid.style.gridTemplateRows = 'repeat(' + f.rows + ',minmax(0,1fr))';
     grid.replaceChildren(...pages[page].placed.map(p => {
@@ -318,6 +320,8 @@
         if (['left', 'center', 'right'].includes(ah)) el.dataset.ah = ah;
         if (['top', 'center', 'bottom'].includes(av)) el.dataset.av = av;
       }
+      // Stan pod nazwą („włączone”, „wyłączone”…): kafelek ma pierwszeństwo przed motywem.
+      if (t.showState === false || (t.showState == null && th.state === 'hide')) el.classList.add('nost');
       el._tile = t;
       try { if (def && def.mount) { const stop = def.mount(el, t); if (stop) cleanup.push(stop); } } catch (e) { console.error(t.type, e); }
       updateTile(el);
@@ -325,6 +329,17 @@
     }));
     renderNav();
     if (ha.online && !ha.preview) ha.watch(watched()).catch(e => console.warn(e));
+  }
+
+  /** Nagłówek strony nad kafelkami: wysokość połowy wiersza siatki (proporcje flex: 0.5 do liczby wierszy). */
+  function pageTitle(p, f) {
+    let hd = $('ptitle');
+    if (!hd) { hd = document.createElement('div'); hd.id = 'ptitle'; $('grid').before(hd); }
+    const title = p && p.title;
+    hd.hidden = !title;
+    hd.innerHTML = title ? '<span>' + esc(title) + '</span>' : '';
+    hd.dataset.align = (p && p.titleAlign) || 'left';
+    $('grid').style.flex = title && f ? f.rows + ' 1 0' : '';
   }
 
   function updateTile(el) {
@@ -507,8 +522,29 @@
       return '<div>' + (ic ? icon(ic) : '') + '<b>' + val + '</b><span>' + esc(label) + '</span></div>';
     }).join('');
     const html = '<div class="sv" style="transform:translate(' + x + 'px,' + y + 'px)">' + alerts(all) + '<div class="sv-time">' + now.toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit' })
-      + '</div><div class="sv-date">' + now.toLocaleDateString('pl-PL', { weekday: 'long', day: 'numeric', month: 'long' }) + '</div><div class="sv-items">' + items + '</div></div>';
+      + '</div><div class="sv-date">' + now.toLocaleDateString('pl-PL', { weekday: 'long', day: 'numeric', month: 'long' }) + '</div>' + saverWeather(s) + '<div class="sv-items">' + items + '</div></div>';
     if (force || renderSaver.last !== html || !el.firstChild) { el.innerHTML = html; renderSaver.last = html; }
+  }
+
+  /** Panel pogody na wygaszaczu: teraz (ikona, temperatura, opis) i prognoza dzienna. */
+  let svWx = { id: '', stop: null, list: [] };
+  function saverWeather(s) {
+    const id = DP.isEntity(s.weather) ? s.weather : '', days = s.days == null ? 5 : +s.days;
+    const want = days > 0 ? id : '';
+    if (svWx.id !== want) {
+      if (svWx.stop) svWx.stop();
+      const me = svWx = { id: want, stop: null, list: [] };
+      if (want) ha.forecast(want, list => { me.list = list || []; if (sleeping && me === svWx) renderSaver(); })
+        .then(stop => { if (me !== svWx) { if (stop) stop(); } else me.stop = stop; }, () => { if (me === svWx) me.id = ''; });
+    }
+    const st = Panel.state(id);
+    if (!id || !st) return '';
+    const c = CONDITIONS[st.state] || ['cloud', st.state], a = st.attributes;
+    const deg = n => n == null || isNaN(n) ? '–' : Math.round(n) + '°';
+    const fc = svWx.list.slice(0, days).map((d, i) => '<div><span>' + (i ? new Date(d.datetime).toLocaleDateString('pl-PL', { weekday: 'short' }) : 'dziś') + '</span>'
+      + icon((CONDITIONS[d.condition] || ['cloud'])[0]) + '<b>' + deg(d.temperature) + '</b><em>' + deg(d.templow) + '</em></div>').join('');
+    return '<div class="sv-wx"><div class="sv-wx-now">' + icon(c[0]) + '<b>' + deg(a.temperature) + '</b><span>' + esc(c[1]) + '</span></div>'
+      + (fc ? '<div class="sv-wx-fc">' + fc + '</div>' : '') + '</div>';
   }
 
   /** Ikony powiadomień nad zegarem: tylko encje, które są teraz „aktywne”. */
