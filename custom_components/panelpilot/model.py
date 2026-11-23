@@ -299,7 +299,8 @@ def clean_doorbell(data: Any) -> dict[str, Any]:
 def public_doorbell(d: dict[str, Any]) -> dict[str, Any]:
     """To, co dostaje panel: bez adresu go2rtc."""
     out = {k: v for k, v in d.items() if k not in ("go2rtc", "stream")}
-    out["own"] = bool(d.get("go2rtc") and d.get("stream"))
+    # Sam strumień wystarcza: pusty adres = go2rtc wykryte w Home Assistant.
+    out["own"] = bool(d.get("stream"))
     return out
 
 

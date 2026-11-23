@@ -25,7 +25,8 @@
   // Sekcja: cienki pasek z napisem, dzieli stronę na działy (Kuchnia, Salon…). Wiersz z samymi sekcjami ma pół wysokości.
   P.widget('section', {
     name: 'Sekcja (nagłówek)', icon: 'text', group: 'Podstawowe', size: [24, 1], noEntity: true, noIcon: true, plain: true, thin: true,
-    fields: [{ k: 'align', l: 'Położenie napisu', t: 'select', o: [['', 'Do lewej'], ['center', 'Na środku'], ['right', 'Do prawej']] }, { k: 'line', l: 'Linia obok napisu', t: 'bool', def: true }],
+    fields: [{ k: 'align', l: 'Położenie napisu', t: 'select', o: [['', 'Do lewej'], ['center', 'Na środku'], ['right', 'Do prawej']] }, { k: 'line', l: 'Linia obok napisu', t: 'bool', def: true },
+      { k: 'thin', l: 'Wysokość paska (część zwykłego wiersza)', t: 'select', o: [['', 'Niski (0,35)'], ['S', 'Bardzo niski (0,25)'], ['L', 'Połowa (0,5)']] }],
     html: t => '<span class="sec-t">' + esc(t.name || 'Sekcja') + '</span>' + (t.line === false ? '' : '<i class="sec-l"></i>'),
   });
 

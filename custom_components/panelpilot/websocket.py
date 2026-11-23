@@ -24,7 +24,7 @@ _LOGGER = logging.getLogger(__name__)
 @callback
 def async_register(hass: HomeAssistant) -> None:
     for command in (
-        ws_register, ws_subscribe, ws_ping, ws_state, ws_webrtc,
+        ws_register, ws_subscribe, ws_ping, ws_state, ws_webrtc, ws_go2rtc_detect,
         ws_admin_subscribe, ws_dashboard_save, ws_dashboard_delete, ws_doorbell_save, ws_formats_save,
         ws_panel_save, ws_panel_delete, ws_panel_command, ws_pair_approve, ws_pair_reject,
     ):
@@ -126,12 +126,14 @@ async def ws_webrtc(hass, connection, msg) -> None:
     if (hub := _panel_hub(hass, connection, msg)) is None:
         return
     bell = hub.doorbell
-    if not bell["go2rtc"] or not bell["stream"]:
+    # Pusty adres = go2rtc znalezione w Home Assistant (integracja go2rtc, WebRTC Camera albo dodatek).
+    url = bell["go2rtc"] or ((await go2rtc_detect(hass)).get("url") if bell["stream"] else "")
+    if not url or not bell["stream"]:
         connection.send_error(msg["id"], "not_configured", "go2rtc nie jest skonfigurowane")
         return
     try:
         resp = await async_get_clientsession(hass).post(
-            f"{bell['go2rtc']}/api/webrtc", params={"src": bell["stream"]}, json={"type": "offer", "sdp": msg["sdp"]}, timeout=ClientTimeout(total=12)
+            f"{url}/api/webrtc", params={"src": bell["stream"]}, json={"type": "offer", "sdp": msg["sdp"]}, timeout=ClientTimeout(total=12)
         )
         async with resp:
             if resp.status not in (200, 201):
@@ -145,7 +147,64 @@ async def ws_webrtc(hass, connection, msg) -> None:
     connection.send_result(msg["id"], {"sdp": sdp})
 
 
+# ---- go2rtc w Home Assistant ----
+
+# Typowe adresy: wbudowane go2rtc w HA, dodatek go2rtc (AlexxIT) i go2rtc obok HA.
+_GO2RTC_GUESSES = ("http://localhost:11984", "http://127.0.0.1:1984", "http://a889bffc-go2rtc:1984", "http://localhost:1984")
+_GO2RTC_CACHE = f"{DOMAIN}_go2rtc"
+
+
+def _go2rtc_candidates(hass: HomeAssistant) -> list[str]:
+    """Adresy z konfiguracji HA (integracje go2rtc i WebRTC Camera), potem typowe."""
+    found: list[str] = []
+    for domain in ("go2rtc", "webrtc"):
+        for entry in hass.config_entries.async_entries(domain):
+            for source in (entry.options, entry.data):
+                if isinstance(url := source.get("url"), str):
+                    found.append(url)
+    data = hass.data.get("go2rtc")
+    for value in (data, getattr(data, "url", None), getattr(data, "_url", None)):
+        if isinstance(value, str):
+            found.append(value)
+    out: list[str] = []
+    for url in [*found, *_GO2RTC_GUESSES]:
+        url = url.rstrip("/")
+        if url.startswith(("http://", "https://")) and url not in out:
+            out.append(url)
+    return out
+
+
+async def go2rtc_detect(hass: HomeAssistant, refresh: bool = False) -> dict[str, Any]:
+    """Pierwszy odpowiadający go2rtc i jego strumienie; wynik zapamiętany do restartu HA."""
+    if not refresh and (cached := hass.data.get(_GO2RTC_CACHE)) is not None:
+        return cached
+    session = async_get_clientsession(hass)
+    result: dict[str, Any] = {"url": "", "streams": []}
+    for url in _go2rtc_candidates(hass):
+        try:
+            async with session.get(f"{url}/api/streams", timeout=ClientTimeout(total=3)) as resp:
+                if resp.status != 200:
+                    continue
+                streams = await resp.json(content_type=None)
+        except Exception:  # noqa: BLE001 - adres nie odpowiada, próbujemy następny
+            continue
+        if isinstance(streams, dict):
+            result = {"url": url, "streams": sorted(str(k) for k in streams)}
+            break
+    # Zapamiętujemy tylko znalezione go2rtc: przy braku następna próba sprawdzi adresy od nowa.
+    if result["url"]:
+        hass.data[_GO2RTC_CACHE] = result
+    return result
+
+
 # ---- edytor (administrator) ----
+
+
+@websocket_api.websocket_command({vol.Required("type"): "panelpilot/admin/go2rtc_detect"})
+@websocket_api.require_admin
+@websocket_api.async_response
+async def ws_go2rtc_detect(hass, connection, msg) -> None:
+    connection.send_result(msg["id"], await go2rtc_detect(hass, refresh=True))
 
 
 @websocket_api.websocket_command({vol.Required("type"): "panelpilot/admin/subscribe"})

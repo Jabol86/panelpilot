@@ -4,7 +4,7 @@ Panel ścienny dla Home Assistant na **Sonoff NSPanel Pro 86** (kwadrat) i **NSP
 
 *Home Assistant wall panel for NSPanel Pro: visual dashboard editor inside HA, full HTML/CSS/JS mode, screensaver, sensors, doorbell with two-way audio. The interface is Polish only for now.*
 
-> **Wersja testowa 0.1.16.** Integracja ma testy automatyczne na Home Assistant 2026.10, a interfejs sprawdzono w przeglądarce. Nie sprawdzono jeszcze na fizycznym panelu: obrotu, czujników, mikrofonu ani rozmowy przez domofon.
+> **Wersja testowa 0.1.17.** Integracja ma testy automatyczne na Home Assistant 2026.10, a interfejs sprawdzono w przeglądarce. Nie sprawdzono jeszcze na fizycznym panelu: obrotu, czujników, mikrofonu ani rozmowy przez domofon.
 
 ## Co potrafi
 
@@ -72,7 +72,7 @@ Kod pulpitu działa z uprawnieniami panelu, więc importuj pulpity tylko z zaufa
 
 ## Domofon i rozmowa
 
-Wybierz dzwonek i kamerę w zakładce *Domofon*. Do rozmowy podaj adres własnego [go2rtc](https://github.com/AlexxIT/go2rtc) i nazwę strumienia, którego źródło obsługuje dźwięk zwrotny. Panel nie łączy się z adresem go2rtc sam: sygnalizację przekazuje integracja.
+Wybierz dzwonek i kamerę w zakładce *Domofon*. Do rozmowy wybierz strumień [go2rtc](https://github.com/AlexxIT/go2rtc), którego źródło obsługuje dźwięk zwrotny. Integracja sama szuka go2rtc w Home Assistant (wbudowane go2rtc, WebRTC Camera, dodatek go2rtc); inny adres możesz wpisać ręcznie. Panel nie łączy się z adresem go2rtc sam: sygnalizację przekazuje integracja.
 
 ## Bezpieczeństwo
 

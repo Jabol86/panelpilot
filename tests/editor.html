@@ -33,6 +33,7 @@ const callWS = async m => {
     db.dashboards[id] = { ...copy(m.data), rev }; setTimeout(push); return { id, rev };
   }
   if (kind === 'doorbell_save') { db.doorbell = copy(m.data); setTimeout(push); return; }
+  if (kind === 'go2rtc_detect') return { url: 'http://localhost:11984', streams: ['brama', 'ogrod'] };
   if (kind === 'pair_approve') { db.pairing = []; setTimeout(push); return; }
   if (kind === 'history_during_period') return { [m.entity_ids[0]]: Array.from({ length: 40 }, (x, i) => ({ s: String(20 + Math.sin(i / 5) * 2), lu: Date.now() / 1000 - (40 - i) * 900 })) };
 };

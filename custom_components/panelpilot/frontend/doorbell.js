@@ -41,8 +41,9 @@
     // Dzwonek (albo podgląd w edytorze) = pulsujący czerwony znacznik „Ktoś dzwoni”.
     if (rang || P.ha.preview) el.classList.add('ringing');
     el.innerHTML = '<div class="bell-video"><video autoplay playsinline muted></video><img alt=""><div class="bell-msg">Łączenie z kamerą…</div>'
-      + '<div class="bell-tag"><i></i>Ktoś dzwoni</div><div class="bell-done" hidden></div></div>'
-      + '<div class="bell-bar"><div class="bell-title"><b>' + esc(d.name || 'Domofon') + '</b><span id="bell-left"></span></div><div class="bell-actions"></div>'
+      + '<div class="bell-tag"><i></i>Ktoś dzwoni</div></div>'
+      // „Otwarto” pojawia się nad przyciskami, a nie na obrazie z kamery: widać, kto wchodzi.
+      + '<div class="bell-bar"><div class="bell-title"><b>' + esc(d.name || 'Domofon') + '</b><span id="bell-left"></span></div><div class="bell-done" hidden></div><div class="bell-actions"></div>'
       + '<div class="bell-audio"><button data-b="listen">' + P.icon('speaker') + '<span>Słuchaj</span></button>' + (d.talk ? '<button data-b="talk">' + P.icon('mic') + '<span>Rozmawiaj</span></button>' : '') + '<button data-b="close">' + P.icon('close') + '<span>Zamknij</span></button></div></div>';
     (d.actions || []).forEach(a => {
       // Przytrzymanie chroni przed przypadkowym otwarciem; „tap” otwiera od razu.

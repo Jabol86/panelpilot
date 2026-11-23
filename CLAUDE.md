@@ -132,6 +132,12 @@ Zgłoszenie: „mam najnowszą wersję, ale wielu funkcji nie mam w edytorze”.
 - Wygaszacz: `saver.alertText`, `saver.alertIcons`, `saver.alertStyle` (plain/frame/icon).
 - APK 0.1.3: `Tunnel.open()` – jeden tunel na proces, ponowne użycie przy tym samym adresie HA, ponawianie bind, automatyczna ponowna próba zamiast stałego błędu EADDRINUSE. `build-apk.ps1` woła Gradle przez cmd (ostrzeżenia javac przerywały skrypt).
 
+### v0.1.17
+
+- Sekcje: wiersz z samymi sekcjami ma domyślnie 0,35 zwykłego (`DP.THIN`, pole sekcji `thin`: S 0,25 / M 0,35 / L 0,5). Właściciel uważał, że sekcja ma „wysokość kafelka” (na zrzucie miała 0,5).
+- Domofon: „Otwarto” (`.bell-done`) to karta w prawej kolumnie nad przyciskami, nie nakładka na kamerę.
+- go2rtc: `go2rtc_detect` w websocket.py szuka adresu w config entries `go2rtc`/`webrtc`, `hass.data["go2rtc"]` i typowych adresach (localhost:11984, :1984, a889bffc-go2rtc:1984), sprawdza `/api/streams`; WS `panelpilot/admin/go2rtc_detect`. Pusty `go2rtc` + `stream` = użyj wykrytego; `own` = sam `stream`. Edytor: lista strumieni. Niesprawdzone u właściciela.
+
 ## Instalacja przez HACS
 
 Właściciel chce instalować PanelPilot z GitHuba przez HACS. To **integracja**, nie dodatek Supervisora. HACS nie widzi prywatnych repozytoriów. Kiedy właściciel się zgodzi:

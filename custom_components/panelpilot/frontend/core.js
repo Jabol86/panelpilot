@@ -71,14 +71,17 @@
     return { placed, overflow };
   };
 
-  /** Wysokości wierszy (w fr): wiersz z samymi cienkimi kafelkami (sekcje, h=1) ma połowę wysokości. */
+  /** Wysokość cienkiego wiersza jako część zwykłego: z ustawienia sekcji (S/M/L), domyślnie 0,35. */
+  DP.THIN = { S: 0.25, M: 0.35, L: 0.5 };
+  /** Wysokości wierszy (w fr): wiersz z samymi cienkimi kafelkami (sekcje, h=1) jest niski; reszta dzieli miejsce. */
   DP.rowTracks = (placed, rows, widgets) => {
     const thin = new Array(rows).fill(null);
     placed.forEach(p => {
       const ok = !!(widgets[p.tile.type] || {}).thin && p.h === 1;
-      for (let y = p.y; y < p.y + p.h; y++) thin[y] = ok ? thin[y] !== false : false;
+      const k = DP.THIN[p.tile.thin] || DP.THIN.M;
+      for (let y = p.y; y < p.y + p.h; y++) thin[y] = ok && thin[y] !== false ? Math.max(thin[y] || 0, k) : false;
     });
-    return thin.map(t => t === true ? 0.5 : 1);
+    return thin.map(t => typeof t === 'number' ? t : 1);
   };
 
   /** Strony do pokazania na panelu; nadmiar trafia na dodatkowe strony, nic nie ginie. */

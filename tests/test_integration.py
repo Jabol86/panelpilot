@@ -185,6 +185,18 @@ async def test_webrtc(hass, entry, hass_ws_client, aioclient_mock):
     assert (await ask(ws, offer))["result"] == {"sdp": "ok"}
 
 
+async def test_go2rtc_detect(hass, entry, hass_ws_client, aioclient_mock):
+    """Bez adresu integracja używa go2rtc znalezionego w HA (tu: wbudowanego na porcie 11984)."""
+    ws = await hass_ws_client(hass)
+    await ask(ws, REGISTER)
+    aioclient_mock.get("http://localhost:11984/api/streams", json={"brama": {}, "ogrod": {}})
+    found = (await ask(ws, {"type": "panelpilot/admin/go2rtc_detect"}))["result"]
+    assert found == {"url": "http://localhost:11984", "streams": ["brama", "ogrod"]}
+    assert (await ask(ws, {"type": "panelpilot/admin/doorbell_save", "data": {"stream": "brama"}}))["success"]
+    aioclient_mock.post("http://localhost:11984/api/webrtc?src=brama", json={"type": "answer", "sdp": "ok2"})
+    assert (await ask(ws, {"type": "panelpilot/webrtc", "device_id": "app_1", "sdp": "v=0"}))["result"] == {"sdp": "ok2"}
+
+
 async def test_static_and_unload(hass, entry, hass_client_no_auth):
     http = await hass_client_no_auth()
     for name in ("index.html", "editor.js", "ui.js", "samples.js", "panel.js"):
