@@ -8,8 +8,8 @@ android {
         applicationId 'pl.panelpilot.app'
         minSdk 26
         targetSdk 34
-        versionCode 6
-        versionName '0.1.5'
+        versionCode 7
+        versionName '0.1.6'
     }
     // Klucz podpisu: plik keystore.properties obok (nie publikuj go). Bez niego używany jest klucz debug.
     def props = new Properties()

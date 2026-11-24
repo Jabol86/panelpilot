@@ -194,6 +194,12 @@ Zgłoszenie: „mam najnowszą wersję, ale wielu funkcji nie mam w edytorze”.
 
 - Licznik czasu na kafelku: `tile.timer` = `up` (ile minęło) / `down` (odliczanie od `timerMin` min, domyślnie 60, pasek `.tmr-bar`, ostatnia minuta miga `.tmr-end`). Liczy od `state.changed` (ha.js zapisuje `lc` z subscribe_entities, czyli last_changed), dopóki encja kafelka jest włączona. `tileTimer()` w panel.js, odświeżanie w `tick()`. Edytor: Podstawowe → „Licznik czasu”. Prośba właściciela pod przycisk HVAC Zakład (Node-RED: input_boolean + stoptimer 60 min).
 
+### v0.1.28 (APK 0.1.6)
+
+- `dumpsys sensorservice` na panelu właściciela: tylko akcelerometr, zbliżenie, światło (brak czujnika obecności). Zbliżenie w spoczynku = 0, ruch ręki = krótki impuls 1 (odwrotnie niż w Androidzie). APK 0.1.4 („daleko” = największy odczyt) trzymało więc stale „wykryto”, a budziło przy końcu impulsu. APK 0.1.6: „daleko” = odczyt spoczynkowy (pierwszy albo trzymający się 30 s, `proxSettle`), „blisko” = różnica > 40%. Zainstalowane u właściciela przez adb; czy HA pokazuje teraz „nie wykryto”, **nie potwierdzono**.
+- Zasięg czujnika to kilka cm, przejścia przez pokój nie wykryje. Zaproponowano opcję budzenia encją ruchu z HA (czeka na decyzję).
+- Właściciel dostał gotowy przepływ Node-RED dla HVAC zakład (wyłączenie przycisku = stop timera + climate.turn_off).
+
 ## Instalacja przez HACS
 
 Właściciel chce instalować PanelPilot z GitHuba przez HACS. To **integracja**, nie dodatek Supervisora. HACS nie widzi prywatnych repozytoriów. Kiedy właściciel się zgodzi:

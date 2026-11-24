@@ -54,7 +54,7 @@ public class MainActivity extends Activity implements SensorEventListener {
     private float lastLux = -1;
     private int lastNear = -1;
     private float lastRaw = Float.NaN;
-    private float proxFar = -1;
+    private float proxBase = Float.NaN, proxLast = Float.NaN;
     private long lastLuxAt;
     private boolean failed;
 
@@ -213,6 +213,8 @@ public class MainActivity extends Activity implements SensorEventListener {
             lastLux = -1;
             lastNear = -1;
             lastRaw = Float.NaN;
+            // Czujnik zbliżenia zgłasza tylko zmiany: nowa strona dostaje ostatni stan po chwili.
+            ui.postDelayed(() -> proxReport(proxLast), 2000);
         }
 
         @Override
@@ -323,18 +325,15 @@ public class MainActivity extends Activity implements SensorEventListener {
     public void onSensorChanged(SensorEvent e) {
         if (web == null) return;
         if (e.sensor.getType() == Sensor.TYPE_PROXIMITY) {
-            // Czujniki różnie zgłaszają „daleko” (maksymalny zasięg, 1, 5, 8…), więc „daleko” to największy
-            // dotąd widziany odczyt, a „blisko” – wyraźnie mniejszy. Pierwszy odczyt liczy się jako „daleko”.
+            // Czujniki różnie zgłaszają „daleko”: zwykle maksymalny zasięg, ale NSPanel Pro w spoczynku podaje 0,
+            // a ruch ręki to krótki impuls 1. Dlatego „daleko” to odczyt spoczynkowy: pierwszy odczyt albo taki,
+            // który trzyma się 30 s; „blisko” = wyraźnie inny odczyt.
             float v = e.values[0];
-            if (v > proxFar) proxFar = v;
-            int near = proxFar > 0 && v < proxFar * 0.6f ? 1 : 0;
-            if (v != lastRaw) {
-                lastRaw = v;
-                push("proximity_raw", String.valueOf(v));
-            }
-            if (near == lastNear) return;
-            lastNear = near;
-            push("proximity", String.valueOf(near));
+            if (Float.isNaN(proxBase)) proxBase = v;
+            proxLast = v;
+            ui.removeCallbacks(proxSettle);
+            ui.postDelayed(proxSettle, 30_000);
+            proxReport(v);
         } else {
             float lux = e.values[0];
             long now = System.currentTimeMillis();
@@ -344,6 +343,26 @@ public class MainActivity extends Activity implements SensorEventListener {
             lastLuxAt = now;
             push("lux", String.valueOf(Math.round(lux)));
         }
+    }
+
+    /** Odczyt trzymający się 30 s staje się spoczynkowym („daleko”). */
+    private final Runnable proxSettle = () -> {
+        if (Float.isNaN(proxLast) || proxLast == proxBase) return;
+        proxBase = proxLast;
+        proxReport(proxLast);
+    };
+
+    private void proxReport(float v) {
+        if (web == null || Float.isNaN(v)) return;
+        float scale = Math.max(1f, Math.max(Math.abs(v), Math.abs(proxBase)));
+        int near = Math.abs(v - proxBase) > 0.4f * scale ? 1 : 0;
+        if (v != lastRaw) {
+            lastRaw = v;
+            push("proximity_raw", String.valueOf(v));
+        }
+        if (near == lastNear) return;
+        lastNear = near;
+        push("proximity", String.valueOf(near));
     }
 
     private void push(String name, String value) {
