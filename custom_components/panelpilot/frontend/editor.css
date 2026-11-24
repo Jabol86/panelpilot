@@ -131,3 +131,19 @@ button.info.on, button.info:hover { color: var(--e-onacc); background: var(--e-a
 .pcard[open] > summary .top::after { transform: translateY(-30%) rotate(-135deg); }
 .pcard[open] > summary { margin-bottom: 10px; padding-bottom: 10px; border-bottom: 1px solid var(--e-line); }
 .psum { font-size: 13px; }
+/* Wybór siatki formatu (jak siatka ekranu głównego w Androidzie) */
+.gridpick { display: grid; gap: 8px; margin-bottom: 12px; }
+.gp-presets { display: grid; grid-template-columns: repeat(auto-fill, minmax(78px, 1fr)); gap: 6px; }
+.gp-preset { display: grid; gap: 4px; justify-items: center; padding: 6px; min-height: 0; border-radius: 10px; }
+.gp-preset.on { border-color: var(--e-acc); box-shadow: 0 0 0 1px var(--e-acc); }
+.gp-preset span { font-size: 12px; font-weight: 500; }
+.gp-screen { width: 100%; display: grid; gap: 2px; padding: 3px; border-radius: 6px; background: var(--e-ink); }
+.gp-screen i { border-radius: 2px; background: color-mix(in srgb, var(--e-acc) 55%, var(--e-card)); }
+.gp-screen.big { max-width: 280px; gap: 3px; padding: 5px; border-radius: 10px; }
+.gp-screen.big i { border-radius: 3px; }
+.gp-main { display: flex; flex-wrap: wrap; gap: 14px; align-items: center; }
+.gp-main .gp-screen.big { flex: 1 1 200px; }
+.gp-side { display: grid; gap: 8px; flex: 1 1 160px; }
+.gp-step { display: grid; grid-template-columns: 1fr 36px 36px 36px; align-items: center; gap: 4px; }
+.gp-step b { text-align: center; font-size: 16px; }
+.gp-step button { padding: 0; font-size: 18px; }

@@ -109,15 +109,16 @@ class PanelPilotEditor extends HTMLElement {
     const base = id && !all[id] && this.DP.FORMATS[id];
     const f = base ? { name: base.name + ' ' + base.cols + '×' + base.rows, w: base.w, h: base.h, cols: base.cols, rows: base.rows }
       : Object.assign({ name: 'Tablet', w: 1280, h: 800, cols: 10, rows: 6 }, id ? all[id] : {});
-    const num = (label, key, hint) => field(label, text(f[key], v => { f[key] = Number(v); }, { type: 'number', min: 1, placeholder: hint || '' }));
+    const picker = this.gridPicker(f);
+    const num = (label, key, hint) => field(label, text(f[key], v => { f[key] = Number(v); picker.redraw(); }, { type: 'number', min: 1, placeholder: hint || '' }));
     const body = [
-      base ? h('p', { class: 'dim', style: 'margin-bottom:8px' }, 'Format „' + base.name + '” jest wbudowany, więc powstanie jego kopia z tą siatką. Pulpit przełączy się na kopię, a kafelki zostaną na swoich miejscach (te, które się nie zmieszczą, ułożą się same). Więcej kolumn i wierszy = mniejsze kafelki.') : null,
+      base ? h('p', { class: 'dim', style: 'margin-bottom:8px' }, 'Format „' + base.name + '” jest wbudowany, więc powstanie jego kopia z tą siatką. Pulpit przełączy się na kopię, a kafelki zostaną na swoich miejscach (te, które się nie zmieszczą, ułożą się same).') : null,
       field('Nazwa', text(f.name, v => { f.name = v; })),
-      h('div', { class: 'row2' }, num('Szerokość (px CSS)', 'w'), num('Wysokość (px CSS)', 'h')),
-      h('div', { class: 'row2' }, num('Kolumny kafelków', 'cols'), num('Wiersze kafelków', 'rows')),
-      h('p', { class: 'dim' }, 'Rozmiar w pikselach CSS, czyli rozdzielczość podzielona przez skalę ekranu (np. 1920×1200 przy skali 1,5 to 1280×800). Panel pokazuje swój rozmiar w zakładce „Panele i jasność”. Rozmiar służy do podglądu; na tablecie kafelki wypełnią cały ekran według siatki.'),
-      size ? h('p', { class: 'dim' }, 'Podpowiedź z podłączonego panelu: ' + size[0] + '×' + size[1] + '.') : null,
-      h('p', { class: 'dim' }, 'Żeby panel używał tego formatu, wybierz go w zakładce „Panele i jasność” → Format ekranu.')];
+      picker,
+      base ? null : h('div', { class: 'row2' }, num('Szerokość ekranu (px CSS)', 'w'), num('Wysokość ekranu (px CSS)', 'h')),
+      base ? null : h('p', { class: 'dim' }, 'Rozmiar w pikselach CSS, czyli rozdzielczość podzielona przez skalę ekranu (np. 1920×1200 przy skali 1,5 to 1280×800; NSPanel Pro 1334×750 przy 1,5 to 889×500). Rozmiar służy do podglądu; na tablecie kafelki wypełnią cały ekran według siatki.'),
+      !base && size ? h('p', { class: 'dim' }, 'Podpowiedź z podłączonego panelu: ' + size[0] + '×' + size[1] + '.') : null,
+      base ? null : h('p', { class: 'dim' }, 'Żeby panel używał tego formatu, wybierz go w zakładce „Panele i jasność” → Format ekranu.')];
     const save = async (list, fid) => {
       try {
         await this.hass.callWS({ type: 'panelpilot/admin/formats_save', data: list });
@@ -148,6 +149,37 @@ class PanelPilotEditor extends HTMLElement {
       save(Object.assign({}, all, { [fid]: { name: (f.name || 'Tablet').trim(), w: f.w, h: f.h, cols, rows } }), fid).then(() => { if (fromBase && this.DP.FORMATS[fid]) { fromBase(fid); this.bar(); this.renderSides(); this.fit(); this.refresh(); } });
     }]);
     this.dialog(base ? 'Siatka formatu „' + base.name + '”' : id ? 'Format „' + f.name + '”' : 'Nowy format ekranu', h('div', {}, ...body.filter(Boolean)), ...buttons);
+  }
+
+  /** Wybór siatki jak w ustawieniach ekranu głównego Androida: gotowe warianty z miniaturką,
+      −/+ dla kolumn i wierszy oraz podgląd ekranu z wielkością jednego kafelka. Zmienia f.cols i f.rows. */
+  gridPicker(f) {
+    const box = h('div', { class: 'gridpick' });
+    const clamp = v => Math.max(1, Math.min(24, Math.round(v) || 1));
+    const presets = () => {
+      const r = (+f.w || 1) / (+f.h || 1);
+      return r > 1.2 ? [[6, 3], [8, 4], [10, 5], [12, 6], [14, 7], [16, 8]]
+        : r < 0.83 ? [[3, 6], [4, 7], [5, 9], [6, 10], [7, 12], [8, 14]]
+          : [[4, 4], [5, 4], [6, 5], [8, 6], [8, 8], [10, 8]];
+    };
+    const mini = (c, r, big) => h('div', { class: 'gp-screen' + (big ? ' big' : ''), style: 'aspect-ratio:' + (+f.w || 16) + '/' + (+f.h || 9) + ';grid-template:repeat(' + r + ',1fr)/repeat(' + c + ',1fr)' },
+      Array.from({ length: Math.min(c * r, 576) }, () => h('i')));
+    const step = (label, key) => h('div', { class: 'gp-step' }, h('span', { class: 'dim' }, label),
+      h('button', { type: 'button', 'aria-label': label + ' mniej', onclick: () => { f[key] = clamp(f[key] - 1); box.redraw(); } }, '−'),
+      h('b', {}, String(f[key])),
+      h('button', { type: 'button', 'aria-label': label + ' więcej', onclick: () => { f[key] = clamp(f[key] + 1); box.redraw(); } }, '+'));
+    box.redraw = () => {
+      f.cols = clamp(f.cols); f.rows = clamp(f.rows);
+      const tw = Math.round((+f.w || 0) / f.cols), th = Math.round((+f.h || 0) / f.rows);
+      box.replaceChildren(
+        h('span', { class: 'dim' }, 'Siatka kafelków'),
+        h('div', { class: 'gp-presets' }, presets().map(([c, r]) => h('button', { type: 'button', class: 'gp-preset' + (c === f.cols && r === f.rows ? ' on' : ''), onclick: () => { f.cols = c; f.rows = r; box.redraw(); } }, mini(c, r), h('span', {}, c + '×' + r)))),
+        h('div', { class: 'gp-main' }, mini(f.cols, f.rows, true),
+          h('div', { class: 'gp-side' }, step('Kolumny', 'cols'), step('Wiersze', 'rows'),
+            h('p', { class: 'dim' }, 'Kafelek 1×1: ok. ' + tw + '×' + th + ' px. Więcej kolumn i wierszy = mniejsze kafelki, więcej miejsca.'))));
+    };
+    box.redraw();
+    return box;
   }
 
   /** Rozmiar zgłoszony przez panel z tym pulpitem (np. „1280×800”), do podpowiedzi. */
@@ -536,6 +568,7 @@ class PanelPilotEditor extends HTMLElement {
     this.barEl.replaceChildren(...[
       fixed ? null : h('div', { class: 'seg', role: 'group', 'aria-label': 'Podgląd w formacie' }, formats.map(([id, f]) => h('button', { 'aria-pressed': String(this.fmt === id), onclick: () => { this.fmt = id; this.bar(); this.renderSides(); this.fit(); this.refresh(); } }, f.name))),
       h('span', { class: 'dim' }, cur ? (fixed ? cur.name + ': ' : '') + cur.w + '×' + cur.h + ', siatka ' + cur.cols + '×' + cur.rows : ''),
+      cur && this.tab === 'tiles' ? h('button', { title: 'Liczba kolumn i wierszy kafelków w tym formacie', onclick: () => this.formatDialog(this.fmt) }, 'Zmień siatkę') : null,
       h('span', { style: 'flex:1' }),
       this.tab === 'tiles' ? h('button', { title: 'Usuwa ręczny układ tylko w tym formacie', onclick: () => this.commit(() => this.tiles.forEach(t => { delete t.l[this.fmt]; })) }, 'Ułóż automatycznie') : null,
       this.tab === 'saver' ? check('Widok nocny', this.night, v => { this.night = v; this.refresh(); }) : null].filter(Boolean));

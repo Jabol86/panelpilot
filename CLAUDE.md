@@ -172,6 +172,7 @@ Zgłoszenie: „mam najnowszą wersję, ale wielu funkcji nie mam w edytorze”.
 
 - Właściciel pytał, czy NSPanel Pro nie ma więcej pikseli niż 889×500: to piksele CSS (1334×750 ÷ 1,5 przy 240 dpi).
 - Edycja siatki: w liście formatów na górnym pasku „Zmień siatkę „Poziom” (10×5)…” także dla wbudowanych. `formatDialog(id)` dla wbudowanego tworzy kopię `c_…` (nazwa np. „Poziom 14×7”), przenosi `t.l[id]` tam, gdzie się mieści, i ustawia `doc.format`. Własne: „Edytuj … (rozmiar, siatka)”.
+- Właściciel chciał wyboru siatki „jak w Androidzie”: `gridPicker(f)` – warianty z miniaturką zależne od proporcji ekranu, −/+ dla kolumn i wierszy (1–24), duży podgląd i wielkość kafelka 1×1 w px. Przycisk „Zmień siatkę” na pasku nad podglądem.
 
 ## Instalacja przez HACS
 
