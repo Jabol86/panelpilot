@@ -20,6 +20,12 @@ class Proximity(PanelEntity, BinarySensorEntity):
     def is_on(self) -> bool | None:
         return self.state_data.get("proximity")
 
+    @property
+    def extra_state_attributes(self) -> dict[str, float] | None:
+        """Surowy odczyt czujnika (aplikacja 0.1.4+): pomaga sprawdzić, czy czujnik w ogóle reaguje."""
+        raw = self.state_data.get("proximity_raw")
+        return {"raw": raw} if raw is not None else None
+
 
 class Connected(PanelEntity, BinarySensorEntity):
     key = "connection"

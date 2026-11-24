@@ -151,6 +151,14 @@ Zgłoszenie: „mam najnowszą wersję, ale wielu funkcji nie mam w edytorze”.
 - Trzeci punkt wiadomości właściciela był pusty („3.”), dopytać.
 - 0.1.20: w „Nocnym szkle” przy świecącej ramce wnętrze kafelka zostaje w kolorze kafelka (wcześniej było czerwonawe); pismo jak w „Terminalu” (wersaliki, Roboto Mono).
 
+### v0.1.21 (APK 0.1.4)
+
+- Odtwarzacz: tło `.mu-bg` z `entity_picture` (jak karta w telefonie), a bez niego logo ostatnio wybranej stacji (`picks`); pole `bg`. Stacja „aktywna” także po ostatnim wyborze, gdy media_title się nie zgadza.
+- Wygaszacz: `.sv` zostaje, zmienia się tylko jej zawartość, więc przesunięcie przeciw wypalaniu jest płynne (6 s); wcześniej co minutę skok.
+- Zbliżenie (APK 0.1.4): „daleko” = największy widziany odczyt, „blisko” = < 60% tego; surowy odczyt `proximity_raw` → atrybut `raw` encji Zbliżenie i kafelek „Czujniki panelu”. Po instalacji APK właściciel powinien wyłączyć „Odwróć czujnik”, jeśli włączył. **Nie potwierdzono** na panelu.
+- Czcionki: `theme.font`, `theme.font2` (zegar, liczby, stany), `theme.caps` (on/off); `DP.FONTS` (systemowe kroje Androida); CSS `--font`, `--font2`, `data-caps`.
+- Przejścia stron: `theme.pageAnim` ('' przesunięcie / fade / none), kopia siatki `.ghost-grid` odjeżdża, nowa wjeżdża (Web Animations), kierunek wg `navOrder`.
+
 ## Instalacja przez HACS
 
 Właściciel chce instalować PanelPilot z GitHuba przez HACS. To **integracja**, nie dodatek Supervisora. HACS nie widzi prywatnych repozytoriów. Kiedy właściciel się zgodzi:

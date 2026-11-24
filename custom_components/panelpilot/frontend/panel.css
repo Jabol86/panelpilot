@@ -7,6 +7,8 @@ button { border: 0; background: none; padding: 0; }
 #root { --bg: #11161a; --tile: #1c2328; --tile2: #2a343b; --ink: #eef2f4; --ink2: #a9b6be; --accent: #6db3f2; --on: #f2b84b; --good: #7ccf9a; --warn: #ff8f6b; --radius: 16px; --scale: 1; --alpha: 100%; --image: none;
   position: absolute; top: 50%; left: 50%; display: flex; flex-direction: column; padding: var(--gap); color: var(--ink); background: var(--bg) var(--image) center / cover; overflow: hidden; }
 #grid { flex: 1; min-height: 0; display: grid; gap: var(--gap); touch-action: none; }
+/* Odjeżdżająca strona przy zmianie stron (kopia siatki nad nową). */
+.ghost-grid { position: absolute; display: grid; gap: var(--gap); pointer-events: none; z-index: 1; }
 .ic { width: 26px; height: 26px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
 .ic.mdi { fill: currentColor; stroke: none; }
 small { font-size: .6em; color: var(--ink2); font-weight: 400; }
@@ -190,6 +192,11 @@ input[type=range] { accent-color: var(--on); min-width: 0; height: 40px; width: 
 .tile[data-type=tv] { position: relative; overflow: hidden; }
 .tv-bg { position: absolute; inset: 0; background: center / cover no-repeat; opacity: .32; filter: blur(14px) saturate(1.3); transform: scale(1.15); transition: opacity .4s; pointer-events: none; }
 .tv-bg::after { content: ''; position: absolute; inset: 0; background: linear-gradient(180deg, transparent 30%, var(--tile) 100%); }
+/* Odtwarzacz: logo stacji wyraźne jak na karcie w telefonie, tylko przygaszone pod przyciskami. */
+.tile[data-type=music] { position: relative; }
+.mu { position: relative; }
+.mu-bg { opacity: .42; filter: saturate(1.1); transform: none; background-size: cover; }
+.mu-bg::after { background: linear-gradient(180deg, color-mix(in srgb, var(--tile) 35%, transparent), color-mix(in srgb, var(--tile) 55%, transparent)); }
 .tv { position: relative; display: flex; flex-direction: column; gap: 10px; flex: 1; min-width: 0; min-height: 0; }
 .tv-top { display: flex; align-items: center; gap: 8px; }
 .tv-hd { flex: 1; min-width: 0; }
@@ -258,7 +265,7 @@ input[type=range] { accent-color: var(--on); min-width: 0; height: 40px; width: 
 .gearbtn { position: absolute; right: 4px; bottom: 4px; z-index: 5; width: 40px; height: 40px; display: grid; place-items: center; opacity: .25; color: var(--ink); }
 .tile[data-type=custom] { display: block; }
 #saver { position: absolute; inset: 0; z-index: 20; background: #000; display: grid; place-items: center; text-align: center; overflow: hidden; }
-.sv { color: #c4ccd1; transition: transform 2s; }
+.sv { color: #c4ccd1; transition: transform 6s ease-in-out; }
 .sv-time { font-size: 148px; line-height: 1; font-weight: 200; letter-spacing: -.035em; font-variant-numeric: tabular-nums; }
 .land .sv-time { font-size: 190px; }
 .sv-date { margin-top: 10px; font-size: 22px; font-weight: 300; }
@@ -377,7 +384,7 @@ input[type=range] { accent-color: var(--on); min-width: 0; height: 40px; width: 
 #root[data-style=glass] .tile.on .nm, #root[data-style=glass] .tile.on .st { color: var(--ink); }
 /* Pismo jak w „Terminalu”: nazwy wersalikami z odstępami, stany, wartości i zegar pismem maszynowym. */
 #root[data-style=glass] .nm { text-transform: uppercase; letter-spacing: .12em; font-weight: 500; }
-#root[data-style=glass] .lbl, #root[data-style=glass] .st, #root[data-style=glass] .val, #root[data-style=glass] .clock { font-family: "Roboto Mono", "DejaVu Sans Mono", monospace; }
+
 #root[data-style=glass] .lbl, #root[data-style=glass] .st { text-transform: uppercase; letter-spacing: .14em; font-size: calc(12px * var(--scale)); }
 #root[data-style=glass] .sec-t { text-transform: uppercase; letter-spacing: .3em; font-weight: 400; }
 #root[data-style=glass] .sec-l { height: 1px; background: linear-gradient(90deg, var(--accent) 0 70px, #3a3a3a 70px); }
@@ -397,7 +404,7 @@ input[type=range] { accent-color: var(--on); min-width: 0; height: 40px; width: 
 }
 #root[data-style=hud] .tile:not(.plain)::after { content: ''; position: absolute; top: 0; left: calc(100% - 14px); width: 20px; height: 1px; background: color-mix(in srgb, var(--accent) 70%, transparent); transform-origin: 0 0; transform: rotate(45deg); pointer-events: none; }
 #root[data-style=hud] .nm { text-transform: uppercase; letter-spacing: .12em; font-weight: 500; }
-#root[data-style=hud] .lbl, #root[data-style=hud] .st, #root[data-style=hud] .val, #root[data-style=hud] .clock { font-family: "Roboto Mono", "DejaVu Sans Mono", monospace; }
+
 #root[data-style=hud] .lbl, #root[data-style=hud] .st { text-transform: uppercase; letter-spacing: .14em; font-size: calc(12px * var(--scale)); }
 #root[data-style=hud] .tile.on:not(.plain) {
   border-color: var(--on);
@@ -411,3 +418,11 @@ input[type=range] { accent-color: var(--on); min-width: 0; height: 40px; width: 
 #root[data-style=hud] #nav .dot i { border-radius: 0; }
 #root[data-style=hud] #nav .dot[aria-current] i { width: 26px; height: 5px; background: repeating-linear-gradient(-45deg, var(--accent) 0 4px, transparent 4px 7px); }
 #root[data-style=hud] .cb, #root[data-style=hud] .mu-st button, #root[data-style=hud] .tv-src button { border-radius: 2px; border: 1px solid color-mix(in srgb, var(--accent) 35%, transparent); }
+
+/* ---------- Czcionki z motywu ---------- */
+/* Style „Nocne szkło” i „Terminal” mają domyślnie pismo maszynowe dla zegara, liczb i stanów; wybór w motywie je nadpisuje. */
+#root[data-style=glass], #root[data-style=hud] { --font2: "Roboto Mono", "DejaVu Sans Mono", "Droid Sans Mono", Consolas, monospace; }
+#root { font-family: var(--font, Roboto, "Segoe UI", Arial, sans-serif); }
+#root .val, #root .clock, #root .lbl, #root .st, #root .sv-time, #root .sv-date, #root .mu-meter span { font-family: var(--font2, var(--font, Roboto, "Segoe UI", Arial, sans-serif)); }
+#root[data-caps=on] .nm, #root[data-caps=on] .sec-t, #root[data-caps=on] .lbl, #root[data-caps=on] .st { text-transform: uppercase; letter-spacing: .1em; }
+#root[data-caps=off] .nm, #root[data-caps=off] .sec-t, #root[data-caps=off] .lbl, #root[data-caps=off] .st { text-transform: none !important; letter-spacing: normal !important; }

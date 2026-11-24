@@ -254,11 +254,12 @@
       { k: 'vol', l: 'Głośność', t: 'select', o: [['', 'Przyciski − i + ze wskaźnikiem'], ['slider', 'Suwak'], ['none', 'Bez regulacji']] },
       { k: 'volStep', l: 'Krok przycisków głośności (%)', t: 'number' },
       { k: 'perRow', l: 'Stacji w rzędzie (puste = tyle, ile się zmieści)', t: 'number', tip: 'Np. 4 przy 8 stacjach daje dwa rzędy po 4. Rzędy dzielą wysokość kafelka po równo.' },
+      { k: 'bg', l: 'Tło z logo stacji lub okładki', t: 'bool', def: true, tip: 'Gdy coś gra, tłem kafelka jest obrazek z Home Assistanta (ten sam co na karcie w telefonie), a gdy go nie ma, logo ostatnio wybranej stacji.' },
       { k: 'stations', l: 'Przyciski stacji', t: 'stations' }],
     mount(el, t) {
       const vol = t.vol === 'slider' ? '<input type="range" min="0" max="100" aria-label="Głośność">'
         : t.vol === 'none' ? '' : volBox();
-      el.innerHTML = '<div class="mu"><div class="mu-top"><div class="mu-title"></div><select aria-label="Wyjście dźwięku"></select></div><div class="mu-ctl"><button class="cb" data-m="play" aria-label="Odtwarzaj lub wstrzymaj"></button><button class="cb" data-m="next" aria-label="Następny">' + ic('next') + '</button><span class="mu-sp"></span>' + vol + '</div><div class="mu-st">'
+      el.innerHTML = '<div class="tv-bg mu-bg"></div><div class="mu"><div class="mu-top"><div class="mu-title"></div><select aria-label="Wyjście dźwięku"></select></div><div class="mu-ctl"><button class="cb" data-m="play" aria-label="Odtwarzaj lub wstrzymaj"></button><button class="cb" data-m="next" aria-label="Następny">' + ic('next') + '</button><span class="mu-sp"></span>' + vol + '</div><div class="mu-st">'
         + (t.stations || []).map((s, i) => '<button data-s="' + i + '">' + (/^(\/|https?:)/.test(s.image || '') ? '<img src="' + esc(s.image) + '" alt="' + esc(s.name) + '">' : esc(s.name)) + '</button>').join('') + '</div></div>';
       // Ile stacji w rzędzie: reszta przechodzi do kolejnych rzędów, które dzielą wysokość kafelka.
       const per = Math.max(0, Math.min(12, parseInt(t.perRow, 10) || 0));
@@ -278,7 +279,9 @@
         if (P.ha.preview) return;
         if (b.dataset.m) return P.service(b.dataset.m === 'play' ? 'media_player.media_play_pause' : 'media_player.media_next_track', { entity_id: t.entity });
         const s = t.stations[+b.dataset.s];
+        picks[t.id] = +b.dataset.s;
         s.service ? P.service(s.service, s.data) : P.toast('Stacja „' + s.name + '” nie ma jeszcze akcji', true);
+        this.update(el, t);
       });
     },
     update(el, t) {
@@ -291,9 +294,21 @@
       if (el.querySelector('.mu-meter') && el._vol == null) meter(el, a.volume_level == null ? null : Math.round(a.volume_level * 100));
       sel.hidden = !list.length;
       if (document.activeElement !== sel) sel.innerHTML = list.map(x => '<option' + (x === now ? ' selected' : '') + '>' + esc(x) + '</option>').join('');
-      el.querySelectorAll('[data-s]').forEach((b, i) => b.classList.toggle('active', !!a.media_title && a.media_title === t.stations[i].name));
+      // Włączona stacja: po tytule z HA, a gdy się nie zgadza (np. „Lublin Voivodeship”), ostatnio wybrana na panelu.
+      const playing = !!s && ['playing', 'paused', 'buffering', 'on'].includes(s.state);
+      let cur = (t.stations || []).findIndex(x => !!a.media_title && a.media_title === x.name);
+      if (cur < 0 && playing) cur = pickOf(t);
+      el.querySelectorAll('[data-s]').forEach((b, i) => b.classList.toggle('active', i === cur));
+      // Tło: okładka/logo z Home Assistanta (jak na karcie w telefonie), a bez niego logo wybranej stacji.
+      const st = cur >= 0 ? t.stations[cur] : null;
+      const img = t.bg === false || !playing ? '' : a.entity_picture || (st && /^(\/|https?:)/.test(st.image || '') ? st.image : '');
+      const bg = el.querySelector('.mu-bg');
+      if (bg && bg._img !== img) { bg._img = img; bg.style.backgroundImage = img ? 'url("' + img.replace(/["\\]/g, '') + '")' : ''; }
     },
   });
+  // Ostatnio wybrana stacja kafelka (przetrwa przerysowanie strony).
+  const picks = {};
+  const pickOf = t => picks[t.id] == null ? -1 : picks[t.id];
 
   /** Przyciski głośności: od razu pokazują nową wartość, do HA idzie jedna zmiana po serii dotknięć. */
   function volClick(el, t, dir) {
@@ -413,7 +428,7 @@
     name: 'Czujniki panelu', icon: 'tablet', group: 'Podgląd', size: [6, 3], fields: [], noIcon: true, noEntity: true,
     html() {
       const s = P.sensors, row = (i, l, v) => '<div>' + ic(i) + '<span>' + l + '</span><b>' + v + '</b></div>';
-      return '<div class="ls">' + row('sun', 'Światło', s.lux == null ? '–' : Math.round(s.lux) + ' lx') + row('eye', 'Zbliżenie', s.proximity == null ? '–' : s.proximity ? 'ktoś jest' : 'nikogo')
+      return '<div class="ls">' + row('sun', 'Światło', s.lux == null ? '–' : Math.round(s.lux) + ' lx') + row('eye', 'Zbliżenie', (s.proximity == null ? '–' : s.proximity ? 'ktoś jest' : 'nikogo') + (s.proximity_raw == null ? '' : ' (' + s.proximity_raw + ')'))
         + row('home', 'Home Assistant', P.ha.preview ? 'podgląd' : P.ha.online ? 'połączono' : 'brak połączenia') + row('tablet', 'Ekran', DP.FORMATS[P.format].name + ' ' + innerWidth + '×' + innerHeight) + '</div>';
     },
   });

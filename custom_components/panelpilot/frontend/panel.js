@@ -17,7 +17,7 @@
   const SETTINGS = { format: 'auto', rotation: 0, dayBrightness: 80, nightBrightness: 8, darkLux: 8, nightFrom: 22, nightTo: 6, nightMode: 'both', wakeOnProximity: true, proximityHold: true, proximityInvert: false };
 
   const widgets = {};
-  const sensors = { lux: null, proximity: null };
+  const sensors = { lux: null, proximity: null, proximity_raw: null };
   let ha, dash = { pages: [], saver: {}, theme: {} }, bell = {}, cfg = {}, shape = info.shape || 'auto';
   let fmt = 'portrait', pages = [], page = 0, sleeping = false, screenOff = false, lastTouch = Date.now(), dark = false, manual = null, rawNear = null;
   let homed = null, cleanup = [], jsRun = '', nearSince = 0, loadedVersion = '', lastPing = Date.now();
@@ -307,6 +307,17 @@
     cleanup.forEach(f => f()); cleanup = [];
     const f = DP.FORMATS[fmt], grid = $('grid');
     pageTitle(dash.pages[pages[page].page], f);
+    // Zmiana strony: stara strona odjeżdża, nowa wjeżdża (jak w kartach), zamiast przeskoku.
+    const anim = (dash.theme || {}).pageAnim, prev = render.shown;
+    let ghost = null;
+    document.querySelectorAll('.ghost-grid').forEach(g => g.remove());
+    if (!ha.preview && !sleeping && anim !== 'none' && prev != null && prev !== page && grid.children.length && grid.animate) {
+      ghost = grid.cloneNode(false);
+      ghost.removeAttribute('id'); ghost.classList.add('ghost-grid');
+      Object.assign(ghost.style, { top: grid.offsetTop + 'px', left: grid.offsetLeft + 'px', width: grid.offsetWidth + 'px', height: grid.offsetHeight + 'px' });
+      ghost.append(...grid.childNodes);
+      grid.after(ghost);
+    }
     grid.style.gridTemplateColumns = 'repeat(' + f.cols + ',minmax(0,1fr))';
     grid.style.gridTemplateRows = DP.rowTracks(pages[page].placed, f.rows, widgets).map(v => 'minmax(0,' + v + 'fr)').join(' ');
     grid.replaceChildren(...pages[page].placed.map(p => {
@@ -334,6 +345,16 @@
       updateTile(el);
       return el;
     }));
+    if (ghost) {
+      const order = navOrder(), dir = order.indexOf(page) >= order.indexOf(prev) ? 1 : -1;
+      const opt = { duration: 340, easing: 'cubic-bezier(.22,.8,.24,1)' };
+      const off = d => 'translateX(calc(' + d * 100 + '% + ' + d * 24 + 'px))';
+      const out = anim === 'fade' ? [{ opacity: 1 }, { opacity: 0 }] : [{ transform: 'none' }, { transform: off(-dir), opacity: 0.4 }];
+      const inn = anim === 'fade' ? [{ opacity: 0 }, { opacity: 1 }] : [{ transform: off(dir), opacity: 0.4 }, { transform: 'none', opacity: 1 }];
+      ghost.animate(out, opt).onfinish = () => ghost.remove();
+      grid.animate(inn, opt);
+    }
+    render.shown = page;
     renderNav();
     if (ha.online && !ha.preview) ha.watch(watched()).catch(e => console.warn(e));
   }
@@ -583,9 +604,13 @@
       }
       return '<div>' + (ic ? icon(ic) : '') + '<b>' + val + '</b><span>' + esc(label) + '</span></div>';
     }).join('');
-    const html = '<div class="sv" style="transform:translate(' + x + 'px,' + y + 'px)">' + alerts(all) + '<div class="sv-time">' + now.toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit' })
-      + '</div><div class="sv-date">' + now.toLocaleDateString('pl-PL', { weekday: 'long', day: 'numeric', month: 'long' }) + '</div>' + saverWeather(s) + '<div class="sv-items">' + items + '</div></div>';
-    if (force || renderSaver.last !== html || !el.firstChild) { el.innerHTML = html; renderSaver.last = html; }
+    const html = alerts(all) + '<div class="sv-time">' + now.toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit' })
+      + '</div><div class="sv-date">' + now.toLocaleDateString('pl-PL', { weekday: 'long', day: 'numeric', month: 'long' }) + '</div>' + saverWeather(s) + '<div class="sv-items">' + items + '</div>';
+    // Ramka .sv zostaje ta sama: przesunięcie przeciw wypalaniu idzie płynnie (przejście CSS), a nie skokiem.
+    let box = el.querySelector(':scope > .sv');
+    if (!box) { el.innerHTML = '<div class="sv"></div>'; box = el.firstChild; renderSaver.last = ''; }
+    box.style.transform = 'translate(' + x + 'px,' + y + 'px)';
+    if (force || renderSaver.last !== html) { box.innerHTML = html; renderSaver.last = html; }
   }
 
   /** Panel pogody na wygaszaczu: teraz (ikona, temperatura, opis) i prognoza dzienna. */
@@ -637,6 +662,8 @@
       const s = {
         screen_on: !sleeping && !screenOff, brightness: updateDark.level == null ? 255 : updateDark.level, page: (pages[page] || {}).name || '',
         pages: pages.map(p => p.name), lux: sensors.lux, proximity: sensors.proximity == null ? null : !!sensors.proximity, format: fmt,
+        // Surowy odczyt czujnika zbliżenia (aplikacja 0.1.4+): widać go jako atrybut encji „Zbliżenie”.
+        ...(sensors.proximity_raw == null ? {} : { proximity_raw: +sensors.proximity_raw }),
       };
       const key = JSON.stringify(s);
       if (key === report.last) return;

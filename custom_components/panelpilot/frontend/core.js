@@ -194,6 +194,15 @@
     Terminal: { style: 'hud', bg: '#050403', tile: '#0e0a05', tile2: '#1f1408', ink: '#ffd9a8', ink2: '#c8782c', accent: '#ff7a00', on: '#ff7a00', good: '#6dff8a', warn: '#ff2a2a', radius: 2, onStyle: '' },
   };
   DP.STYLES = ['glass', 'hud'];
+  /** Czcionki dostępne bez internetu: systemowe kroje Androida (panel), z zamiennikami w przeglądarce (edytor). */
+  DP.FONTS = {
+    sans: ['Zwykła', 'Roboto, "Segoe UI", Arial, sans-serif'],
+    condensed: ['Wąska', '"Roboto Condensed", sans-serif-condensed, "Arial Narrow", "Segoe UI Semilight", sans-serif'],
+    mono: ['Maszynowa', '"Roboto Mono", "DejaVu Sans Mono", "Droid Sans Mono", Consolas, monospace'],
+    serif: ['Szeryfowa', '"Noto Serif", "Droid Serif", Georgia, serif'],
+    casual: ['Swobodna', 'casual, "Coming Soon", "Comic Sans MS", cursive'],
+    cursive: ['Pisana', '"Dancing Script", cursive, "Segoe Script", "Brush Script MT"'],
+  };
   DP.applyTheme = (root, theme) => {
     const t = Object.assign({}, DP.THEMES.Grafit, theme);
     Object.keys(DP.THEME_FIELDS).forEach(k => { if (DP.isColor(t[k])) root.style.setProperty('--' + k, t[k]); });
@@ -208,6 +217,9 @@
     root.dataset.on = t.onStyle === 'outline' ? 'outline' : '';
     // Styl motywu: dodatkowy wygląd ponad kolory (tło z sześciokątów, ramki, pasy, pismo).
     root.dataset.style = DP.STYLES.includes(t.style) ? t.style : '';
+    // Czcionki: całość i osobno zegar, liczby i stany; puste = z kroju podstawowego albo ze stylu motywu.
+    [['--font', t.font], ['--font2', t.font2]].forEach(([v, k]) => { if (DP.FONTS[k]) root.style.setProperty(v, DP.FONTS[k][1]); else root.style.removeProperty(v); });
+    root.dataset.caps = t.caps === 'on' || t.caps === 'off' ? t.caps : '';
     if (DP.isColor(t.icbg)) root.style.setProperty('--icbg', t.icbg); else root.style.removeProperty('--icbg');
   };
 })();

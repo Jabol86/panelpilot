@@ -830,6 +830,13 @@ class PanelPilotEditor extends HTMLElement {
     return [h('h3', {}, 'Gotowe motywy'), h('div', { class: 'themes' }, Object.entries(this.DP.THEMES).map(([n, v]) => h('button', { onclick: () => this.commit(() => { this.doc.theme = Object.assign({}, this.doc.theme, v); }) }, h('span', { class: 'sw', style: 'background:linear-gradient(90deg,' + v.bg + ' 33%,' + v.tile + ' 33% 66%,' + v.accent + ' 66%)' }), n))),
       field(this.lbl('Styl', '„Nocne szkło”: cienkie ramki i sześciokąty w rogu, jak ekran konfiguracji aplikacji. „Terminal”: ścięte rogi, pasy ostrzegawcze, siatka sześciokątów i pismo maszynowe. Styl działa z dowolnymi kolorami poniżej.'),
         select(t.style || '', [['', 'Zwykły'], ['glass', 'Nocne szkło'], ['hud', 'Terminal']], v => setFull('style', v))),
+      h('h3', {}, 'Czcionki'),
+      h('div', { class: 'row2' },
+        field(this.lbl('Czcionka', 'Krój całego pulpitu. Kroje pochodzą z systemu panelu (Android), więc działają bez internetu; w przeglądarce edytora mogą wyglądać nieco inaczej.'),
+          select(t.font || '', [['', 'Zwykła']].concat(Object.entries(this.DP.FONTS).filter(([k]) => k !== 'sans').map(([k, v]) => [k, v[0]])), v => setFull('font', v))),
+        field(this.lbl('Zegar, liczby i stany', 'Osobny krój dla zegara, temperatur, wartości i stanów pod nazwą. „Jak wyżej” w stylach Nocne szkło i Terminal oznacza pismo maszynowe.'),
+          select(t.font2 || '', [['', 'Jak wyżej / ze stylu']].concat(Object.entries(this.DP.FONTS).map(([k, v]) => [k, v[0]])), v => setFull('font2', v)))),
+      field(this.lbl('Wersaliki', 'Nazwy kafelków, nagłówki sekcji i stany WIELKIMI LITERAMI z odstępami.'), select(t.caps || '', [['', 'Jak w stylu motywu'], ['on', 'Tak'], ['off', 'Nie']], v => setFull('caps', v))),
       h('h3', {}, 'Kolory'), h('div', { class: 'row2' }, Object.entries(this.DP.THEME_FIELDS).map(([k, l]) => field(l, h('input', { type: 'color', value: cur[k], oninput: e => set(k, e.target.value) })))),
       h('h3', {}, 'Kształt i tekst'), range('Zaokrąglenie rogów', 'radius', 0, 40, t.radius == null ? 16 : t.radius, v => v), range('Wielkość tekstu', 'scale', 80, 150, (t.scale || 1) * 100, v => v / 100), range('Krycie kafelków', 'opacity', 20, 100, t.opacity || 100, v => v),
       field('Tapeta (adres obrazka)', text(t.image, v => set('image', v.trim()), { placeholder: '/local/tapeta.jpg' })),
@@ -853,6 +860,8 @@ class PanelPilotEditor extends HTMLElement {
     return [h('h3', {}, 'Pasek stron'),
       field('Na dole ekranu', select(nav, [['dots', 'Kropki (tylko pozycja strony)'], ['tabs', 'Nazwy stron'], ['none', 'Nic (więcej miejsca na kafelki)']], v => this.commit(() => { this.doc.nav = v; }))),
       nav === 'none' ? h('p', { class: 'dim' }, 'Bez paska ustawienia panelu otwiera mały przycisk w prawym dolnym rogu albo gest.') : null,
+      field(this.lbl('Przejście między stronami', 'Jak panel zmienia stronę po geście albo dotknięciu kropki. „Przesunięcie” działa w kierunku kropek na pasku.'),
+        select((this.doc.theme || {}).pageAnim || '', [['', 'Przesunięcie'], ['fade', 'Przenikanie'], ['none', 'Bez animacji']], v => this.commit(() => { this.doc.theme = Object.assign({}, this.doc.theme); if (v) this.doc.theme.pageAnim = v; else delete this.doc.theme.pageAnim; }))),
       nav === 'dots' ? h('p', { class: 'dim' }, 'Przy jednej stronie kropek nie widać; zostaje tylko koło zębate ustawień.') : null,
       ...this.gestureFields()].filter(Boolean);
   }

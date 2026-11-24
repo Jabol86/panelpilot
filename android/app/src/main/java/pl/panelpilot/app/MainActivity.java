@@ -53,6 +53,8 @@ public class MainActivity extends Activity implements SensorEventListener {
     private String loadedFor = "";
     private float lastLux = -1;
     private int lastNear = -1;
+    private float lastRaw = Float.NaN;
+    private float proxFar = -1;
     private long lastLuxAt;
     private boolean failed;
 
@@ -89,6 +91,7 @@ public class MainActivity extends Activity implements SensorEventListener {
         // Ponownie zgłoś ostatnie odczyty: czujniki podają tylko zmiany.
         lastLux = -1;
         lastNear = -1;
+        lastRaw = Float.NaN;
     }
 
     @Override
@@ -209,6 +212,7 @@ public class MainActivity extends Activity implements SensorEventListener {
             if (!failed) hideError();
             lastLux = -1;
             lastNear = -1;
+            lastRaw = Float.NaN;
         }
 
         @Override
@@ -319,7 +323,15 @@ public class MainActivity extends Activity implements SensorEventListener {
     public void onSensorChanged(SensorEvent e) {
         if (web == null) return;
         if (e.sensor.getType() == Sensor.TYPE_PROXIMITY) {
-            int near = e.values[0] < e.sensor.getMaximumRange() ? 1 : 0;
+            // Czujniki różnie zgłaszają „daleko” (maksymalny zasięg, 1, 5, 8…), więc „daleko” to największy
+            // dotąd widziany odczyt, a „blisko” – wyraźnie mniejszy. Pierwszy odczyt liczy się jako „daleko”.
+            float v = e.values[0];
+            if (v > proxFar) proxFar = v;
+            int near = proxFar > 0 && v < proxFar * 0.6f ? 1 : 0;
+            if (v != lastRaw) {
+                lastRaw = v;
+                push("proximity_raw", String.valueOf(v));
+            }
             if (near == lastNear) return;
             lastNear = near;
             push("proximity", String.valueOf(near));

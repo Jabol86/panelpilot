@@ -107,13 +107,15 @@ def ws_ping(hass, connection, msg) -> None:
         vol.Required("lux"): vol.Any(None, vol.Coerce(float)),
         vol.Required("proximity"): vol.Any(None, bool),
         vol.Required("format"): str,
+        vol.Optional("proximity_raw"): vol.Any(None, vol.Coerce(float)),
     }
 )
 @callback
 def ws_state(hass, connection, msg) -> None:
     if (hub := _panel_hub(hass, connection, msg)) is None:
         return
-    hub.update_state(msg["device_id"], {k: msg[k] for k in ("screen_on", "brightness", "page", "pages", "lux", "proximity", "format")})
+    keys = ("screen_on", "brightness", "page", "pages", "lux", "proximity", "format", "proximity_raw")
+    hub.update_state(msg["device_id"], {k: msg.get(k) for k in keys})
     connection.send_result(msg["id"])
 
 
