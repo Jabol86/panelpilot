@@ -205,6 +205,10 @@ Zgłoszenie: „mam najnowszą wersję, ale wielu funkcji nie mam w edytorze”.
 - Zgłoszenie „panel się zresetował i uruchomił eWeLink”: to nie był restart. `adb install -r` APK 0.1.6 (21:44) zatrzymał aplikację, Android na chwilę uruchomił jako HOME eWeLink (`com.eWeLinkControlPanel`), a ten po ~2 s (prośba o uprawnienia, potem onResume) wyszedł nad Panel Pilot. Preferowany HOME został nasz. Naprawione klawiszem Home przez adb. `install-panel.ps1` po `am start` czeka 8 s i wysyła `KEYCODE_HOME`; opis w docs/instalacja-panelu.md (Problemy).
 - Uwaga: logcat panelu zawiera klucze urządzeń eWeLink właściciela, nigdy ich nie przepisuj.
 
+### v0.1.30
+
+- Zgłoszenie: w HA „Zbliżenie” stale „wykryto”, choć budzenie machnięciem działa. `dumpsys sensorservice`: impulsy 1/0 po ~0,07 s; po wznowieniu (onResume) czujnik nie podaje stanu, więc „blisko” sprzed przykrycia przez eWeLink zostało w panel.js i w HA. Teraz panel.js raportuje `nearNow()`: „wykryto” 5 s po ostatnim impulsie (`NEAR_TAIL`), a „blisko” bez zmian dłużej niż `HOLD_MAX` (3 min) wygasa (`tick()` woła `report()`). APK bez zmian. Sprawdzone na atrapie, **nie potwierdzono** w HA właściciela.
+
 ## Instalacja przez HACS
 
 Właściciel chce instalować PanelPilot z GitHuba przez HACS. To **integracja**, nie dodatek Supervisora. HACS nie widzi prywatnych repozytoriów. Kiedy właściciel się zgodzi:

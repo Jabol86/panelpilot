@@ -22,6 +22,11 @@
   let fmt = 'portrait', pages = [], page = 0, sleeping = false, screenOff = false, lastTouch = Date.now(), dark = false, manual = null;
   let homed = null, cleanup = [], jsRun = '', nearSince = 0, loadedVersion = '', lastPing = Date.now();
   const HOLD_MAX = 3 * 60 * 1000;
+  // NSPanel Pro zgłasza ruch ręki impulsami po ~0,07 s, a po wznowieniu aplikacji nie podaje stanu.
+  // Dla HA „wykryto” trwa więc NEAR_TAIL po ostatnim impulsie, a „blisko” starsze niż HOLD_MAX uznajemy za nieaktualne.
+  const NEAR_TAIL = 5000;
+  let nearAt = 0, nearTimer = 0;
+  const nearNow = () => (!!sensors.proximity && !!nearSince && Date.now() - nearSince < HOLD_MAX) || Date.now() - nearAt < NEAR_TAIL;
 
   const Panel = window.Panel = {
     esc, icon, CONDITIONS, sensors, widgets, info, hooks: [], busy: false,
@@ -65,6 +70,7 @@
       sensors[name] = value;
       if (name === 'lux') updateDark();
       if (name === 'proximity') nearSince = value ? (before ? nearSince || Date.now() : Date.now()) : 0;
+      if (name === 'proximity' && value) { nearAt = Date.now(); clearTimeout(nearTimer); nearTimer = setTimeout(report, NEAR_TAIL + 100); }
       if (name === 'proximity' && cfg.wakeOnProximity) {
         if (value && !before) wake();
         lastTouch = Date.now();
@@ -608,6 +614,8 @@
     document.querySelectorAll('.tile[data-type=clock]').forEach(updateTile);
     document.querySelectorAll('.tile.has-tmr').forEach(tileTimer);
     if (ha.preview) return;
+    // „Blisko” bez nowych odczytów wygasa po HOLD_MAX: raport sam sprawdza, czy coś się zmieniło.
+    if (sensors.proximity) report();
     // Co minutę: czy integracja nadal nas widzi? Po jej przeładowaniu stara subskrypcja jest martwa.
     if (ha.online && Date.now() - lastPing > 60000) {
       lastPing = Date.now();
@@ -731,7 +739,7 @@
       if (!ha.online || !pages.length) return;
       const s = {
         screen_on: !sleeping && !screenOff, brightness: updateDark.level == null ? 255 : updateDark.level, page: (pages[page] || {}).name || '',
-        pages: pages.map(p => p.name), lux: sensors.lux, proximity: sensors.proximity == null ? null : !!sensors.proximity, format: fmt,
+        pages: pages.map(p => p.name), lux: sensors.lux, proximity: sensors.proximity == null && !nearAt ? null : nearNow(), format: fmt,
         // Surowy odczyt czujnika zbliżenia (aplikacja 0.1.4+): widać go jako atrybut encji „Zbliżenie”.
         ...(sensors.proximity_raw == null ? {} : { proximity_raw: +sensors.proximity_raw }),
       };
