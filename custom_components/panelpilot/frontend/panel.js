@@ -387,7 +387,8 @@
       styleTile(el, t, rule);
       if (def.update) def.update(el, shown); else el.innerHTML = def.html(shown);
       ruleText(el, t, rule);
-      const on = rule && rule.lit != null ? !!rule.lit : !!(def.active && def.active(t));
+      tileTimer(el);
+      const on =rule && rule.lit != null ? !!rule.lit : !!(def.active && def.active(t));
       el.classList.toggle('on', on);
       el.classList.toggle('warn', !rule && !!(def.warn && def.warn(t)));
       const th = dash.theme || {}, anim = rule && rule.anim ? rule.anim : on ? t.anim || th.anim : '';
@@ -409,6 +410,28 @@
     const st = old || document.createElement('div');
     st.className = (val ? 'val' : 'st') + ' keep rule-st'; st.textContent = text;
     if (!old) (val ? val.after(st) : box.append(st));
+  }
+
+  /** Licznik czasu na kafelku: od ostatniej zmiany encji (last_changed w HA), dopóki jest włączona.
+      timer = 'up' (ile minęło) albo 'down' (odliczanie od timerMin minut do zera, z kurczącym się paskiem). */
+  function tileTimer(el) {
+    const t = el._tile, mode = t.timer;
+    let box = el.querySelector('.tmr');
+    const s = mode === 'up' || mode === 'down' ? Panel.state(t.entity) : null;
+    if (!s || !Panel.isOn(t.entity)) { if (box) box.remove(); el.querySelectorAll('.tmr-bar').forEach(x => x.remove()); el.classList.remove('has-tmr', 'tmr-end'); return; }
+    const total = Math.max(1, parseFloat(t.timerMin) || 60) * 60000, gone = Math.max(0, Date.now() - (s.changed || Date.now()));
+    const ms = mode === 'down' ? Math.max(0, total - gone) : gone, sec = Math.floor(ms / 1000);
+    const hh = Math.floor(sec / 3600), mm = Math.floor(sec / 60) % 60, ss = sec % 60, two = n => String(n).padStart(2, '0');
+    const text = (hh ? hh + ':' + two(mm) : mm) + ':' + two(ss);
+    if (!box) { box = document.createElement('div'); box.className = 'tmr keep'; (el.querySelector('.tx') || el).append(box); }
+    box.textContent = text;
+    el.classList.add('has-tmr');
+    // Ostatnia minuta odliczania miga.
+    el.classList.toggle('tmr-end', mode === 'down' && ms < 60000);
+    let bar = el.querySelector('.tmr-bar');
+    if (mode !== 'down') { if (bar) bar.remove(); return; }
+    if (!bar) { bar = document.createElement('div'); bar.className = 'tmr-bar'; bar.innerHTML = '<i></i>'; el.append(bar); }
+    bar.firstChild.style.width = (ms / total * 100).toFixed(2) + '%';
   }
 
   function onState(changed) {
@@ -583,6 +606,7 @@
   /* ---------- wygaszacz i jasność ---------- */
   function tick() {
     document.querySelectorAll('.tile[data-type=clock]').forEach(updateTile);
+    document.querySelectorAll('.tile.has-tmr').forEach(tileTimer);
     if (ha.preview) return;
     // Co minutę: czy integracja nadal nas widzi? Po jej przeładowaniu stara subskrypcja jest martwa.
     if (ha.online && Date.now() - lastPing > 60000) {

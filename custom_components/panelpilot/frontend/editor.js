@@ -645,7 +645,11 @@ class PanelPilotEditor extends HTMLElement {
         field(this.lbl('Rodzaj kafelka', 'Zmiana rodzaju zachowuje nazwę, kolory i położenie; pola specyficzne dla rodzaju trzeba ustawić od nowa.'), select(t.type, Object.entries(this.win.Panel.widgets).map(([id, x]) => [id, x.name]), v => this.commit(() => { t.type = v; if (v === 'music' && !t.stations) t.stations = []; }))),
         ...fields,
         field(this.lbl(w.thin ? 'Napis, np. Kuchnia' : 'Nazwa', w.thin ? '' : 'Napis na kafelku. Pusta = nazwa encji z Home Assistant.'), text(t.name, v => set('name', v))),
-        w.noIcon ? null : field(this.lbl('Ikona', 'Własne ikony Panel Pilot albo dowolna mdi:… z Home Assistant.'), this.iconPicker(t.icon || w.icon, v => set('icon', v, true)))]),
+        w.noIcon ? null : field(this.lbl('Ikona', 'Własne ikony Panel Pilot albo dowolna mdi:… z Home Assistant.'), this.iconPicker(t.icon || w.icon, v => set('icon', v, true))),
+        w.noEntity || w.thin ? null : field(this.lbl('Licznik czasu', 'Liczy od chwili, w której encja kafelka się włączyła (ostatnia zmiana stanu w Home Assistant), dopóki jest włączona. Po wyłączeniu znika. Po restarcie Home Assistanta liczy od restartu.'),
+          select(t.timer || '', [['', 'Brak'], ['up', 'Ile minęło od włączenia'], ['down', 'Odliczanie do zera']], v => this.commit(() => { if (v) t.timer = v; else { delete t.timer; delete t.timerMin; } }))),
+        t.timer === 'down' ? field(this.lbl('Czas odliczania (min)', 'Ustaw tyle samo, co w automatyzacji, która wyłącza encję (np. 60 w stoptimer w Node-RED). Ostatnia minuta miga.'),
+          text(t.timerMin == null ? '' : t.timerMin, v => set('timerMin', v === '' ? '' : Number(String(v).replace(',', '.'))), { type: 'number', step: '1', min: 1, max: 1440, placeholder: '60' })) : null]),
       this.sec('look', 'Wygląd', [
         h('div', { class: 'row2' }, this.color('Tło', t.bg, v => set('bg', v)), this.color('Kolor podświetlenia', t.color, v => set('color', v))),
         w.noIcon ? null : this.color('Tło ikony (kółko)', t.iconBg, v => set('iconBg', v)),

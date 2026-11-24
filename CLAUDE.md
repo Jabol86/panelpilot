@@ -190,6 +190,10 @@ Zgłoszenie: „mam najnowszą wersję, ale wielu funkcji nie mam w edytorze”.
 - Kafelek TV: wszystkie przyciski (Pilot, CH, wyciszenie, −/+, zasilanie) w jednym rzędzie `.tv-top` obok nazwy; głośność kurczy się na wąskim kafelku (`.tv .mu-vol` flex 150px, max 240px), `.tv-bot` już nie istnieje.
 - Pole „Kolor” w Wyglądzie kafelka nazywa się „Kolor podświetlenia” (`t.color` → `--on`/`--accent`); to nim zmienia się kolor licznika włączonych.
 
+### v0.1.27
+
+- Licznik czasu na kafelku: `tile.timer` = `up` (ile minęło) / `down` (odliczanie od `timerMin` min, domyślnie 60, pasek `.tmr-bar`, ostatnia minuta miga `.tmr-end`). Liczy od `state.changed` (ha.js zapisuje `lc` z subscribe_entities, czyli last_changed), dopóki encja kafelka jest włączona. `tileTimer()` w panel.js, odświeżanie w `tick()`. Edytor: Podstawowe → „Licznik czasu”. Prośba właściciela pod przycisk HVAC Zakład (Node-RED: input_boolean + stoptimer 60 min).
+
 ## Instalacja przez HACS
 
 Właściciel chce instalować PanelPilot z GitHuba przez HACS. To **integracja**, nie dodatek Supervisora. HACS nie widzi prywatnych repozytoriów. Kiedy właściciel się zgodzi:

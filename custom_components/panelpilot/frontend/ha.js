@@ -172,12 +172,14 @@
 
     _apply(ev) {
       const changed = new Set(), full = ev.a || {}, diff = ev.c || {};
-      Object.keys(full).forEach(id => { this.states[id] = { state: full[id].s, attributes: full[id].a || {} }; changed.add(id); });
+      // changed = chwila ostatniej zmiany stanu (ms), jak last_changed w HA; potrzebna do licznika czasu na kafelku.
+      Object.keys(full).forEach(id => { this.states[id] = { state: full[id].s, attributes: full[id].a || {}, changed: full[id].lc ? full[id].lc * 1000 : Date.now() }; changed.add(id); });
       Object.keys(diff).forEach(id => {
         const cur = this.states[id] || { state: 'unknown', attributes: {} }, plus = diff[id]['+'] || {};
         const attrs = Object.assign({}, cur.attributes, plus.a || {});
         ((diff[id]['-'] || {}).a || []).forEach(k => delete attrs[k]);
-        this.states[id] = { state: plus.s !== undefined ? plus.s : cur.state, attributes: attrs };
+        const st = plus.s !== undefined ? plus.s : cur.state;
+        this.states[id] = { state: st, attributes: attrs, changed: plus.lc ? plus.lc * 1000 : st !== cur.state || !cur.changed ? Date.now() : cur.changed };
         changed.add(id);
       });
       (ev.r || []).forEach(id => { delete this.states[id]; changed.add(id); });
