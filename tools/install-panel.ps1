@@ -124,4 +124,10 @@ if ($KeepAdb -or $TimeZone) {
 
 Write-Step 'Uruchamiam'
 Invoke-Adb shell am start -n "$pkg/.MainActivity" | Out-Host
+if (-not $NoHome) {
+  # Podczas aktualizacji Android na chwile nie ma naszej aplikacji i uruchamia ekran producenta (eWeLink).
+  # Ten startuje kilka sekund i wychodzi na wierzch nad Panel Pilot. Klawisz Home po chwili wraca do Panel Pilot.
+  Start-Sleep -Seconds 8
+  Invoke-Adb shell input keyevent KEYCODE_HOME | Out-Null
+}
 Write-Host "`nGotowe. Na panelu wybierz Home Assistant i ksztalt ekranu, potem zatwierdz kod w HA: Panel Pilot -> Panele." -ForegroundColor Green

@@ -200,6 +200,11 @@ Zgłoszenie: „mam najnowszą wersję, ale wielu funkcji nie mam w edytorze”.
 - Zasięg czujnika to kilka cm, przejścia przez pokój nie wykryje. Zaproponowano opcję budzenia encją ruchu z HA (czeka na decyzję).
 - Właściciel dostał gotowy przepływ Node-RED dla HVAC zakład (wyłączenie przycisku = stop timera + climate.turn_off).
 
+### v0.1.29
+
+- Zgłoszenie „panel się zresetował i uruchomił eWeLink”: to nie był restart. `adb install -r` APK 0.1.6 (21:44) zatrzymał aplikację, Android na chwilę uruchomił jako HOME eWeLink (`com.eWeLinkControlPanel`), a ten po ~2 s (prośba o uprawnienia, potem onResume) wyszedł nad Panel Pilot. Preferowany HOME został nasz. Naprawione klawiszem Home przez adb. `install-panel.ps1` po `am start` czeka 8 s i wysyła `KEYCODE_HOME`; opis w docs/instalacja-panelu.md (Problemy).
+- Uwaga: logcat panelu zawiera klucze urządzeń eWeLink właściciela, nigdy ich nie przepisuj.
+
 ## Instalacja przez HACS
 
 Właściciel chce instalować PanelPilot z GitHuba przez HACS. To **integracja**, nie dodatek Supervisora. HACS nie widzi prywatnych repozytoriów. Kiedy właściciel się zgodzi:

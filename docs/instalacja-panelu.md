@@ -97,4 +97,5 @@ Uruchom to samo polecenie co przy instalacji. Ustawienia i parowanie zostają. I
 | Ekran się nie obraca | w ustawieniach aplikacji zaznacz *Obracaj obraz w aplikacji* |
 | Zegar pokazuje złą godzinę | dodaj `-TimeZone Europe/Warsaw` i zrestartuj panel |
 | Panel nie znajduje HA | wpisz adres ręcznie; wyszukiwanie wymaga, żeby panel i HA były w tej samej sieci |
+| Po aktualizacji na ekranie jest eWeLink | aktualizacja na chwilę usuwa aplikację, więc Android uruchamia eWeLink i ten wychodzi na wierzch. Panel Pilot nadal jest ekranem głównym: przesuń palcem od dołu (Home) albo wpisz `adb shell input keyevent KEYCODE_HOME`. Skrypt od wersji 0.1.29 robi to sam |
 | Chcę wrócić do eWeLink | uruchom skrypt z `-Uninstall` |
