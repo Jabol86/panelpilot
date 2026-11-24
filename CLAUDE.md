@@ -174,6 +174,12 @@ Zgłoszenie: „mam najnowszą wersję, ale wielu funkcji nie mam w edytorze”.
 - Edycja siatki: w liście formatów na górnym pasku „Zmień siatkę „Poziom” (10×5)…” także dla wbudowanych. `formatDialog(id)` dla wbudowanego tworzy kopię `c_…` (nazwa np. „Poziom 14×7”), przenosi `t.l[id]` tam, gdzie się mieści, i ustawia `doc.format`. Własne: „Edytuj … (rozmiar, siatka)”.
 - Właściciel chciał wyboru siatki „jak w Androidzie”: `gridPicker(f)` – warianty z miniaturką zależne od proporcji ekranu, −/+ dla kolumn i wierszy (1–24), duży podgląd i wielkość kafelka 1×1 w px. Przycisk „Zmień siatkę” na pasku nad podglądem.
 
+### v0.1.24
+
+- Warunki: przycisk ⧉ „Powiel warunek” (kopia tuż pod spodem).
+- Napis z warunku w kafelku z `.val` (czujnik, alarm) zastępuje wartość (`.val.rule-st`), w pozostałych dalej `.st`.
+- `tile.showName = false` (Wygląd → „Nazwa na kafelku”: Ukryj) → klasa `nonm` chowa `.tx > .nm` i `.tx > .lbl`.
+
 ## Instalacja przez HACS
 
 Właściciel chce instalować PanelPilot z GitHuba przez HACS. To **integracja**, nie dodatek Supervisora. HACS nie widzi prywatnych repozytoriów. Kiedy właściciel się zgodzi:

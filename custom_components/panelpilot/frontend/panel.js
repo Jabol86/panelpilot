@@ -340,6 +340,7 @@
       if (t.type === 'section' && ['center', 'right'].includes(t.align)) el.dataset.align = t.align;
       // Stan pod nazwą („włączone”, „wyłączone”…): kafelek ma pierwszeństwo przed motywem.
       if (t.showState === false || (t.showState == null && th.state === 'hide')) el.classList.add('nost');
+      if (t.showName === false) el.classList.add('nonm');
       el._tile = t;
       try { if (def && def.mount) { const stop = def.mount(el, t); if (stop) cleanup.push(stop); } } catch (e) { console.error(t.type, e); }
       updateTile(el);
@@ -401,10 +402,13 @@
     const id = DP.isEntity(rule.entity) ? rule.entity : t.entity, s = Panel.state(id);
     const text = String(rule.text).replace(/\{state\}/g, s ? s.state : '');
     const box = el.querySelector('.tx') || el;
+    // Kafelek z wartością (czujnik, alarm…): napis zajmuje miejsce wartości, np. „Rozbrojony” zamiast „disarmed”.
+    const val = box.querySelector(':scope > .val:not(.rule-st)');
     box.querySelectorAll(':scope > .st:not(.rule-st)').forEach(x => x.classList.add('rule-hid'));
+    if (val) val.classList.add('rule-hid');
     const st = old || document.createElement('div');
-    st.className = 'st keep rule-st'; st.textContent = text;
-    if (!old) box.append(st);
+    st.className = (val ? 'val' : 'st') + ' keep rule-st'; st.textContent = text;
+    if (!old) (val ? val.after(st) : box.append(st));
   }
 
   function onState(changed) {

@@ -649,6 +649,8 @@ class PanelPilotEditor extends HTMLElement {
       this.sec('look', 'Wygląd', [
         h('div', { class: 'row2' }, this.color('Tło', t.bg, v => set('bg', v)), this.color('Kolor', t.color, v => set('color', v))),
         w.noIcon ? null : this.color('Tło ikony (kółko)', t.iconBg, v => set('iconBg', v)),
+        w.plain ? null : field(this.lbl('Nazwa na kafelku', 'Ukryj, gdy wystarczy ikona i napis z warunku, np. alarm: zamiast „Alarm Status” i „disarmed” tylko „Rozbrojony”.'),
+          select(t.showName === false ? '0' : '', [['', 'Pokaż'], ['0', 'Ukryj']], v => this.commit(() => { if (v === '0') t.showName = false; else delete t.showName; }))),
         w.plain ? null : field(this.lbl('Stan pod nazwą', 'Napis typu „włączone”, „wyłączone”, „2 włączone”. „Jak w motywie” bierze ustawienie z zakładki Wygląd. Napis z warunku pokazuje się zawsze.'), select(t.showState == null ? '' : t.showState ? '1' : '0', [['', 'Jak w motywie'], ['1', 'Pokaż'], ['0', 'Ukryj']], v => this.commit(() => { if (v === '') delete t.showState; else t.showState = v === '1'; }))),
         field('Wielkość tekstu', select(t.text || '', [['S', 'Mała'], ['', 'Zwykła'], ['L', 'Duża'], ['XL', 'Bardzo duża']], v => set('text', v))),
         w.noIcon ? null : h('div', { class: 'row2' },
@@ -696,6 +698,8 @@ class PanelPilotEditor extends HTMLElement {
       out.push(h('div', { class: 'st rule' },
         h('div', { style: 'display:flex;gap:6px;align-items:center' }, h('b', { style: 'flex:1' }, 'Warunek ' + (i + 1)),
           h('button', { class: 'icon', 'aria-label': 'Wyżej', disabled: !i, onclick: () => upd(list => list.splice(i - 1, 0, list.splice(i, 1)[0])) }, '↑'),
+          // Kopia warunku tuż pod nim: zwykle zmienia się tylko wartość, kolor i napis.
+          h('button', { class: 'icon', 'aria-label': 'Powiel warunek', title: 'Powiel warunek', onclick: () => upd(list => list.splice(i + 1, 0, JSON.parse(JSON.stringify(list[i])))) }, '⧉'),
           h('button', { class: 'icon danger', 'aria-label': 'Usuń warunek', onclick: () => upd(list => list.splice(i, 1)) }, '×')),
         group('Gdy encja', this.entityPicker(r.entity, null, v => set('entity', v, true)), r.entity ? null : h('small', { class: 'dim' }, 'Pusta = encja tego kafelka')),
         h('div', { class: 'row2' }, select(r.op || 'on', RULE_OPS, v => set('op', v, true)),
@@ -706,7 +710,7 @@ class PanelPilotEditor extends HTMLElement {
           field('Animacja', select(r.anim || '', [['', 'Bez animacji']].concat(ANIMS), v => set('anim', v, true)))),
         field('Inna ikona', h('div', { style: 'display:flex;gap:6px;align-items:center' }, this.iconPicker(r.icon || '', v => set('icon', v, true)),
           r.icon ? h('button', { class: 'icon', 'aria-label': 'Bez zmiany ikony', onclick: () => set('icon', '', true) }, '×') : null)),
-        field(this.lbl('Napis stanu', 'Tekst pod nazwą kafelka, gdy ten warunek jest spełniony, np. „Otwieranie…” albo „Brama otwarta”. {state} wstawia stan encji. Napis widać nawet wtedy, gdy stan jest ukryty w motywie.'),
+        field(this.lbl('Napis stanu', 'Tekst na kafelku, gdy ten warunek jest spełniony, np. „Otwieranie…” albo „Rozbrojony”. W kafelku z wartością (czujnik, alarm) zastępuje wartość, w pozostałych stan pod nazwą. {state} wstawia stan encji. Nazwę kafelka ukryjesz w dziale Wygląd.'),
           text(r.text, v => set('text', v), { placeholder: 'np. Otwieranie…' }))));
     });
     out.push(h('div', { class: 'btns', style: 'justify-content:flex-start' },
