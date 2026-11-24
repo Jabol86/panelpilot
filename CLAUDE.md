@@ -159,6 +159,15 @@ Zgłoszenie: „mam najnowszą wersję, ale wielu funkcji nie mam w edytorze”.
 - Czcionki: `theme.font`, `theme.font2` (zegar, liczby, stany), `theme.caps` (on/off); `DP.FONTS` (systemowe kroje Androida); CSS `--font`, `--font2`, `data-caps`.
 - Przejścia stron: `theme.pageAnim` ('' przesunięcie / fade / none), kopia siatki `.ghost-grid` odjeżdża, nowa wjeżdża (Web Animations), kierunek wg `navOrder`.
 
+### v0.1.22
+
+- Przesuwanie stron pod palcem: `pointermove` przesuwa `#grid` (`pageFor(dir)` mówi, czy gest zmienia stronę; bez strony opór ×0,25), `render.dragFrom` – animacja startuje z miejsca palca, `snapBack()` gdy bez zmiany strony.
+- Usunięte: „Odwróć czujnik zbliżenia” (`proximityInvert` wycinane w `clean_settings`) i kreator „Wybierz, co pokazać”.
+- Zakładka Panele: karta panelu to `<details class="pcard">`, domyślnie zwinięta, w nagłówku pulpit/format/obrót/jasność; otwarte zapamiętane w `this.pOpen`.
+- „Ikona nad tekstem” (`layout: column`) zmienia niski kafelek (h=1) z `row` na `stack`; w motywie opcja „Automatycznie”.
+- Domofon: Słuchaj i Rozmawiaj w jednym rzędzie, Zamknij pod spodem na całą szerokość.
+- Głośność: przyciski 116 px, przycisk wyciszenia (`data-m=mute`, pole `mute`, domyślnie włączone) w odtwarzaczu.
+
 ## Instalacja przez HACS
 
 Właściciel chce instalować PanelPilot z GitHuba przez HACS. To **integracja**, nie dodatek Supervisora. HACS nie widzi prywatnych repozytoriów. Kiedy właściciel się zgodzi:

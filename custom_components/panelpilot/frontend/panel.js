@@ -14,12 +14,12 @@
     lightning: ['bolt', 'Burza'], 'lightning-rainy': ['bolt', 'Burza z deszczem'], windy: ['fan', 'Wietrznie'], 'windy-variant': ['fan', 'Wietrznie'], hail: ['snow', 'Grad'], exceptional: ['bolt', 'Zjawisko ekstremalne'],
   };
   const SAVER = { seconds: 60, style: 'zegar', entities: [] };
-  const SETTINGS = { format: 'auto', rotation: 0, dayBrightness: 80, nightBrightness: 8, darkLux: 8, nightFrom: 22, nightTo: 6, nightMode: 'both', wakeOnProximity: true, proximityHold: true, proximityInvert: false };
+  const SETTINGS = { format: 'auto', rotation: 0, dayBrightness: 80, nightBrightness: 8, darkLux: 8, nightFrom: 22, nightTo: 6, nightMode: 'both', wakeOnProximity: true, proximityHold: true };
 
   const widgets = {};
   const sensors = { lux: null, proximity: null, proximity_raw: null };
   let ha, dash = { pages: [], saver: {}, theme: {} }, bell = {}, cfg = {}, shape = info.shape || 'auto';
-  let fmt = 'portrait', pages = [], page = 0, sleeping = false, screenOff = false, lastTouch = Date.now(), dark = false, manual = null, rawNear = null;
+  let fmt = 'portrait', pages = [], page = 0, sleeping = false, screenOff = false, lastTouch = Date.now(), dark = false, manual = null;
   let homed = null, cleanup = [], jsRun = '', nearSince = 0, loadedVersion = '', lastPing = Date.now();
   const HOLD_MAX = 3 * 60 * 1000;
 
@@ -61,7 +61,6 @@
       on(el, 'no', closeSheet); on(el, 'yes', () => { closeSheet(); fn(); });
     },
     sensor(name, value) {
-      if (name === 'proximity') { rawNear = value ? 1 : 0; if (cfg.proximityInvert) value = rawNear ? 0 : 1; }
       const before = sensors[name];
       sensors[name] = value;
       if (name === 'lux') updateDark();
@@ -148,8 +147,7 @@
       shape = ev.panel.shape || shape;
       bell = ev.doorbell || {};
       setDashboard(ev.dashboard);
-      // Nowe ustawienia (np. odwrócenie czujnika, tryb nocny) działają od razu.
-      if (rawNear != null) Panel.sensor('proximity', rawNear);
+      // Nowe ustawienia (np. tryb nocny) działają od razu.
       updateDark(true);
     } else if (ev.type === 'command') command(ev);
   }
@@ -322,7 +320,9 @@
     grid.style.gridTemplateRows = DP.rowTracks(pages[page].placed, f.rows, widgets).map(v => 'minmax(0,' + v + 'fr)').join(' ');
     grid.replaceChildren(...pages[page].placed.map(p => {
       const t = p.tile, el = document.createElement('div'), def = widgets[t.type];
-      el.className = 'tile ' + (p.h === 1 ? p.w === 1 ? 'mini' : 'row' : 'stack') + (def && def.plain ? ' plain' : '') + (t.text ? ' text-' + String(t.text).replace(/\W/g, '') : '');
+      // „Ikona nad tekstem” (column) działa także w niskim kafelku (h=1), który domyślnie ma ikonę obok tekstu.
+      const col = (t.layout || (dash.theme || {}).layout) === 'column' && def && !def.noIcon;
+      el.className = 'tile ' + (p.h === 1 ? p.w === 1 ? 'mini' : col ? 'stack' : 'row' : 'stack') +(def && def.plain ? ' plain' : '') + (t.text ? ' text-' + String(t.text).replace(/\W/g, '') : '');
       el.dataset.type = t.type; el.dataset.id = t.id;
       el.style.gridArea = (p.y + 1) + '/' + (p.x + 1) + '/span ' + p.h + '/span ' + p.w;
       // Układ treści, wyrównanie i wielkość ikony: z kafelka, a gdy brak, z motywu pulpitu.
@@ -345,12 +345,17 @@
       updateTile(el);
       return el;
     }));
+    // Po przeciągnięciu palcem animacja zaczyna się tam, gdzie palec zostawił stronę.
+    const from = render.dragFrom || 0;
+    render.dragFrom = null;
+    grid.style.transform = ''; grid.style.opacity = '';
     if (ghost) {
-      const order = navOrder(), dir = order.indexOf(page) >= order.indexOf(prev) ? 1 : -1;
-      const opt = { duration: 340, easing: 'cubic-bezier(.22,.8,.24,1)' };
-      const off = d => 'translateX(calc(' + d * 100 + '% + ' + d * 24 + 'px))';
-      const out = anim === 'fade' ? [{ opacity: 1 }, { opacity: 0 }] : [{ transform: 'none' }, { transform: off(-dir), opacity: 0.4 }];
-      const inn = anim === 'fade' ? [{ opacity: 0 }, { opacity: 1 }] : [{ transform: off(dir), opacity: 0.4 }, { transform: 'none', opacity: 1 }];
+      const order = navOrder(), dir = from ? (from < 0 ? 1 : -1) : order.indexOf(page) >= order.indexOf(prev) ? 1 : -1;
+      const opt = { duration: from ? 260 : 340, easing: 'cubic-bezier(.22,.8,.24,1)' };
+      const off = (d, px) => 'translateX(calc(' + d * 100 + '% + ' + (d * 24 + (px || 0)) + 'px))';
+      const out = anim === 'fade' ? [{ opacity: 1 }, { opacity: 0 }] : [{ transform: 'translateX(' + from + 'px)', opacity: ghost.style.opacity || 1 }, { transform: off(-dir), opacity: 0.4 }];
+      const inn = anim === 'fade' ? [{ opacity: 0 }, { opacity: 1 }] : [{ transform: off(dir, from), opacity: 0.4 }, { transform: 'none', opacity: 1 }];
+      ghost.style.transform = ''; ghost.style.opacity = '';
       ghost.animate(out, opt).onfinish = () => ghost.remove();
       grid.animate(inn, opt);
     }
@@ -441,19 +446,33 @@
       const held = e.target.closest('.holdable:not(.tapnow),.tile[data-type=hold]');
       if (held) startHold(held);
     }, true);
-    addEventListener('pointermove', e => { if (down && Math.hypot(e.clientX - down.x, e.clientY - down.y) > 14) stopHold(); });
+    addEventListener('pointermove', e => {
+      if (down && Math.hypot(e.clientX - down.x, e.clientY - down.y) > 14) stopHold();
+      // Strona jedzie za palcem; bez strony w tym kierunku tylko lekko się wychyla (opór).
+      if (!down || !down.grid || sleeping || ha.preview || (dash.theme || {}).pageAnim === 'none' || coded()) return;
+      const [dx, dy] = local(e.clientX - down.x, e.clientY - down.y);
+      if (!down.axis && Math.hypot(dx, dy) > 12) down.axis = Math.abs(dx) > Math.abs(dy) * 1.3 ? 'x' : 'y';
+      if (down.axis !== 'x') return;
+      const g = $('grid'), can = pageFor(dx < 0 ? 'left' : 'right') >= 0, off = can ? dx : dx * 0.25;
+      g.style.transform = 'translateX(' + off + 'px)';
+      g.style.opacity = can ? String(1 - Math.min(0.5, Math.abs(dx) / (g.offsetWidth || 1))) : '';
+      down.drag = off;
+    });
     addEventListener('pointerup', e => {
       stopHold();
       if (!down) return;
       const d = down; down = null;
       const [dx, dy] = local(e.clientX - d.x, e.clientY - d.y);
-      if (!d.grid || sleeping) return;
+      if (!d.grid || sleeping) return snapBack(d.drag);
       // Kierunek to strona, w którą jedzie palec.
       const dir = Math.abs(dx) > 60 && Math.abs(dx) > 1.5 * Math.abs(dy) ? (dx < 0 ? 'left' : 'right')
         : Math.abs(dy) > 70 && Math.abs(dy) > 1.5 * Math.abs(dx) ? (dy < 0 ? 'up' : 'down') : null;
+      // Zmiana strony zaczyna animację tam, gdzie palec zostawił stronę.
+      render.dragFrom = d.drag == null ? null : d.drag;
       if (dir) swiped = gesture(dir);
+      if (d.drag != null) { swiped = swiped || Math.abs(d.drag) > 14; snapBack(render.dragFrom); }
     });
-    addEventListener('pointercancel', () => { stopHold(); down = null; });
+    addEventListener('pointercancel', () => { stopHold(); if (down) snapBack(down.drag); down = null; });
     addEventListener('contextmenu', e => { if (!e.target.closest('input')) e.preventDefault(); });
     $('grid').addEventListener('click', e => {
       const el = e.target.closest('.tile');
@@ -467,6 +486,29 @@
     });
     // Pierwszy dotyk tylko budzi ekran i nie naciska niczego pod spodem.
     $('saver').addEventListener('click', e => { e.stopPropagation(); if (!ha.preview) wake(); });
+  }
+
+  /** Strona przesunięta palcem, ale bez zmiany strony: wraca płynnie na miejsce. */
+  function snapBack(from) {
+    render.dragFrom = null;
+    const g = $('grid');
+    if (from == null || !g.style.transform) { g.style.transform = ''; g.style.opacity = ''; return; }
+    const start = [{ transform: g.style.transform, opacity: g.style.opacity || 1 }, { transform: 'none', opacity: 1 }];
+    g.style.transform = ''; g.style.opacity = '';
+    if (g.animate) g.animate(start, { duration: 220, easing: 'cubic-bezier(.22,.8,.24,1)' });
+  }
+
+  /** Dokąd prowadzi gest w danym kierunku, jeśli zmienia stronę (inaczej -1); bez wykonywania go. */
+  function pageFor(dir) {
+    if (back && back.at === page && dir === back.dir) return back.to;
+    const g = (dash.gestures || {})[dir] || {};
+    let kind = g.kind || 'default';
+    if (kind === 'default') kind = { left: 'next', right: 'prev' }[dir] || 'none';
+    const order = navOrder(), at = order.indexOf(page);
+    if (kind === 'next') return at >= 0 && at + 1 < order.length ? order[at + 1] : -1;
+    if (kind === 'prev') return at > 0 ? order[at - 1] : -1;
+    const n = kind === 'page' ? pages.findIndex(p => p.name === g.page && !p.extra) : kind === 'home' ? homeIndex() : -1;
+    return n === page ? -1 : n;
   }
 
   /** Przesunięcie palcem; zwraca true, gdy coś się stało (wtedy dotknięcie kafelka się nie liczy). */

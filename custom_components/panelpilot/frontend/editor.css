@@ -123,3 +123,11 @@ button.info { min-height: 0; width: 18px; height: 18px; padding: 0; border-radiu
 button.info.on, button.info:hover { color: var(--e-onacc); background: var(--e-acc); border-color: var(--e-acc); }
 .tipbox { display: block; padding: 6px 10px; border-radius: 8px; background: color-mix(in srgb, var(--e-acc) 8%, transparent); border-left: 3px solid var(--e-acc); color: var(--e-ink); font-size: 12.5px; line-height: 1.4; }
 .tipbox[hidden] { display: none; }
+/* Karta panelu w zakładce Panele: zwinięta, z podsumowaniem w nagłówku */
+.pcard > summary { list-style: none; cursor: pointer; display: grid; gap: 4px; }
+.pcard > summary::-webkit-details-marker { display: none; }
+.pcard > summary .top { position: relative; padding-right: 22px; }
+.pcard > summary .top::after { content: ''; position: absolute; right: 4px; top: 50%; width: 8px; height: 8px; border-right: 2px solid var(--e-ink2); border-bottom: 2px solid var(--e-ink2); transform: translateY(-70%) rotate(45deg); transition: transform .15s; }
+.pcard[open] > summary .top::after { transform: translateY(-30%) rotate(-135deg); }
+.pcard[open] > summary { margin-bottom: 10px; padding-bottom: 10px; border-bottom: 1px solid var(--e-line); }
+.psum { font-size: 13px; }

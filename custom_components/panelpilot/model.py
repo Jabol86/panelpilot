@@ -36,8 +36,6 @@ DEFAULT_SETTINGS: dict[str, Any] = {
     "nightMode": "both",
     "wakeOnProximity": True,
     "proximityHold": True,
-    # Niektóre czujniki zgłaszają „blisko” i „daleko” odwrotnie.
-    "proximityInvert": False,
     # auto = wykryj z rozmiaru ekranu; albo square/portrait/landscape, albo własny format c_…
     "format": "auto",
 }
@@ -218,7 +216,9 @@ def clean_settings(data: Any, current: dict[str, Any] | None = None) -> dict[str
                 pass
     if data.get("rotation") in ROTATIONS:
         out["rotation"] = data["rotation"]
-    for key in ("wakeOnProximity", "proximityHold", "proximityInvert"):
+    # Dawne „proximityInvert” znika: aplikacja 0.1.4 sama rozpoznaje „blisko” i „daleko”.
+    out.pop("proximityInvert", None)
+    for key in ("wakeOnProximity", "proximityHold"):
         if isinstance(data.get(key), bool):
             out[key] = data[key]
     if data.get("nightMode") in NIGHT_MODES:

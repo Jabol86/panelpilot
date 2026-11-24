@@ -253,12 +253,13 @@
     fields: [E('Odtwarzacz', ['media_player']), E('Wyjście (puste = źródła odtwarzacza)', ['select', 'input_select'], 'output'),
       { k: 'vol', l: 'Głośność', t: 'select', o: [['', 'Przyciski − i + ze wskaźnikiem'], ['slider', 'Suwak'], ['none', 'Bez regulacji']] },
       { k: 'volStep', l: 'Krok przycisków głośności (%)', t: 'number' },
+      { k: 'mute', l: 'Przycisk wyciszenia', t: 'bool', def: true },
       { k: 'perRow', l: 'Stacji w rzędzie (puste = tyle, ile się zmieści)', t: 'number', tip: 'Np. 4 przy 8 stacjach daje dwa rzędy po 4. Rzędy dzielą wysokość kafelka po równo.' },
       { k: 'bg', l: 'Tło z logo stacji lub okładki', t: 'bool', def: true, tip: 'Gdy coś gra, tłem kafelka jest obrazek z Home Assistanta (ten sam co na karcie w telefonie), a gdy go nie ma, logo ostatnio wybranej stacji.' },
       { k: 'stations', l: 'Przyciski stacji', t: 'stations' }],
     mount(el, t) {
       const vol = t.vol === 'slider' ? '<input type="range" min="0" max="100" aria-label="Głośność">'
-        : t.vol === 'none' ? '' : volBox();
+        : t.vol === 'none' ? '' : volBox(t.mute !== false);
       el.innerHTML = '<div class="tv-bg mu-bg"></div><div class="mu"><div class="mu-top"><div class="mu-title"></div><select aria-label="Wyjście dźwięku"></select></div><div class="mu-ctl"><button class="cb" data-m="play" aria-label="Odtwarzaj lub wstrzymaj"></button><button class="cb" data-m="next" aria-label="Następny">' + ic('next') + '</button><span class="mu-sp"></span>' + vol + '</div><div class="mu-st">'
         + (t.stations || []).map((s, i) => '<button data-s="' + i + '">' + (/^(\/|https?:)/.test(s.image || '') ? '<img src="' + esc(s.image) + '" alt="' + esc(s.name) + '">' : esc(s.name)) + '</button>').join('') + '</div></div>';
       // Ile stacji w rzędzie: reszta przechodzi do kolejnych rzędów, które dzielą wysokość kafelka.
@@ -277,6 +278,7 @@
         if (!b) return;
         if (b.dataset.v) return volClick(el, t, +b.dataset.v);
         if (P.ha.preview) return;
+        if (b.dataset.m === 'mute') return P.service('media_player.volume_mute', { entity_id: t.entity, is_volume_muted: !((P.state(t.entity) || {}).attributes || {}).is_volume_muted });
         if (b.dataset.m) return P.service(b.dataset.m === 'play' ? 'media_player.media_play_pause' : 'media_player.media_next_track', { entity_id: t.entity });
         const s = t.stations[+b.dataset.s];
         picks[t.id] = +b.dataset.s;
@@ -289,6 +291,8 @@
       const list = t.output ? o && o.attributes.options || [] : a.source_list || [], now = t.output ? o && o.state : a.source;
       el.querySelector('.mu-title').textContent = a.media_title || t.name || 'Radio';
       el.querySelector('[data-m=play]').innerHTML = ic(s && s.state === 'playing' ? 'pause' : 'play');
+      const mute = el.querySelector('[data-m=mute]');
+      if (mute) mute.classList.toggle('lit', !!a.is_volume_muted);
       const range = el.querySelector('input'), sel = el.querySelector('select');
       if (range && !el._drag && a.volume_level != null) range.value = Math.round(a.volume_level * 100);
       if (el.querySelector('.mu-meter') && el._vol == null) meter(el, a.volume_level == null ? null : Math.round(a.volume_level * 100));
@@ -322,8 +326,8 @@
     clearTimeout(el._volS);
     el._volS = setTimeout(() => P.service('media_player.volume_set', { entity_id: t.entity, volume_level: v / 100 }), 250);
   }
-  const volBox = () => '<div class="mu-vol"><div class="mu-meter" aria-hidden="true">' + '<i></i>'.repeat(10) + '<span></span></div>'
-    + '<div class="mu-vb"><button class="cb" data-v="-1" aria-label="Ciszej">' + ic('minus') + '</button><button class="cb" data-v="1" aria-label="Głośniej">' + ic('plus') + '</button></div></div>';
+  const volBox = mute => '<div class="mu-vol"><div class="mu-meter" aria-hidden="true">' + '<i></i>'.repeat(10) + '<span></span></div>'
+    + '<div class="mu-vb">' + (mute ? '<button class="cb mu-mute" data-m="mute" aria-label="Wycisz">' + ic('mute') + '</button>' : '') + '<button class="cb" data-v="-1" aria-label="Ciszej">' + ic('minus') + '</button><button class="cb" data-v="1" aria-label="Głośniej">' + ic('plus') + '</button></div></div>';
 
   // Telewizor (np. Philips przez integrację „Philips TV”). Tło: obraz bieżącego źródła albo aplikacji.
   // Źródła i aplikacje to przyciski z logo; pilot (strzałki, OK) chowa się pod przyciskiem „Pilot”.

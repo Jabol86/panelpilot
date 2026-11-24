@@ -375,7 +375,7 @@ class PanelPilotEditor extends HTMLElement {
     const g = this.geo(), { placed, overflow } = this.layout(), f = g.f;
     const lines = h('div', { class: 'gridlines', style: this.css({ x: 0, y: 0, w: f.cols, h: f.rows }, g) + ';grid-template:' + g.hs.map(v => v * this.k + 'px').join(' ') + '/repeat(' + f.cols + ',1fr);gap:' + GAP * this.k + 'px' }, Array.from({ length: f.cols * f.rows }, () => h('i')));
     this.over.replaceChildren(lines, ...placed.map(p => h('div', { class: 'box' + (p.tile.id === this.sel ? ' sel' : ''), style: this.css(p, g), 'data-id': p.tile.id }, h('div', { class: 'hd' }))));
-    if (!this.tiles.length) this.over.append(h('div', { class: 'empty' }, h('b', {}, 'Pusta strona'), h('span', {}, 'Przeciągnij kafelek z lewej albo'), h('button', { class: 'primary', onclick: () => this.wizard(), onpointerdown: e => e.stopPropagation() }, 'Wybierz, co pokazać')));
+    if (!this.tiles.length) this.over.append(h('div', { class: 'empty' }, h('b', {}, 'Pusta strona'), h('span', {}, 'Przeciągnij kafelek z listy po lewej.')));
     const hidden = this.tiles.filter(t => t.l[this.fmt] === false);
     // Kliknięcie nazwy otwiera ustawienia kafelka (tam jest rozmiar i „Usuń”), × usuwa od razu.
     const chip = t => h('span', { class: 'chip' + (t.id === this.sel ? ' sel' : '') },
@@ -520,7 +520,6 @@ class PanelPilotEditor extends HTMLElement {
       fixed ? null : h('div', { class: 'seg', role: 'group', 'aria-label': 'Podgląd w formacie' }, formats.map(([id, f]) => h('button', { 'aria-pressed': String(this.fmt === id), onclick: () => { this.fmt = id; this.bar(); this.renderSides(); this.fit(); this.refresh(); } }, f.name))),
       h('span', { class: 'dim' }, cur ? (fixed ? cur.name + ': ' : '') + cur.w + '×' + cur.h + ', siatka ' + cur.cols + '×' + cur.rows : ''),
       h('span', { style: 'flex:1' }),
-      this.tab === 'tiles' ? h('button', { onclick: () => this.wizard() }, 'Wybierz, co pokazać') : null,
       this.tab === 'tiles' ? h('button', { title: 'Usuwa ręczny układ tylko w tym formacie', onclick: () => this.commit(() => this.tiles.forEach(t => { delete t.l[this.fmt]; })) }, 'Ułóż automatycznie') : null,
       this.tab === 'saver' ? check('Widok nocny', this.night, v => { this.night = v; this.refresh(); }) : null].filter(Boolean));
   }
@@ -798,29 +797,6 @@ class PanelPilotEditor extends HTMLElement {
   // Ikony mdi doczytują się asynchronicznie; w edytorze uzupełniamy je sami.
   paintIcons(root) { root.querySelectorAll('svg[data-mdi]').forEach(s => { if (!s.innerHTML) this.DP.mdiPath(s.dataset.mdi).then(d => { s.innerHTML = '<path d="' + this.DP.esc(d || '') + '"/>'; }, () => {}); }); }
 
-  /** Kreator: użytkownik wskazuje, co ma być na ekranie. Nic nie jest wybierane za niego. */
-  wizard() {
-    const pick = {}, rows = [
-      ['weather', 'Pogoda', ['weather'], 'Pokaż też prognozę na kolejne dni'], ['sensor', 'Czujniki (temperatura, wilgotność, moc…)', ['sensor', 'input_number', 'number']], ['light', 'Światła i przełączniki', ['light', 'switch', 'input_boolean', 'fan']],
-      ['opening', 'Okna i drzwi (jeden wspólny kafelek)', ['binary_sensor', 'group']], ['cover', 'Rolety', ['cover']], ['climate', 'Ogrzewanie', ['climate']], ['camera', 'Kamery', ['camera']], ['music', 'Odtwarzacze', ['media_player']], ['hold', 'Bramy i furtki (przytrzymanie)', ['switch', 'button', 'cover', 'lock', 'script']], ['button', 'Skrypty i sceny', ['script', 'scene', 'input_button', 'button']],
-    ];
-    let clock = !this.tiles.some(t => t.type === 'clock'), forecast = true;
-    const bodyEl = h('div');
-    const draw = () => bodyEl.replaceChildren(check('Zegar z datą', clock, v => { clock = v; }), ...rows.map(([k, label, d, extra]) => group(label, this.entityList(pick[k] || [], d, v => { pick[k] = v; draw(); }), extra && (pick[k] || []).length ? check(extra, forecast, v => { forecast = v; }) : null)));
-    draw();
-    this.dialog('Co ma być na stronie „' + this.doc.pages[this.page].name + '”?', bodyEl, ['Anuluj'], ['Dodaj', () => {
-      const out = [], t = (type, o) => out.push(Object.assign({ id: uid(), type, l: {} }, o));
-      if (clock) t('clock', {});
-      (pick.weather || []).forEach(e => { t('weather', { entity: e }); if (forecast) t('forecast', { entity: e }); });
-      (pick.sensor || []).forEach(e => { const s = this.hass.states[e], icon = { temperature: 'temp', humidity: 'drop', power: 'bolt', energy: 'bolt', moisture: 'drop' }[s && s.attributes.device_class]; t('sensor', icon ? { entity: e, icon } : { entity: e }); });
-      if ((pick.opening || []).length) t('opening', { entities: pick.opening });
-      (pick.light || []).forEach(e => t('toggle', { entity: e, icon: e.startsWith('fan.') ? 'fan' : 'bulb' }));
-      ['cover', 'climate', 'camera', 'hold', 'button'].forEach(k => (pick[k] || []).forEach(e => t(k, { entity: e })));
-      (pick.music || []).forEach(e => t('music', { entity: e, stations: [] }));
-      if (out.length) this.commit(() => this.tiles.push(...out));
-    }]);
-  }
-
   /* ---------- wygląd, wygaszacz, domofon ---------- */
   lookTab() {
     const t = this.doc.theme || {}, set = (k, v) => this.commit(() => { this.doc.theme = this.doc.theme || {}; if (v === '') delete this.doc.theme[k]; else this.doc.theme[k] = v; }, { key: 'th' + k, quiet: true });
@@ -843,7 +819,7 @@ class PanelPilotEditor extends HTMLElement {
       h('h3', {}, 'Kafelki i ikony'),
       field('Włączony kafelek', select(t.onStyle || '', [['', 'Wypełniony kolorem'], ['outline', 'Świecąca ramka']], v => setFull('onStyle', v))),
       h('div', { class: 'row2' },
-        field('Układ treści', select(t.layout || '', [['', 'Ikona nad tekstem']].concat(LAYOUTS.slice(1)), v => setFull('layout', v))),
+        field(this.lbl('Układ treści', '„Automatycznie”: w wysokich kafelkach ikona nad tekstem, w niskich (jeden wiersz) obok tekstu. „Ikona nad tekstem” wymusza ją także w niskich kafelkach.'), select(t.layout || '', [['', 'Automatycznie']].concat(LAYOUTS), v => setFull('layout', v))),
         field('Wielkość ikon', select(t.iconSize || '', [['', 'Zwykła']].concat(ICON_SIZES.filter(s => s[0] !== 'M')), v => setFull('iconSize', v)))),
       this.posPicker('Położenie treści w kafelkach', t.align, t.valign, 'Domyślne (lewo, środek)',
         (a, v) => this.commit(() => { const th = this.doc.theme = Object.assign({}, this.doc.theme); if (a) th.align = a; else delete th.align; if (v) th.valign = v; else delete th.valign; })),
@@ -1033,7 +1009,13 @@ class PanelPilotEditor extends HTMLElement {
       const setS = (k, v) => save({ settings: { [k]: v } });
       const num = (l, k) => field(l, h('input', { type: 'number', value: s[k], oninput: e => { if (e.target.value !== '') setS(k, Number(e.target.value)); } }));
       const cmd = (c, x) => call(Object.assign({ type: 'panelpilot/admin/panel_command', device_id: id, command: c }, x), 'Wysłano');
-      return h('div', { class: 'card' }, h('div', { class: 'top' }, h('i', { class: 'dot' + (p.connected ? ' on' : '') }), h('h2', {}, p.name), h('span', { class: 'dim' }, [p.model, p.size, p.app, p.connected ? 'połączony' : 'rozłączony'].filter(Boolean).join(' · '))),
+      // Karta panelu domyślnie zwinięta: w nagłówku najważniejsze (pulpit, format, obrót, jasność), reszta po rozwinięciu.
+      const open = this.pOpen = this.pOpen || new Set(), dash = this.data.dashboards[p.dashboard];
+      const fmtName = s.format && s.format !== 'auto' && this.DP && this.DP.FORMATS[s.format] ? this.DP.FORMATS[s.format].name : 'format z ekranu';
+      const summary = ['Pulpit: ' + (dash ? dash.name : '–'), fmtName, 'obrót ' + (s.rotation || 0) + '°', 'jasność ' + s.dayBrightness + '% / noc ' + s.nightBrightness + '%'].join(' · ');
+      return h('details', { class: 'card pcard', open: open.has(id) || !!this.pEdits[id], ontoggle: e => { if (e.target.open) open.add(id); else open.delete(id); } },
+        h('summary', {}, h('div', { class: 'top' }, h('i', { class: 'dot' + (p.connected ? ' on' : '') }), h('h2', {}, p.name), h('span', { class: 'dim' }, [p.model, p.size, p.app, p.connected ? 'połączony' : 'rozłączony'].filter(Boolean).join(' · '))),
+          h('div', { class: 'dim psum' }, summary)),
         this.pEdits[id] ? h('p', { class: 'dim', style: 'color:var(--warning-color,#c77700)' }, 'Niezapisane zmiany. Zapiszesz je przyciskiem „Zapisz” u góry.') : null,
         h('div', { class: 'cols' }, field('Nazwa', h('input', { value: p.name, oninput: e => { if (e.target.value.trim()) save({ name: e.target.value.trim() }); } })), field('Pulpit', select(p.dashboard, Object.entries(this.data.dashboards).map(([i, d]) => [i, d.name]), v => save({ dashboard: v }))),
           field('Ekran', select(p.shape, [['auto', 'Wykryj'], ['square', 'Kwadrat (86)'], ['rect', 'Prostokąt (120)']], v => save({ shape: v }))),
@@ -1043,7 +1025,6 @@ class PanelPilotEditor extends HTMLElement {
           num('Noc od godziny', 'nightFrom'), num('Noc do godziny', 'nightTo'), num('Ciemno poniżej (lx)', 'darkLux')),
         h('p', { class: 'dim' }, 'Gdy zaczyna się noc albo dzień, ręcznie ustawiona jasność wraca na automatyczną.'),
         check('Budź, gdy ktoś podejdzie', s.wakeOnProximity, v => setS('wakeOnProximity', v)), check('Nie włączaj wygaszacza, gdy ktoś stoi przy panelu (najwyżej 3 minuty)', s.proximityHold, v => setS('proximityHold', v)),
-        check('Odwróć czujnik zbliżenia (gdy „Zbliżenie” pokazuje „wykryto”, choć nikogo nie ma)', s.proximityInvert, v => setS('proximityInvert', v)),
         h('p', { class: 'dim' }, 'Zasięg czujnika zbliżenia ustala producent panelu; zwykle to kilkanaście–kilkadziesiąt centymetrów. Stan widać w encji „Zbliżenie” tego panelu w HA.'),
         h('div', { class: 'btns' }, h('button', { class: 'danger', onclick: () => this.dialog('Usunąć panel „' + p.name + '”?', h('p', {}, 'Panel straci dostęp i trzeba będzie sparować go od nowa.'), ['Anuluj'], ['Usuń', () => call({ type: 'panelpilot/admin/panel_delete', device_id: id })]) }, 'Usuń'), h('button', { disabled: !p.connected, onclick: () => cmd('message', { title: 'Test', message: 'Wiadomość z Home Assistant' }) }, 'Wyślij test'), h('button', { disabled: !p.connected, onclick: () => cmd('doorbell') }, 'Pokaż domofon'), h('button', { disabled: !p.connected, onclick: () => cmd('reload') }, 'Odśwież')));
     });
