@@ -209,6 +209,13 @@ Zgłoszenie: „mam najnowszą wersję, ale wielu funkcji nie mam w edytorze”.
 
 - Zgłoszenie: w HA „Zbliżenie” stale „wykryto”, choć budzenie machnięciem działa. `dumpsys sensorservice`: impulsy 1/0 po ~0,07 s; po wznowieniu (onResume) czujnik nie podaje stanu, więc „blisko” sprzed przykrycia przez eWeLink zostało w panel.js i w HA. Teraz panel.js raportuje `nearNow()`: „wykryto” 5 s po ostatnim impulsie (`NEAR_TAIL`), a „blisko” bez zmian dłużej niż `HOLD_MAX` (3 min) wygasa (`tick()` woła `report()`). APK bez zmian. Sprawdzone na atrapie, **nie potwierdzono** w HA właściciela.
 
+### v0.1.31 (APK 0.1.7)
+
+- Lagi: na panelu żyły **dwie kopie** MainActivity (stos HOME i zwykły stos po `am start`; na Androidzie 8 singleTask ich nie łączy). Obie renderowały pulpit, ~15 kl./s bez dotyku, 82% klatek z opóźnieniem. APK 0.1.7: statyczne `live` – nowa kopia zamyka starą; `web.onPause()` w onPause. Po instalacji: 1 kopia, ~1 kl./s, CPU ~0.
+- Poświata (`anim-glow`) animuje cień krokami (`steps(6)`), pasek odliczania przez `scaleX` zamiast `width`.
+- Przesuwanie stron: przy widocznym pasku gest „Wybrana strona”/„Strona główna” w poziomie idzie do sąsiedniej kropki (`kindOf()` w panel.js); na stronie głównej „Wybrana strona” dalej skacze do celu (stoi obok w `navOrder`). Wcześniej np. z lewej strony paska ← skakało na stronę z prawej, a z niej ← nic nie robiło.
+- Na prawej krawędzi ekranu (ok. 1294,188, 99×99 px) wisi nakładka eWeLink (TYPE_APPLICATION_OVERLAY, uchwyt „(”) i przechwytuje dotyk w tym miejscu.
+
 ## Instalacja przez HACS
 
 Właściciel chce instalować PanelPilot z GitHuba przez HACS. To **integracja**, nie dodatek Supervisora. HACS nie widzi prywatnych repozytoriów. Kiedy właściciel się zgodzi:

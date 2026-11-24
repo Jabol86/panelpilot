@@ -437,7 +437,8 @@
     let bar = el.querySelector('.tmr-bar');
     if (mode !== 'down') { if (bar) bar.remove(); return; }
     if (!bar) { bar = document.createElement('div'); bar.className = 'tmr-bar'; bar.innerHTML = '<i></i>'; el.append(bar); }
-    bar.firstChild.style.width = (ms / total * 100).toFixed(2) + '%';
+    // scaleX zamiast width: przesuwanie paska nie przelicza układu strony co klatkę.
+    bar.firstChild.style.transform = 'scaleX(' + (ms / total).toFixed(4) + ')';
   }
 
   function onState(changed) {
@@ -532,11 +533,22 @@
   }
 
   /** Dokąd prowadzi gest w danym kierunku, jeśli zmienia stronę (inaczej -1); bez wykonywania go. */
-  function pageFor(dir) {
-    if (back && back.at === page && dir === back.dir) return back.to;
+  /** Rodzaj gestu po uwzględnieniu paska stron. Przy widocznym pasku przesunięcie w poziomie zawsze idzie
+      do sąsiedniej kropki (w lewo = następna, w prawo = poprzednia), żeby strona nie przeskakiwała
+      w inne miejsce niż pokazuje pasek. Wybrana strona z gestu stoi obok głównej (navOrder), więc ze strony
+      głównej i tak trafia się na nią. Akcje (wygaszacz, dzwonek, usługa…) działają bez zmian. */
+  function kindOf(dir) {
     const g = (dash.gestures || {})[dir] || {};
     let kind = g.kind || 'default';
     if (kind === 'default') kind = { left: 'next', right: 'prev' }[dir] || 'none';
+    if ((dir === 'left' || dir === 'right') && navStyle() !== 'none' && ['page', 'home'].includes(kind)
+      && !(kind === 'page' && page === homeIndex())) kind = dir === 'left' ? 'next' : 'prev';
+    return kind;
+  }
+
+  function pageFor(dir) {
+    if (back && back.at === page && dir === back.dir) return back.to;
+    const g = (dash.gestures || {})[dir] || {}, kind = kindOf(dir);
     const order = navOrder(), at = order.indexOf(page);
     if (kind === 'next') return at >= 0 && at + 1 < order.length ? order[at + 1] : -1;
     if (kind === 'prev') return at > 0 ? order[at - 1] : -1;
@@ -552,9 +564,7 @@
   const OPPOSITE = { left: 'right', right: 'left', up: 'down', down: 'up' };
 
   function gesture(dir) {
-    const g = (dash.gestures || {})[dir] || {};
-    let kind = g.kind || 'default';
-    if (kind === 'default') kind = { left: 'next', right: 'prev' }[dir] || 'none';
+    const g = (dash.gestures || {})[dir] || {}, kind = kindOf(dir);
     const go = n => { if (n < 0 || n >= pages.length) return false; Panel.openPage(n); return true; };
     const jump = n => {
       if (n < 0 || n === page) return false;

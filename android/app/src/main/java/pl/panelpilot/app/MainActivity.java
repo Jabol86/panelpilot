@@ -68,7 +68,13 @@ public class MainActivity extends Activity implements SensorEventListener {
         setContentView(root);
         sensors = getSystemService(SensorManager.class);
         WebView.setWebContentsDebuggingEnabled((getApplicationInfo().flags & android.content.pm.ApplicationInfo.FLAG_DEBUGGABLE) != 0);
+        // Android 8 trzyma ekran główny (HOME) i zwykłe uruchomienie w osobnych stosach, więc mimo singleTask
+        // mogą żyć dwie kopie: dwa pulpity naraz liczą, rysują i walczą o jasność. Zostaje najnowsza.
+        if (live != null && live != this && !live.isFinishing()) live.finish();
+        live = this;
     }
+
+    private static MainActivity live;
 
     @Override
     protected void onResume() {
@@ -97,11 +103,14 @@ public class MainActivity extends Activity implements SensorEventListener {
     @Override
     protected void onPause() {
         sensors.unregisterListener(this);
+        // Niewidoczny pulpit nie rysuje i nie animuje (JS i połączenie z HA działają dalej).
+        if (web != null) web.onPause();
         super.onPause();
     }
 
     @Override
     protected void onDestroy() {
+        if (live == this) live = null;
         ui.removeCallbacksAndMessages(null);
         if (web != null) web.destroy();
         // Tunel zostaje dla procesu: nowa kopia ekranu użyje go ponownie.

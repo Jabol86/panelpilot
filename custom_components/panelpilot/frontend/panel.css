@@ -71,21 +71,22 @@ small { font-size: .6em; color: var(--ink2); font-weight: 400; }
 .anim-blink > .ic { animation: pp-blink 1s steps(2, jump-none) infinite; }
 .anim-bounce > .ic { animation: pp-bounce 1.2s ease-in-out infinite; }
 .anim-shake > .ic { animation: pp-shake .9s ease-in-out infinite; }
-.anim-glow > .ic { animation: pp-glow 1.8s ease-in-out infinite; }
-.tile.anim-glow { animation: pp-tileglow 1.8s ease-in-out infinite; }
+/* Poświata zmienia cień, a tego karta graficzna nie robi sama: kroki zamiast płynnej animacji, żeby słaby panel nie przerysowywał kafelka 60 razy na sekundę. */
+.anim-glow > .ic { animation: pp-glow .9s steps(6) infinite alternate; }
+.tile.anim-glow { animation: pp-tileglow .9s steps(6) infinite alternate; }
 /* Licznik czasu na kafelku (tile.timer): ile minęło albo odliczanie z paskiem u dołu. */
 .tmr { font-family: var(--font2, inherit); font-variant-numeric: tabular-nums; font-size: calc(22px * var(--scale, 1)); font-weight: 600; line-height: 1.15; color: var(--on); letter-spacing: .02em; }
 .mini .tmr, .row .tmr { font-size: calc(16px * var(--scale, 1)); }
 .tmr-end .tmr { animation: pp-blink 1s steps(2, jump-none) infinite; }
 .tmr-bar { position: absolute; left: 12px; right: 12px; bottom: 6px; height: 3px; border-radius: 2px; background: color-mix(in srgb, var(--on) 18%, transparent); pointer-events: none; }
-.tmr-bar i { display: block; height: 100%; border-radius: inherit; background: var(--on); box-shadow: 0 0 6px color-mix(in srgb, var(--on) 60%, transparent); transition: width 1s linear; }
+.tmr-bar i { display: block; height: 100%; border-radius: inherit; background: var(--on); box-shadow: 0 0 6px color-mix(in srgb, var(--on) 60%, transparent); transform-origin: left; transition: transform 1s linear; }
 @keyframes pp-pulse { 50% { transform: scale(1.18); } }
 @keyframes pp-spin { to { transform: rotate(360deg); } }
 @keyframes pp-blink { 50% { opacity: .2; } }
 @keyframes pp-bounce { 50% { transform: translateY(-18%); } }
 @keyframes pp-shake { 20%, 60% { transform: rotate(-12deg); } 40%, 80% { transform: rotate(12deg); } }
-@keyframes pp-glow { 50% { filter: drop-shadow(0 0 6px var(--on)); } }
-@keyframes pp-tileglow { 50% { box-shadow: 0 0 0 1.5px var(--on), 0 0 22px 4px color-mix(in srgb, var(--on) 50%, transparent); } }
+@keyframes pp-glow { to { filter: drop-shadow(0 0 6px var(--on)); } }
+@keyframes pp-tileglow { to { box-shadow: 0 0 0 1.5px var(--on), 0 0 22px 4px color-mix(in srgb, var(--on) 50%, transparent); } }
 @media (prefers-reduced-motion: reduce) { .tile[class*=anim-], .tile[class*=anim-] > .ic { animation: none; } }
 .tx { position: relative; min-width: 0; max-width: 100%; display: grid; gap: 1px; }
 .val { font-size: calc(21px * var(--scale)); font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-variant-numeric: tabular-nums; }
