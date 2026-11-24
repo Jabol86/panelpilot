@@ -105,9 +105,13 @@ class PanelPilotEditor extends HTMLElement {
   /** Dodanie albo zmiana własnego formatu: rozmiar w pikselach CSS i siatka kafelków. */
   formatDialog(id, done) {
     const all = Object.assign({}, this.data.formats || {}), size = this.panelSize();
-    const f = Object.assign({ name: 'Tablet', w: 1280, h: 800, cols: 10, rows: 6 }, id ? all[id] : {});
+    // Wbudowanego formatu (Kwadrat, Pion, Poziom) nie zmieniamy: zapisujemy jego kopię z własną siatką.
+    const base = id && !all[id] && this.DP.FORMATS[id];
+    const f = base ? { name: base.name + ' ' + base.cols + '×' + base.rows, w: base.w, h: base.h, cols: base.cols, rows: base.rows }
+      : Object.assign({ name: 'Tablet', w: 1280, h: 800, cols: 10, rows: 6 }, id ? all[id] : {});
     const num = (label, key, hint) => field(label, text(f[key], v => { f[key] = Number(v); }, { type: 'number', min: 1, placeholder: hint || '' }));
     const body = [
+      base ? h('p', { class: 'dim', style: 'margin-bottom:8px' }, 'Format „' + base.name + '” jest wbudowany, więc powstanie jego kopia z tą siatką. Pulpit przełączy się na kopię, a kafelki zostaną na swoich miejscach (te, które się nie zmieszczą, ułożą się same). Więcej kolumn i wierszy = mniejsze kafelki.') : null,
       field('Nazwa', text(f.name, v => { f.name = v; })),
       h('div', { class: 'row2' }, num('Szerokość (px CSS)', 'w'), num('Wysokość (px CSS)', 'h')),
       h('div', { class: 'row2' }, num('Kolumny kafelków', 'cols'), num('Wiersze kafelków', 'rows')),
@@ -125,13 +129,25 @@ class PanelPilotEditor extends HTMLElement {
       } catch (e) { this.toast(e.message || e.code, true); }
     };
     const buttons = [['Anuluj']];
-    if (id) buttons.push(['Usuń format', () => { const list = Object.assign({}, all); delete list[id]; if (this.fmt === id) this.fmt = 'portrait'; save(list); }]);
-    buttons.push(['Zapisz format', () => {
-      const fid = id || 'c_' + Math.random().toString(36).slice(2, 10);
+    if (id && !base) buttons.push(['Usuń format', () => { const list = Object.assign({}, all); delete list[id]; if (this.fmt === id) this.fmt = 'portrait'; save(list); }]);
+    buttons.push([base ? 'Zapisz siatkę' : 'Zapisz format', () => {
+      const fid = id && !base ? id : 'c_' + Math.random().toString(36).slice(2, 10);
       this.fmt = fid;
-      save(Object.assign({}, all, { [fid]: { name: (f.name || 'Tablet').trim(), w: f.w, h: f.h, cols: f.cols, rows: f.rows } }), fid);
+      const cols = Math.max(1, Math.min(24, Math.round(f.cols) || 1)), rows = Math.max(1, Math.min(24, Math.round(f.rows) || 1));
+      // Kopia wbudowanego formatu: przenosimy układ kafelków tam, gdzie się mieści, i przełączamy na nią pulpit.
+      const fromBase = base && (newId => this.commit(() => {
+        this.doc.pages.forEach(p => p.tiles.forEach(t => {
+          const r = t.l && t.l[id];
+          if (r === false) t.l[newId] = false;
+          else if (Array.isArray(r) && r[0] + r[2] <= cols && r[1] + r[3] <= rows) t.l[newId] = r.slice();
+        }));
+        this.doc.format = newId;
+      }));
+      // Nazwa kopii bez zmian użytkownika dostaje nową siatkę, np. „Poziom 14×7”.
+      if (base && f.name === base.name + ' ' + base.cols + '×' + base.rows) f.name = base.name + ' ' + cols + '×' + rows;
+      save(Object.assign({}, all, { [fid]: { name: (f.name || 'Tablet').trim(), w: f.w, h: f.h, cols, rows } }), fid).then(() => { if (fromBase && this.DP.FORMATS[fid]) { fromBase(fid); this.bar(); this.renderSides(); this.fit(); this.refresh(); } });
     }]);
-    this.dialog(id ? 'Format „' + f.name + '”' : 'Nowy format ekranu', h('div', {}, ...body.filter(Boolean)), ...buttons);
+    this.dialog(base ? 'Siatka formatu „' + base.name + '”' : id ? 'Format „' + f.name + '”' : 'Nowy format ekranu', h('div', {}, ...body.filter(Boolean)), ...buttons);
   }
 
   /** Rozmiar zgłoszony przez panel z tym pulpitem (np. „1280×800”), do podpowiedzi. */
@@ -275,7 +291,8 @@ class PanelPilotEditor extends HTMLElement {
     if ((this.doc.mode || 'tiles') !== 'tiles') return null;
     const cur = this.doc.format || '', f = cur && this.DP && this.DP.FORMATS[cur];
     const opts = [['', 'Format: z ekranu panelu']].concat(this.formatOptions(true));
-    if (f && f.custom) opts.push(['__edit', 'Edytuj „' + f.name + '”…']);
+    // Własny format: zmiana nazwy, rozmiaru i siatki; wbudowany: zmiana siatki (zapisuje się jako kopia).
+    if (f) opts.push(['__edit', f.custom ? 'Edytuj „' + f.name + '” (rozmiar, siatka)…' : 'Zmień siatkę „' + f.name + '” (' + f.cols + '×' + f.rows + ')…']);
     const el = select(cur, opts, v => {
       if (v === '__new') { el.value = cur; return this.formatDialog(null, fid => this.commit(() => { this.doc.format = fid; })); }
       if (v === '__edit') { el.value = cur; return this.formatDialog(cur); }

@@ -168,6 +168,11 @@ Zgłoszenie: „mam najnowszą wersję, ale wielu funkcji nie mam w edytorze”.
 - Domofon: Słuchaj i Rozmawiaj w jednym rzędzie, Zamknij pod spodem na całą szerokość.
 - Głośność: przyciski 116 px, przycisk wyciszenia (`data-m=mute`, pole `mute`, domyślnie włączone) w odtwarzaczu.
 
+### v0.1.23
+
+- Właściciel pytał, czy NSPanel Pro nie ma więcej pikseli niż 889×500: to piksele CSS (1334×750 ÷ 1,5 przy 240 dpi).
+- Edycja siatki: w liście formatów na górnym pasku „Zmień siatkę „Poziom” (10×5)…” także dla wbudowanych. `formatDialog(id)` dla wbudowanego tworzy kopię `c_…` (nazwa np. „Poziom 14×7”), przenosi `t.l[id]` tam, gdzie się mieści, i ustawia `doc.format`. Własne: „Edytuj … (rozmiar, siatka)”.
+
 ## Instalacja przez HACS
 
 Właściciel chce instalować PanelPilot z GitHuba przez HACS. To **integracja**, nie dodatek Supervisora. HACS nie widzi prywatnych repozytoriów. Kiedy właściciel się zgodzi:
