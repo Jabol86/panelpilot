@@ -357,12 +357,14 @@
       const remote = DP.isEntity(t.remote);
       el.innerHTML = '<div class="tv-bg"></div><div class="tv">'
         + '<div class="tv-top"><div class="tv-hd"><div class="tv-name"></div><div class="tv-sub"></div></div>'
-        + (remote ? '<button class="tv-chip" data-k="pad">' + ic('touch') + '<span>Pilot</span></button>' : '') + b('mute', 'mute', 'Wycisz') + b('power', 'power', 'Włącz lub wyłącz', 'pw') + '</div>'
+        // Wszystkie przyciski w jednym rzędzie obok nazwy (na wąskim kafelku zawijają się do następnego).
+        + (remote ? '<button class="tv-chip" data-k="pad">' + ic('touch') + '<span>Pilot</span></button>' : '')
+        + (t.ch ? '<div class="tv-ch">' + b('chdown', 'down', 'Poprzedni kanał') + '<span>CH</span>' + b('chup', 'up', 'Następny kanał') + '</div>' : '')
+        + b('mute', 'mute', 'Wycisz') + volBox() + b('power', 'power', 'Włącz lub wyłącz', 'pw') + '</div>'
         + '<div class="tv-src"' + (+t.perRow ? ' style="grid-template-columns:repeat(' + Math.min(12, +t.perRow) + ',minmax(0,1fr))"' : '') + '>'
         + (list || []).map((s, i) => '<button data-s="' + i + '">' + (/^(\/|https?:)/.test(s.image || '') ? '<img src="' + esc(s.image) + '" alt="' + esc(s.name) + '">' : '<span>' + esc(s.name) + '</span>') + '</button>').join('') + '</div>'
         + (remote ? '<div class="tv-pad" hidden>' + b('home', 'home', 'Menu główne') + b('up', 'up', 'W górę') + b('back', 'back', 'Wstecz') + b('left', 'left', 'W lewo') + '<button class="cb ok" data-k="ok">OK</button>' + b('right', 'right', 'W prawo') + '<i></i>' + b('down', 'down', 'W dół') + '<i></i></div>' : '')
-        + '<div class="tv-bot">' + (t.ch ? '<div class="tv-ch">' + b('chdown', 'down', 'Poprzedni kanał') + '<span>CH</span>' + b('chup', 'up', 'Następny kanał') + '</div>' : '')
-        + '<span class="mu-sp"></span>' + volBox() + '</div></div>';
+        + '</div>';
       el.addEventListener('click', e => {
         const x = e.target.closest('button');
         if (!x) return;

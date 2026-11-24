@@ -647,7 +647,7 @@ class PanelPilotEditor extends HTMLElement {
         field(this.lbl(w.thin ? 'Napis, np. Kuchnia' : 'Nazwa', w.thin ? '' : 'Napis na kafelku. Pusta = nazwa encji z Home Assistant.'), text(t.name, v => set('name', v))),
         w.noIcon ? null : field(this.lbl('Ikona', 'Własne ikony Panel Pilot albo dowolna mdi:… z Home Assistant.'), this.iconPicker(t.icon || w.icon, v => set('icon', v, true)))]),
       this.sec('look', 'Wygląd', [
-        h('div', { class: 'row2' }, this.color('Tło', t.bg, v => set('bg', v)), this.color('Kolor', t.color, v => set('color', v))),
+        h('div', { class: 'row2' }, this.color('Tło', t.bg, v => set('bg', v)), this.color('Kolor podświetlenia', t.color, v => set('color', v))),
         w.noIcon ? null : this.color('Tło ikony (kółko)', t.iconBg, v => set('iconBg', v)),
         w.plain ? null : field(this.lbl('Nazwa na kafelku', 'Ukryj, gdy wystarczy ikona i napis z warunku, np. alarm: zamiast „Alarm Status” i „disarmed” tylko „Rozbrojony”.'),
           select(t.showName === false ? '0' : '', [['', 'Pokaż'], ['0', 'Ukryj']], v => this.commit(() => { if (v === '0') t.showName = false; else delete t.showName; }))),

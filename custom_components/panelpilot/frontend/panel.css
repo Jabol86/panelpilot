@@ -203,8 +203,12 @@ input[type=range] { accent-color: var(--on); min-width: 0; height: 40px; width: 
 .mu-bg { opacity: .42; filter: saturate(1.1); transform: none; background-size: cover; }
 .mu-bg::after { background: linear-gradient(180deg, color-mix(in srgb, var(--tile) 35%, transparent), color-mix(in srgb, var(--tile) 55%, transparent)); }
 .tv { position: relative; display: flex; flex-direction: column; gap: 10px; flex: 1; min-width: 0; min-height: 0; }
-.tv-top { display: flex; align-items: center; gap: 8px; }
-.tv-hd { flex: 1; min-width: 0; }
+.tv-top { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: flex-end; gap: 8px 10px; }
+.tv-hd { flex: 1 1 90px; min-width: 0; align-self: center; text-align: left; }
+/* Głośność kurczy się na wąskim kafelku, żeby zasilanie zostało w tym samym rzędzie. */
+.tv .mu-vol { flex: 1 1 150px; max-width: 240px; justify-items: stretch; }
+.tv .mu-vol .mu-meter { justify-self: center; }
+.tv .mu-vol .mu-vb .cb { flex: 1 1 0; width: auto; min-width: 0; }
 .tv-name { font-size: calc(18px * var(--scale)); font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .tv-sub { font-size: 13px; color: var(--ink2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .tv .cb { flex: none; width: 44px; height: 44px; border-radius: 50%; }

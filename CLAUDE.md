@@ -185,6 +185,11 @@ Zgłoszenie: „mam najnowszą wersję, ale wielu funkcji nie mam w edytorze”.
 - Nazwa wyświetlana „Panel Pilot” (ze spacją) w HA, HACS, APK, edytorze i dokumentacji; domena i pakiet bez zmian (`panelpilot`, `pl.panelpilot.app`). Stary tytuł wpisu „PanelPilot” zmienia się sam przy starcie.
 - Ikona (wybór właściciela, wariant A z 4): czarny zaokrąglony kwadrat, ramka panelu, 4 kafelki, jeden czerwony #ee1c25, kropka pod spodem. Pliki: `custom_components/panelpilot/brand/` (icon/logo PNG 256 i 512), `frontend/icon.svg` (favicon), `docs/icon.png` (README), `android/.../drawable/icon.xml` (wektor). PNG rysuje skrypt bez bibliotek (był w scratchpadzie sesji). Lista integracji w HA pokazuje ikonę z repozytorium home-assistant/brands; czy HA bierze ją też z folderu `brand/`, zależy od wersji HA – **nie sprawdzono**.
 
+### v0.1.26
+
+- Kafelek TV: wszystkie przyciski (Pilot, CH, wyciszenie, −/+, zasilanie) w jednym rzędzie `.tv-top` obok nazwy; głośność kurczy się na wąskim kafelku (`.tv .mu-vol` flex 150px, max 240px), `.tv-bot` już nie istnieje.
+- Pole „Kolor” w Wyglądzie kafelka nazywa się „Kolor podświetlenia” (`t.color` → `--on`/`--accent`); to nim zmienia się kolor licznika włączonych.
+
 ## Instalacja przez HACS
 
 Właściciel chce instalować PanelPilot z GitHuba przez HACS. To **integracja**, nie dodatek Supervisora. HACS nie widzi prywatnych repozytoriów. Kiedy właściciel się zgodzi:
