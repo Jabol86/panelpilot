@@ -1,16 +1,18 @@
-# PanelPilot
+<img src="docs/icon.png" width="96" alt="Ikona Panel Pilot" align="right">
+
+# Panel Pilot
 
 Panel ścienny dla Home Assistant na **Sonoff NSPanel Pro 86** (kwadrat) i **NSPanel Pro 120** (prostokąt, pion i poziom) oraz inne ekrany z Androidem 8+.
 
 *Home Assistant wall panel for NSPanel Pro: visual dashboard editor inside HA, full HTML/CSS/JS mode, screensaver, sensors, doorbell with two-way audio. The interface is Polish only for now.*
 
-> **Wersja testowa 0.1.24.** Integracja ma testy automatyczne na Home Assistant 2026.10, a interfejs sprawdzono w przeglądarce. Nie sprawdzono jeszcze na fizycznym panelu: obrotu, czujników, mikrofonu ani rozmowy przez domofon.
+> **Wersja testowa 0.1.25.** Integracja ma testy automatyczne na Home Assistant 2026.10, a interfejs sprawdzono w przeglądarce. Nie sprawdzono jeszcze na fizycznym panelu: obrotu, czujników, mikrofonu ani rozmowy przez domofon.
 
 ## Co potrafi
 
 | | |
 |---|---|
-| **Edytor w Home Assistant** | *Urządzenia oraz usługi → PanelPilot → Konfiguruj* (opcjonalnie w menu bocznym); przeciąganie i zmiana rozmiaru kafelków na żywym podglądzie |
+| **Edytor w Home Assistant** | *Urządzenia oraz usługi → Panel Pilot → Konfiguruj* (opcjonalnie w menu bocznym); przeciąganie i zmiana rozmiaru kafelków na żywym podglądzie |
 | **Gesty** | przesunięcie palcem w górę, w dół, w lewo i w prawo: strona, wygaszacz, domofon, ustawienia albo dowolna akcja HA; pasek stron można ukryć |
 | **Wybór encji** | pogodę, czujniki, światła itd. wskazujesz z wyszukiwarki; nic nie jest wybierane za Ciebie |
 | **Układy i formaty** | osobne rozmieszczenie dla kwadratu, pionu i poziomu oraz własne formaty dla innych tabletów (rozmiar i siatka kafelków); motywy, kolory, tapeta |
@@ -27,9 +29,9 @@ Panel ścienny dla Home Assistant na **Sonoff NSPanel Pro 86** (kwadrat) i **NSP
 
 [![Dodaj w HACS](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=Jabol86&repository=panelpilot&category=integration)
 
-1. W HACS pobierz **PanelPilot** i uruchom ponownie Home Assistant. (Bez HACS: skopiuj `custom_components/panelpilot` do `config/custom_components`).
-2. *Ustawienia → Urządzenia oraz usługi → Dodaj integrację → PanelPilot*. Nie ma nic do wypełniania.
-3. Edytor otwierasz przyciskiem *Konfiguruj* przy integracji PanelPilot. Tam też włączysz go w menu bocznym, jeśli wolisz.
+1. W HACS pobierz **Panel Pilot** i uruchom ponownie Home Assistant. (Bez HACS: skopiuj `custom_components/panelpilot` do `config/custom_components`).
+2. *Ustawienia → Urządzenia oraz usługi → Dodaj integrację → Panel Pilot*. Nie ma nic do wypełniania.
+3. Edytor otwierasz przyciskiem *Konfiguruj* przy integracji Panel Pilot. Tam też włączysz go w menu bocznym, jeśli wolisz.
 
 ### 2. Aplikacja na panelu
 
@@ -42,12 +44,12 @@ Pełny opis krok po kroku: **[docs/instalacja-panelu.md](docs/instalacja-panelu.
 & ([scriptblock]::Create((irm https://raw.githubusercontent.com/Jabol86/panelpilot/main/tools/install-panel.ps1))) -Ip 192.168.1.50 -TimeZone Europe/Warsaw
 ```
 
-Skrypt sam pobierze adb i najnowsze APK, zainstaluje je i ustawi PanelPilot jako ekran główny.
+Skrypt sam pobierze adb i najnowsze APK, zainstaluje je i ustawi Panel Pilot jako ekran główny.
 
 ### 3. Połączenie
 
 1. Na panelu wybierz Home Assistant znaleziony w sieci oraz kształt ekranu: **kwadrat** lub **prostokąt**.
-2. Panel pokaże **6-cyfrowy kod**. W HA pojawi się powiadomienie PanelPilot: kliknij link i zatwierdź kod. Hasło nie jest potrzebne.
+2. Panel pokaże **6-cyfrowy kod**. W HA pojawi się powiadomienie Panel Pilot: kliknij link i zatwierdź kod. Hasło nie jest potrzebne.
 3. W edytorze kliknij *Wybierz, co pokazać*.
 
 Gdy ekran się nie obraca, zaznacz w aplikacji *Obracaj obraz w aplikacji*.

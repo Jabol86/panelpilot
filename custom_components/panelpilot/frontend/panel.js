@@ -114,7 +114,7 @@
     const show = html => { $('grid').innerHTML = '<div class="empty">' + html + '<button class="login" type="button">Zaloguj hasłem</button></div>'; $('grid').querySelector('.login').onclick = () => ha.login(); };
     show('<b>Łączenie…</b>');
     ha.pair({ device_id: ha.deviceId, name: info.name || 'Przeglądarka', model: info.model || 'Przeglądarka' }, code => {
-      show('<span>W Home Assistant kliknij powiadomienie <b>PanelPilot</b> i zatwierdź kod:</span><div class="code">' + esc(code.slice(0, 3) + ' ' + code.slice(3)) + '</div>');
+      show('<span>W Home Assistant kliknij powiadomienie <b>Panel Pilot</b> i zatwierdź kod:</span><div class="code">' + esc(code.slice(0, 3) + ' ' + code.slice(3)) + '</div>');
     }).then(() => location.reload(), e => {
       show('<b>Parowanie nieudane</b><span>' + esc(e.message) + '</span>');
       setTimeout(pairing, 20000);
@@ -131,7 +131,7 @@
       report.last = ''; report();
     } catch (e) {
       const missing = e.code === 'unknown_command';
-      $('grid').innerHTML = '<div class="empty"><b>' + (missing ? 'Brak integracji PanelPilot w Home Assistant' : 'Nie udało się zarejestrować panelu') + '</b><span>'
+      $('grid').innerHTML = '<div class="empty"><b>' + (missing ? 'Brak integracji Panel Pilot w Home Assistant' : 'Nie udało się zarejestrować panelu') + '</b><span>'
         + (missing ? 'Zainstaluj integrację i dodaj ją w Ustawienia → Urządzenia oraz usługi.' : esc(e.message)) + '</span></div>';
       setTimeout(() => { if (ha.online) connectIntegration(); }, 15000);
     }
@@ -739,7 +739,7 @@
     const now = Math.round((manual != null ? manual : updateDark.level == null ? 204 : updateDark.level) / 2.55);
     const el = sheet('Panel', '<div class="bright"><span>Jasność</span><input type="range" min="1" max="100" value="' + now + '" aria-label="Jasność"><b>' + now + '%</b>'
       + btn('auto', manual == null ? 'Automatycznie ✓' : 'Automatycznie') + '</div>'
-      + '<p class="dim">Pulpit, jasność w dzień i w nocy oraz obrót ustawisz w Home Assistant: Ustawienia → Urządzenia oraz usługi → PanelPilot → Konfiguruj.</p><p class="dim">' + esc(info.name || 'Przeglądarka') + ' · ' + DP.FORMATS[fmt].name + ' ' + innerWidth + '×' + innerHeight + ' · ' + esc(info.version || 'web') + '</p>',
+      + '<p class="dim">Pulpit, jasność w dzień i w nocy oraz obrót ustawisz w Home Assistant: Ustawienia → Urządzenia oraz usługi → Panel Pilot → Konfiguruj.</p><p class="dim">' + esc(info.name || 'Przeglądarka') + ' · ' + DP.FORMATS[fmt].name + ' ' + innerWidth + '×' + innerHeight + ' · ' + esc(info.version || 'web') + '</p>',
       (bell.entity || bell.camera ? btn('bell', 'Domofon') : '') + btn('reload', 'Odśwież') + btn('out', 'Wyloguj') + (native && native.openSetup ? btn('setup', 'Ustawienia aplikacji') : '') + btn('close', 'Zamknij', 'primary'));
     const range = el.querySelector('.bright input'), label = el.querySelector('.bright b');
     range.addEventListener('input', () => { manual = Math.max(3, Math.round(range.value * 2.55)); label.textContent = range.value + '%'; el.querySelector('[data-act=auto]').textContent = 'Automatycznie'; updateDark(true); });

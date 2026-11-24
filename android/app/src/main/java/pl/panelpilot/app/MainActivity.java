@@ -202,7 +202,7 @@ public class MainActivity extends Activity implements SensorEventListener {
             if (!r.isForMainFrame()) return;
             failed = true;
             showError(resp.getStatusCode() == 404
-                    ? "W Home Assistant nie ma jeszcze integracji PanelPilot.\nZainstaluj ją i dodaj w Ustawieniach."
+                    ? "W Home Assistant nie ma jeszcze integracji Panel Pilot.\nZainstaluj ją i dodaj w Ustawieniach."
                     : "Home Assistant odpowiedział błędem " + resp.getStatusCode());
             retry();
         }

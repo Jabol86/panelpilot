@@ -31,7 +31,7 @@
       const post = body => fetch('/api/panelpilot/pair', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
       for (;;) {
         const r = await post(Object.assign({ client_id: CLIENT }, details));
-        if (r.status === 404) throw new Error('Brak integracji PanelPilot');
+        if (r.status === 404) throw new Error('Brak integracji Panel Pilot');
         if (!r.ok) throw new Error(r.status === 403 ? 'Parowanie działa tylko w sieci lokalnej' : r.status === 429 ? 'Zbyt wiele prób parowania, odczekaj chwilę' : 'HTTP ' + r.status);
         const p = await r.json();
         show(p.code);

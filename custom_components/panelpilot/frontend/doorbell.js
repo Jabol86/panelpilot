@@ -162,7 +162,7 @@
 
   async function talk() {
     if (talking) { stopTalk(); connect(null); return; }
-    if (!navigator.mediaDevices) return P.toast('Mikrofon działa w aplikacji PanelPilot albo przez https', true);
+    if (!navigator.mediaDevices) return P.toast('Mikrofon działa w aplikacji Panel Pilot albo przez https', true);
     let mic;
     try { mic = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true } }); }
     catch (e) { return P.toast('Brak dostępu do mikrofonu', true); }

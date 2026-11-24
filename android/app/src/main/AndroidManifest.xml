@@ -10,7 +10,7 @@
     <application
         android:allowBackup="false"
         android:icon="@drawable/icon"
-        android:label="PanelPilot"
+        android:label="Panel Pilot"
         android:usesCleartextTraffic="true"
         android:theme="@android:style/Theme.Material.NoActionBar.Fullscreen">
 

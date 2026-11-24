@@ -34,7 +34,7 @@ def async_register(hass: HomeAssistant) -> None:
 def _hub(hass: HomeAssistant, connection: websocket_api.ActiveConnection, msg: dict[str, Any]) -> Hub | None:
     hub = hass.data.get(DOMAIN)
     if hub is None:
-        connection.send_error(msg["id"], "not_loaded", "Integracja PanelPilot nie jest uruchomiona")
+        connection.send_error(msg["id"], "not_loaded", "Integracja Panel Pilot nie jest uruchomiona")
     return hub
 
 
@@ -335,7 +335,7 @@ async def ws_pair_approve(hass, connection, msg) -> None:
         old = hub.panels.get(pid)
         user = await hass.auth.async_get_user(old["user_id"]) if old and old.get("own_user") else None
         if user is None:
-            user = await hass.auth.async_create_user(f"PanelPilot: {msg['name']}", group_ids=[GROUP_ID_USER], local_only=True)
+            user = await hass.auth.async_create_user(f"Panel Pilot: {msg['name']}", group_ids=[GROUP_ID_USER], local_only=True)
         for token in list(user.refresh_tokens.values()):
             hass.auth.async_remove_refresh_token(token)
         refresh = await hass.auth.async_create_refresh_token(user, client_id=item["client_id"])

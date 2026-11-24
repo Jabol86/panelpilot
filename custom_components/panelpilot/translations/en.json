@@ -1,12 +1,12 @@
 {
   "config": {
-    "step": { "user": { "title": "PanelPilot", "description": "Add PanelPilot? Open the dashboard editor later with the Configure button of the integration; panels are added with the code shown on their screen." } },
-    "abort": { "single_instance_allowed": "PanelPilot is already added." }
+    "step": { "user": { "title": "Panel Pilot", "description": "Add Panel Pilot? Open the dashboard editor later with the Configure button of the integration; panels are added with the code shown on their screen." } },
+    "abort": { "single_instance_allowed": "Panel Pilot is already added." }
   },
   "options": {
     "step": {
       "init": {
-        "title": "PanelPilot",
+        "title": "Panel Pilot",
         "description": "**[Open the dashboard editor]({editor})**\n\nThe Visit button on each panel's device page opens it too.",
         "data": { "sidebar": "Show the editor in the sidebar" }
       }

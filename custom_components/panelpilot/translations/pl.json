@@ -1,12 +1,12 @@
 {
   "config": {
-    "step": { "user": { "title": "PanelPilot", "description": "Dodać PanelPilot? Edytor pulpitów otworzysz potem przyciskiem „Konfiguruj” przy integracji, a panele dodasz kodem pokazanym na ich ekranie." } },
-    "abort": { "single_instance_allowed": "PanelPilot jest już dodany." }
+    "step": { "user": { "title": "Panel Pilot", "description": "Dodać Panel Pilot? Edytor pulpitów otworzysz potem przyciskiem „Konfiguruj” przy integracji, a panele dodasz kodem pokazanym na ich ekranie." } },
+    "abort": { "single_instance_allowed": "Panel Pilot jest już dodany." }
   },
   "options": {
     "step": {
       "init": {
-        "title": "PanelPilot",
+        "title": "Panel Pilot",
         "description": "**[Otwórz edytor pulpitów]({editor})**\n\nEdytor otworzysz też przyciskiem „Odwiedź” na stronie każdego panelu.",
         "data": { "sidebar": "Pokaż edytor w menu bocznym" }
       }

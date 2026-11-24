@@ -57,7 +57,7 @@ class PanelEntity(Entity):
     @property
     def device_info(self) -> DeviceInfo:
         return DeviceInfo(
-            identifiers={(DOMAIN, self.pid)}, name=self.panel.get("name", "Panel"), manufacturer="PanelPilot",
+            identifiers={(DOMAIN, self.pid)}, name=self.panel.get("name", "Panel"), manufacturer="Panel Pilot",
             model=self.panel.get("model") or None, sw_version=self.panel.get("app") or None,
             # Przycisk „Odwiedź” na stronie urządzenia otwiera edytor.
             configuration_url=f"homeassistant://{EDITOR_PATH}",

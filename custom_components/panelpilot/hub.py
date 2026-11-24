@@ -291,8 +291,8 @@ class Hub:
         if self.pairing.pending():
             persistent_notification.async_create(
                 self.hass,
-                f"Nowy panel czeka na zatwierdzenie. [Otwórz PanelPilot](/{EDITOR_PATH}) i porównaj kod z ekranem panelu.",
-                title="PanelPilot", notification_id=PAIRING_NOTICE,
+                f"Nowy panel czeka na zatwierdzenie. [Otwórz Panel Pilot](/{EDITOR_PATH}) i porównaj kod z ekranem panelu.",
+                title="Panel Pilot", notification_id=PAIRING_NOTICE,
             )
         else:
             persistent_notification.async_dismiss(self.hass, PAIRING_NOTICE)

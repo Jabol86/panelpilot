@@ -1,4 +1,4 @@
-"""Integracja PanelPilot."""
+"""Integracja Panel Pilot."""
 
 from __future__ import annotations
 
@@ -32,7 +32,7 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
     def targets(call: ServiceCall) -> tuple[Hub, list[str]]:
         hub = hass.data.get(DOMAIN)
         if hub is None:
-            raise ServiceValidationError("Integracja PanelPilot nie jest uruchomiona")
+            raise ServiceValidationError("Integracja Panel Pilot nie jest uruchomiona")
         if "device_id" not in call.data:
             return hub, list(hub.panels)
         registry, out = dr.async_get(hass), []
@@ -64,6 +64,9 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
+    # Nazwa ze spacją od 0.1.25: wpis dodany wcześniej dostaje ją sam (własna nazwa użytkownika zostaje).
+    if entry.title == "PanelPilot":
+        hass.config_entries.async_update_entry(entry, title="Panel Pilot")
     hub = Hub(hass)
     await hub.async_load()
     hass.data[DOMAIN] = hub
@@ -76,7 +79,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             frontend_url_path=EDITOR_PATH,
             webcomponent_name="panelpilot-editor",
             module_url=f"{STATIC_URL}/editor.js?v={VERSION}",
-            sidebar_title="PanelPilot" if sidebar else None,
+            sidebar_title="Panel Pilot" if sidebar else None,
             sidebar_icon="mdi:tablet-dashboard" if sidebar else None,
             require_admin=True,
             config={"static": STATIC_URL, "version": VERSION},

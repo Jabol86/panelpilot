@@ -180,6 +180,11 @@ Zgłoszenie: „mam najnowszą wersję, ale wielu funkcji nie mam w edytorze”.
 - Napis z warunku w kafelku z `.val` (czujnik, alarm) zastępuje wartość (`.val.rule-st`), w pozostałych dalej `.st`.
 - `tile.showName = false` (Wygląd → „Nazwa na kafelku”: Ukryj) → klasa `nonm` chowa `.tx > .nm` i `.tx > .lbl`.
 
+### v0.1.25 (APK 0.1.5)
+
+- Nazwa wyświetlana „Panel Pilot” (ze spacją) w HA, HACS, APK, edytorze i dokumentacji; domena i pakiet bez zmian (`panelpilot`, `pl.panelpilot.app`). Stary tytuł wpisu „PanelPilot” zmienia się sam przy starcie.
+- Ikona (wybór właściciela, wariant A z 4): czarny zaokrąglony kwadrat, ramka panelu, 4 kafelki, jeden czerwony #ee1c25, kropka pod spodem. Pliki: `custom_components/panelpilot/brand/` (icon/logo PNG 256 i 512), `frontend/icon.svg` (favicon), `docs/icon.png` (README), `android/.../drawable/icon.xml` (wektor). PNG rysuje skrypt bez bibliotek (był w scratchpadzie sesji). Lista integracji w HA pokazuje ikonę z repozytorium home-assistant/brands; czy HA bierze ją też z folderu `brand/`, zależy od wersji HA – **nie sprawdzono**.
+
 ## Instalacja przez HACS
 
 Właściciel chce instalować PanelPilot z GitHuba przez HACS. To **integracja**, nie dodatek Supervisora. HACS nie widzi prywatnych repozytoriów. Kiedy właściciel się zgodzi:

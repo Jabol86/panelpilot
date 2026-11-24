@@ -1,4 +1,4 @@
-# Instaluje PanelPilot na panelu (NSPanel Pro lub inny Android 8+) przez ADB po Wi-Fi.
+# Instaluje Panel Pilot na panelu (NSPanel Pro lub inny Android 8+) przez ADB po Wi-Fi.
 # Opis: docs/instalacja-panelu.md
 #
 # Najprosciej, bez pobierania repo (PowerShell na Windows):
@@ -12,7 +12,7 @@ param(
   [switch]$NoHome,       # nie zastepuj ekranu glownego (eWeLink zostaje)
   [switch]$KeepAdb,      # ADB po Wi-Fi dziala tez po restarcie panelu (wymaga roota)
   [string]$TimeZone,     # np. Europe/Warsaw (wymaga roota, potem restart panelu)
-  [switch]$Uninstall,    # usun PanelPilot i wroc do poprzedniego ekranu
+  [switch]$Uninstall,    # usun Panel Pilot i wroc do poprzedniego ekranu
   [int]$WaitSeconds = 90
 )
 $ErrorActionPreference = 'Continue'
@@ -75,7 +75,7 @@ $android = (Invoke-Adb shell getprop ro.build.version.release) -join ''
 Write-Host "Polaczono: $model, Android $android"
 
 if ($Uninstall) {
-  Write-Step 'Usuwam PanelPilot'
+  Write-Step 'Usuwam Panel Pilot'
   Invoke-Adb uninstall $pkg | Out-Host
   Write-Host 'Gotowe. Panel wroci do poprzedniego ekranu glownego (po restarcie lub gescie Home).'
   return
@@ -95,7 +95,7 @@ Write-Step 'Instaluje aplikacje'
 $out = Invoke-Adb install -r $Apk
 $out | Out-Host
 if (($out -join ' ') -match 'INSTALL_FAILED_UPDATE_INCOMPATIBLE') {
-  Stop-Install 'Na panelu jest PanelPilot podpisany innym kluczem. Usun go: dodaj -Uninstall, potem zainstaluj ponownie.'
+  Stop-Install 'Na panelu jest Panel Pilot podpisany innym kluczem. Usun go: dodaj -Uninstall, potem zainstaluj ponownie.'
 }
 if (($out -join ' ') -notmatch 'Success') { Stop-Install 'Instalacja sie nie powiodla (komunikat powyzej).' }
 
@@ -104,7 +104,7 @@ Invoke-Adb shell pm grant $pkg android.permission.RECORD_AUDIO | Out-Host
 if ($NoHome) { Write-Host 'Pomijam ustawienie ekranu glownego (-NoHome).' }
 else {
   Invoke-Adb shell cmd package set-home-activity "$pkg/.MainActivity" | Out-Host
-  Write-Host 'PanelPilot jest ekranem glownym: uruchomi sie po restarcie, a gest Home do niego wraca.'
+  Write-Host 'Panel Pilot jest ekranem glownym: uruchomi sie po restarcie, a gest Home do niego wraca.'
 }
 
 if ($KeepAdb -or $TimeZone) {
@@ -124,4 +124,4 @@ if ($KeepAdb -or $TimeZone) {
 
 Write-Step 'Uruchamiam'
 Invoke-Adb shell am start -n "$pkg/.MainActivity" | Out-Host
-Write-Host "`nGotowe. Na panelu wybierz Home Assistant i ksztalt ekranu, potem zatwierdz kod w HA: PanelPilot -> Panele." -ForegroundColor Green
+Write-Host "`nGotowe. Na panelu wybierz Home Assistant i ksztalt ekranu, potem zatwierdz kod w HA: Panel Pilot -> Panele." -ForegroundColor Green

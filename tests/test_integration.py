@@ -156,7 +156,7 @@ async def test_pairing(hass, entry, hass_ws_client, hass_client_no_auth):
     assert (await ask(panel, {"type": "panelpilot/subscribe", "device_id": "app_1"}))["success"]
     # Konto panelu nie ma dostępu do edytora i jest tylko lokalne.
     assert (await ask(panel, {"type": "panelpilot/admin/subscribe"}))["error"]["code"] == "unauthorized"
-    user = next(u for u in await hass.auth.async_get_users() if u.name == "PanelPilot: Hol")
+    user = next(u for u in await hass.auth.async_get_users() if u.name == "Panel Pilot: Hol")
     assert user.local_only and not user.is_admin
 
     # Usunięcie panelu kasuje konto.

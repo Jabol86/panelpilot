@@ -65,7 +65,7 @@ class PanelPilotEditor extends HTMLElement {
     this.shadowRoot.replaceChildren(h('link', { rel: 'stylesheet', href: new URL('editor.css?' + v, BASE).href }), h('p', { style: 'padding:24px' }, 'Ładowanie edytora…'));
     this.frame = h('iframe', { title: 'Podgląd panelu', src: new URL('index.html?preview&' + v, BASE).href });
     this._unsub = this.hass.connection.subscribeMessage(d => this.onData(d), { type: 'panelpilot/admin/subscribe' });
-    this._unsub.catch(e => this.shadowRoot.replaceChildren(h('p', { style: 'padding:24px' }, 'Integracja PanelPilot nie odpowiada: ' + (e.message || e.code))));
+    this._unsub.catch(e => this.shadowRoot.replaceChildren(h('p', { style: 'padding:24px' }, 'Integracja Panel Pilot nie odpowiada: ' + (e.message || e.code))));
   }
 
   onData(d) {
@@ -645,7 +645,7 @@ class PanelPilotEditor extends HTMLElement {
         field(this.lbl('Rodzaj kafelka', 'Zmiana rodzaju zachowuje nazwę, kolory i położenie; pola specyficzne dla rodzaju trzeba ustawić od nowa.'), select(t.type, Object.entries(this.win.Panel.widgets).map(([id, x]) => [id, x.name]), v => this.commit(() => { t.type = v; if (v === 'music' && !t.stations) t.stations = []; }))),
         ...fields,
         field(this.lbl(w.thin ? 'Napis, np. Kuchnia' : 'Nazwa', w.thin ? '' : 'Napis na kafelku. Pusta = nazwa encji z Home Assistant.'), text(t.name, v => set('name', v))),
-        w.noIcon ? null : field(this.lbl('Ikona', 'Własne ikony PanelPilot albo dowolna mdi:… z Home Assistant.'), this.iconPicker(t.icon || w.icon, v => set('icon', v, true)))]),
+        w.noIcon ? null : field(this.lbl('Ikona', 'Własne ikony Panel Pilot albo dowolna mdi:… z Home Assistant.'), this.iconPicker(t.icon || w.icon, v => set('icon', v, true)))]),
       this.sec('look', 'Wygląd', [
         h('div', { class: 'row2' }, this.color('Tło', t.bg, v => set('bg', v)), this.color('Kolor', t.color, v => set('color', v))),
         w.noIcon ? null : this.color('Tło ikony (kółko)', t.iconBg, v => set('iconBg', v)),
@@ -1082,7 +1082,7 @@ class PanelPilotEditor extends HTMLElement {
         h('p', { class: 'dim' }, 'Zasięg czujnika zbliżenia ustala producent panelu; zwykle to kilkanaście–kilkadziesiąt centymetrów. Stan widać w encji „Zbliżenie” tego panelu w HA.'),
         h('div', { class: 'btns' }, h('button', { class: 'danger', onclick: () => this.dialog('Usunąć panel „' + p.name + '”?', h('p', {}, 'Panel straci dostęp i trzeba będzie sparować go od nowa.'), ['Anuluj'], ['Usuń', () => call({ type: 'panelpilot/admin/panel_delete', device_id: id })]) }, 'Usuń'), h('button', { disabled: !p.connected, onclick: () => cmd('message', { title: 'Test', message: 'Wiadomość z Home Assistant' }) }, 'Wyślij test'), h('button', { disabled: !p.connected, onclick: () => cmd('doorbell') }, 'Pokaż domofon'), h('button', { disabled: !p.connected, onclick: () => cmd('reload') }, 'Odśwież')));
     });
-    return [h('h2', {}, 'Panele'), ...pairing, ...panels, h('div', { class: 'card' }, h('h2', {}, 'Dodaj panel'), h('ol', { style: 'margin:0;padding-left:20px;display:grid;gap:6px' }, h('li', {}, 'Zainstaluj aplikację PanelPilot na NSPanelu i uruchom ją.'), h('li', {}, 'Wybierz na ekranie Home Assistant znaleziony w sieci oraz kształt ekranu.'), h('li', {}, 'Panel pokaże 6-cyfrowy kod. Zatwierdź go tutaj; hasło nie jest potrzebne.')), h('p', { class: 'dim' }, 'Panel dostaje własne konto bez uprawnień administratora, działające tylko w sieci lokalnej. Bez NSPanela możesz otworzyć panel w przeglądarce: ', h('a', { href: new URL('index.html', BASE).href, target: '_blank', rel: 'noopener' }, 'podgląd panelu'), '.'))];
+    return [h('h2', {}, 'Panele'), ...pairing, ...panels, h('div', { class: 'card' }, h('h2', {}, 'Dodaj panel'), h('ol', { style: 'margin:0;padding-left:20px;display:grid;gap:6px' }, h('li', {}, 'Zainstaluj aplikację Panel Pilot na NSPanelu i uruchom ją.'), h('li', {}, 'Wybierz na ekranie Home Assistant znaleziony w sieci oraz kształt ekranu.'), h('li', {}, 'Panel pokaże 6-cyfrowy kod. Zatwierdź go tutaj; hasło nie jest potrzebne.')), h('p', { class: 'dim' }, 'Panel dostaje własne konto bez uprawnień administratora, działające tylko w sieci lokalnej. Bez NSPanela możesz otworzyć panel w przeglądarce: ', h('a', { href: new URL('index.html', BASE).href, target: '_blank', rel: 'noopener' }, 'podgląd panelu'), '.'))];
   }
 
   /* ---------- drobiazgi ---------- */
