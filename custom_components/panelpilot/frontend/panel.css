@@ -370,13 +370,18 @@ input[type=range] { accent-color: var(--on); min-width: 0; height: 40px; width: 
   background-size: auto, 56px 100px, cover; background-position: 0 0, 100% 100%, center;
 }
 #root[data-style=glass] .tile:not(.plain) { border: 1px solid #262626; }
-#root[data-style=glass] .tile.on:not(.plain) { border-color: color-mix(in srgb, var(--on) 70%, transparent); background: color-mix(in srgb, var(--on) 10%, var(--tile)); box-shadow: 0 0 16px -2px color-mix(in srgb, var(--on) 45%, transparent); }
+#root[data-style=glass] .tile.on:not(.plain) { border-color: color-mix(in srgb, var(--on) 70%, transparent); box-shadow: 0 0 16px -2px color-mix(in srgb, var(--on) 45%, transparent); }
+/* Wnętrze podbarwione tylko przy „Wypełniony kolorem”; przy świecącej ramce zostaje kolor kafelka. */
+#root[data-style=glass]:not([data-on=outline]) .tile.on:not(.plain) { background: color-mix(in srgb, var(--on) 14%, var(--tile)); }
+#root[data-style=glass][data-on=outline] .tile.on:not(.plain) { background: color-mix(in srgb, var(--tile) var(--alpha), transparent); }
 #root[data-style=glass] .tile.on .nm, #root[data-style=glass] .tile.on .st { color: var(--ink); }
-#root[data-style=glass] .nm { letter-spacing: .02em; }
-#root[data-style=glass] .lbl, #root[data-style=glass] .st { letter-spacing: .04em; }
-#root[data-style=glass] .sec-t { font-weight: 300; letter-spacing: .12em; }
+/* Pismo jak w „Terminalu”: nazwy wersalikami z odstępami, stany, wartości i zegar pismem maszynowym. */
+#root[data-style=glass] .nm { text-transform: uppercase; letter-spacing: .12em; font-weight: 500; }
+#root[data-style=glass] .lbl, #root[data-style=glass] .st, #root[data-style=glass] .val, #root[data-style=glass] .clock { font-family: "Roboto Mono", "DejaVu Sans Mono", monospace; }
+#root[data-style=glass] .lbl, #root[data-style=glass] .st { text-transform: uppercase; letter-spacing: .14em; font-size: calc(12px * var(--scale)); }
+#root[data-style=glass] .sec-t { text-transform: uppercase; letter-spacing: .3em; font-weight: 400; }
 #root[data-style=glass] .sec-l { height: 1px; background: linear-gradient(90deg, var(--accent) 0 70px, #3a3a3a 70px); }
-#root[data-style=glass] .clock { font-weight: 200; letter-spacing: .02em; }
+#root[data-style=glass] .clock { font-weight: 300; }
 #root[data-style=glass] #nav .dot[aria-current] i { box-shadow: 0 0 10px var(--accent); }
 
 /* ---------- Motyw „Terminal”: pomarańczowy HUD, ścięte rogi, pasy ostrzegawcze, siatka sześciokątów ---------- */

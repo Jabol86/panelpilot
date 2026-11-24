@@ -149,6 +149,7 @@ Zgłoszenie: „mam najnowszą wersję, ale wielu funkcji nie mam w edytorze”.
 - Motywy „Nocne szkło” (`theme.style = glass`, jak ekran konfiguracji) i „Terminal” (`hud`, pomarańczowy HUD inspirowany anime, bez nazw i logo). `DP.STYLES`, `root.dataset.style`, CSS na końcu panel.css. Zwykłe motywy zerują `style`, `radius`, `onStyle`. W Wyglądzie pole „Styl”.
 - Domofon: „Podgląd na żywo (strumień go2rtc)” – lista wykrytych strumieni obok kamery HA (`streamPicker`, `go2rtcState`); kamera HA = zapas.
 - Trzeci punkt wiadomości właściciela był pusty („3.”), dopytać.
+- 0.1.20: w „Nocnym szkle” przy świecącej ramce wnętrze kafelka zostaje w kolorze kafelka (wcześniej było czerwonawe); pismo jak w „Terminalu” (wersaliki, Roboto Mono).
 
 ## Instalacja przez HACS
 
