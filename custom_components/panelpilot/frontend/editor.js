@@ -927,8 +927,17 @@ class PanelPilotEditor extends HTMLElement {
 
   saverTab() {
     const s = this.doc.saver = Object.assign({ seconds: 60, style: 'zegar', entities: [], names: {} }, this.doc.saver), set = (k, v, full) => this.commit(() => { this.doc.saver[k] = v; }, full ? {} : { key: 'sv' + k, quiet: true });
+    const swap = (list, a, b) => { const x = list.slice(); [x[a], x[b]] = [x[b], x[a]]; return x; };
+    // Kolejność bloków z góry na dół; brakujące (np. ze starszego pulpitu) na końcu.
+    const BLOCKS = [['alerts', 'Ikony powiadomień'], ['time', 'Zegar'], ['date', 'Data'], ['weather', 'Panel pogody'], ['items', 'Encje pod zegarem']];
+    const order = (s.order || []).filter(b => BLOCKS.some(x => x[0] === b));
+    BLOCKS.forEach(([b]) => { if (!order.includes(b)) order.push(b); });
     return [h('h3', {}, 'Wygaszacz'), field('Włącz po (sekundy, 0 = nigdy)', text(s.seconds, v => set('seconds', Number(v) || 0), { type: 'number', min: 0 })),
       field('Wygląd', select(s.style, [['zegar', 'Zegar'], ['czujniki', 'Duże czujniki'], ['czarny', 'Czarny ekran']], v => set('style', v))),
+      group('Kolejność na wygaszaczu (z góry na dół)', h('div', {}, ...order.map((b, i) => h('div', { style: 'display:flex;gap:6px;align-items:center;margin:2px 0' },
+        h('span', { style: 'flex:1' }, (i + 1) + '. ' + BLOCKS.find(x => x[0] === b)[1]),
+        h('button', { type: 'button', class: 'icon', 'aria-label': 'Wyżej', disabled: i === 0, onclick: () => set('order', swap(order, i, i - 1), true) }, '↑'),
+        h('button', { type: 'button', class: 'icon', 'aria-label': 'Niżej', disabled: i === order.length - 1, onclick: () => set('order', swap(order, i, i + 1), true) }, '↓'))))),
       group('Co pokazać pod zegarem (czujniki, pogoda…)', this.entityList(s.entities || [], ['sensor', 'binary_sensor', 'weather', 'input_number'], v => set('entities', v.slice(0, 8), true))),
       h('p', { class: 'dim', style: 'margin:-4px 0 8px' }, 'Pogoda (weather.*) pokazuje ikonę warunków, temperaturę i opis.'),
       h('h3', {}, 'Panel pogody'),
@@ -936,8 +945,13 @@ class PanelPilotEditor extends HTMLElement {
       s.weather ? field('Prognoza: ile dni (0 = tylko teraz)', select(String(s.days == null ? 5 : s.days), [0, 1, 2, 3, 4, 5, 6, 7].map(n => [String(n), String(n)]), v => set('days', +v, true))) : null,
       h('h3', {}, 'Pod zegarem'),
       field('Wielkość pozycji pod zegarem', select(s.size || 'M', [['S', 'Mała'], ['M', 'Zwykła'], ['L', 'Duża'], ['XL', 'Bardzo duża']], v => set('size', v, true))),
-      ...(s.entities || []).map(id => h('div', { class: 'st' },
-        h('b', {}, this.ename(id)),
+      ...(s.entities || []).map((id, i, list) => h('div', { class: 'st' },
+        h('div', { style: 'display:flex;gap:6px;align-items:center' },
+          h('b', { style: 'flex:1;min-width:0' }, this.ename(id)),
+          h('button', { type: 'button', class: 'icon', title: 'Wyżej (wcześniej)', 'aria-label': 'Przesuń wyżej', disabled: i === 0, onclick: () => set('entities', swap(list, i, i - 1), true) }, '↑'),
+          h('button', { type: 'button', class: 'icon', title: 'Niżej (później)', 'aria-label': 'Przesuń niżej', disabled: i === list.length - 1, onclick: () => set('entities', swap(list, i, i + 1), true) }, '↓')),
+        field('Wielkość', select((s.sizes || {})[id] || '', [['', 'Jak wszystkie'], ['S', 'Mała'], ['M', 'Zwykła'], ['L', 'Duża'], ['XL', 'Bardzo duża']],
+          v => this.commit(() => { const z = Object.assign({}, this.doc.saver.sizes); if (v) z[id] = v; else delete z[id]; this.doc.saver.sizes = z; }))),
         field('Podpis (pusty = nazwa z HA)', text((s.names || {})[id], v => this.commit(() => { const n = Object.assign({}, this.doc.saver.names); if (v) n[id] = v; else delete n[id]; this.doc.saver.names = n; }, { key: 'svn' + id, quiet: true }))),
         field('Ikona', h('div', { style: 'display:flex;gap:6px;align-items:center' },
           this.iconPicker((s.icons || {})[id] || '', v => this.commit(() => { this.doc.saver.icons = Object.assign({}, this.doc.saver.icons, { [id]: v }); })),

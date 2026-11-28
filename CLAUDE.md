@@ -221,6 +221,10 @@ Zgłoszenie: „mam najnowszą wersję, ale wielu funkcji nie mam w edytorze”.
 - Licznik czasu (z 0.1.27) rozszerzony: `tile.timerEntity` (licz według innej encji, np. kontaktron bramy przy kafelku z przekaźnikiem; dodane do `ENTITY_FIELDS`), `tile.timerText` (napis przed czasem, `.tmr-p`), `tile.timerFmt = 'words'` („7 min”, „2 h 5 min”, „1 d 3 h”). Pole dostępne też w kafelkach bez encji (`noEntity`), bez sekcji. Liczy, gdy `Panel.isOn` (on/open/opening/unlocked/heat…).
 - Zaproponowano asystenta z modelem językowym przez Assist w HA (kafelek „Asystent”); czeka na decyzję.
 
+### v0.1.33
+
+- Wygaszacz: `saver.order` (kolejność bloków alerts/time/date/weather/items, `_saver_order` w model.py dopełnia brakujące), `saver.sizes` {encja: S/M/L/XL} nadpisuje wspólną `size` (klasa `sz-*` na pozycji w `.sv-items`). Edytor: lista „Kolejność na wygaszaczu” z ↑↓, przy każdej encji ↑↓ i „Wielkość”.
+
 ## Instalacja przez HACS
 
 Właściciel chce instalować PanelPilot z GitHuba przez HACS. To **integracja**, nie dodatek Supervisora. HACS nie widzi prywatnych repozytoriów. Kiedy właściciel się zgodzi:

@@ -129,6 +129,15 @@ def _entities(value: Any, limit: int) -> list[str]:
     return [e for e in value or [] if isinstance(e, str) and ENTITY_RE.match(e)][:limit]
 
 
+SAVER_BLOCKS = ("alerts", "time", "date", "weather", "items")
+
+
+def _saver_order(value: Any) -> list[str]:
+    """Kolejność bloków wygaszacza: bez powtórzeń i nieznanych, brakujące na końcu."""
+    seen = [b for i, b in enumerate(value if isinstance(value, list) else []) if b in SAVER_BLOCKS and b not in value[:i]]
+    return seen + [b for b in SAVER_BLOCKS if b not in seen]
+
+
 def clean_dashboard(data: Any) -> dict[str, Any]:
     """Sprawdza pulpit z edytora; nieznane pola kafelków zostają (własne kafelki)."""
     if not isinstance(data, dict) or not isinstance(data.get("pages"), list) or not data["pages"]:
@@ -189,6 +198,10 @@ def clean_dashboard(data: Any) -> dict[str, Any]:
             "names": {k: _text(v, 40) for k, v in (saver.get("names") or {}).items() if isinstance(k, str)},
             "icons": {k: _text(v, 60) for k, v in (saver.get("icons") or {}).items() if isinstance(k, str) and ENTITY_RE.match(k)},
             "size": saver.get("size") if saver.get("size") in ("S", "M", "L", "XL") else "M",
+            # Wielkość pojedynczej pozycji pod zegarem (brak = wspólna „size”).
+            "sizes": {k: v for k, v in (saver.get("sizes") or {}).items() if isinstance(k, str) and ENTITY_RE.match(k) and v in ("S", "M", "L", "XL")},
+            # Kolejność bloków wygaszacza, z góry na dół; brakujące dochodzą na końcu w kolejności domyślnej.
+            "order": _saver_order(saver.get("order")),
             # Ikony powiadomień: pokazują się tylko, gdy encja jest „aktywna” (otwarte, włączone, problem…).
             "alerts": _entities(saver.get("alerts"), 12),
             # Własny napis i ikona powiadomienia; wygląd: plain (ikona i napis), frame (w cienkiej ramce), icon (sama ikona).

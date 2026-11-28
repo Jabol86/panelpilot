@@ -175,5 +175,12 @@ class Pairing(unittest.TestCase):
                 self.p.start("app_1", "P", "M", bad, "192.0.2.5")
 
 
+class SaverLayout(unittest.TestCase):
+    def test_order_and_sizes(self):
+        d = model.clean_dashboard({"pages": [{"name": "A", "tiles": []}], "saver": {"order": ["items", "x", "items", "time"], "sizes": {"sensor.a": "L", "sensor.b": "Q", "bad": "S"}}})
+        self.assertEqual(d["saver"]["order"], ["items", "time", "alerts", "date", "weather"])
+        self.assertEqual(d["saver"]["sizes"], {"sensor.a": "L"})
+
+
 if __name__ == "__main__":
     unittest.main()

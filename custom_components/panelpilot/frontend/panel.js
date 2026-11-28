@@ -697,10 +697,20 @@
         val = a.temperature == null ? '–' : esc(Math.round(a.temperature)) + '<small> ' + esc(a.temperature_unit || '°C') + '</small>';
         label = names[id] || c[1];
       }
-      return '<div>' + (ic ? icon(ic) : '') + '<b>' + val + '</b><span>' + esc(label) + '</span></div>';
+      // Własna wielkość pozycji (S/M/L/XL) nadpisuje wspólną.
+      const sz = (s.sizes || {})[id];
+      return '<div' + (['S', 'M', 'L', 'XL'].includes(sz) ? ' class="sz-' + sz + '"' : '') + '>' + (ic ? icon(ic) : '') + '<b>' + val + '</b><span>' + esc(label) + '</span></div>';
     }).join('');
-    const html = alerts(all) + '<div class="sv-time">' + now.toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit' })
-      + '</div><div class="sv-date">' + now.toLocaleDateString('pl-PL', { weekday: 'long', day: 'numeric', month: 'long' }) + '</div>' + saverWeather(s) + '<div class="sv-items">' + items + '</div>';
+    // Bloki w kolejności z edytora (z góry na dół); brakujące dochodzą na końcu.
+    const blocks = {
+      alerts: () => alerts(all),
+      time: () => '<div class="sv-time">' + now.toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit' }) + '</div>',
+      date: () => '<div class="sv-date">' + now.toLocaleDateString('pl-PL', { weekday: 'long', day: 'numeric', month: 'long' }) + '</div>',
+      weather: () => saverWeather(s),
+      items: () => items ? '<div class="sv-items">' + items + '</div>' : '',
+    };
+    const order = (Array.isArray(s.order) ? s.order : []).filter(b => blocks[b]);
+    const html = order.concat(Object.keys(blocks).filter(b => !order.includes(b))).filter((b, i, a) => a.indexOf(b) === i).map(b => blocks[b]()).join('');
     // Ramka .sv zostaje ta sama: przesunięcie przeciw wypalaniu idzie płynnie (przejście CSS), a nie skokiem.
     let box = el.querySelector(':scope > .sv');
     if (!box) { el.innerHTML = '<div class="sv"></div>'; box = el.firstChild; renderSaver.last = ''; }

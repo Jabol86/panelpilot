@@ -288,6 +288,10 @@ input[type=range] { accent-color: var(--on); min-width: 0; height: 40px; width: 
 .sv-date { margin-top: 10px; font-size: 22px; font-weight: 300; }
 .sv-items { display: flex; flex-wrap: wrap; justify-content: center; gap: 16px 34px; margin-top: 30px; }
 #saver { --svs: 1; } #saver.sz-S { --svs: .75; } #saver.sz-L { --svs: 1.35; } #saver.sz-XL { --svs: 1.8; }
+/* Własna wielkość pojedynczej pozycji (saver.sizes). */
+.sv-items > div.sz-S { --svs: .75; } .sv-items > div.sz-M { --svs: 1; } .sv-items > div.sz-L { --svs: 1.35; } .sv-items > div.sz-XL { --svs: 1.8; }
+/* Przy zmienionej kolejności bloków odstęp z obu stron, żeby nic się nie sklejało. */
+.sv > .sv-items:first-child { margin-top: 0; } .sv > .sv-items:not(:last-child) { margin-bottom: 24px; }
 .sv-items div { display: grid; grid-template-columns: auto auto; justify-content: center; align-items: center; column-gap: 8px; row-gap: 2px; }
 .sv-items div .ic { width: calc(28px * var(--svs)); height: calc(28px * var(--svs)); color: #87939a; }
 .sv-items div span { grid-column: 1 / -1; }
