@@ -224,7 +224,7 @@
   /** Pasek stron: kropki (domyślnie), nazwy stron albo brak; dawne true/false też działają. */
   const navStyle = () => dash.nav === false ? 'none' : ['dots', 'tabs', 'none'].includes(dash.nav) ? dash.nav : 'dots';
 
-  const ENTITY_FIELDS = ['entity', 'entity2', 'state_entity', 'pv', 'home', 'grid', 'battery', 'output', 'remote'];
+  const ENTITY_FIELDS = ['entity', 'entity2', 'state_entity', 'pv', 'home', 'grid', 'battery', 'output', 'remote', 'timerEntity'];
   const entitiesOf = t => {
     const def = widgets[t.type], rules = Array.isArray(t.rules) ? t.rules.map(r => r && r.entity) : [];
     return ENTITY_FIELDS.map(f => t[f]).concat(Array.isArray(t.entities) ? t.entities : [], def && def.entities ? def.entities(t) : [], rules).filter(DP.isEntity);
@@ -419,18 +419,25 @@
   }
 
   /** Licznik czasu na kafelku: od ostatniej zmiany encji (last_changed w HA), dopóki jest włączona.
-      timer = 'up' (ile minęło) albo 'down' (odliczanie od timerMin minut do zera, z kurczącym się paskiem). */
+      timer = 'up' (ile minęło) albo 'down' (odliczanie od timerMin minut do zera, z kurczącym się paskiem).
+      timerEntity: licz według innej encji (np. kontaktron bramy przy kafelku z przekaźnikiem).
+      timerText: napis przed czasem („Otwarta”), timerFmt = 'words': „5 min”, „2 h 15 min” zamiast 5:00. */
   function tileTimer(el) {
-    const t = el._tile, mode = t.timer;
+    const t = el._tile, mode = t.timer, id = DP.isEntity(t.timerEntity) ? t.timerEntity : t.entity;
     let box = el.querySelector('.tmr');
-    const s = mode === 'up' || mode === 'down' ? Panel.state(t.entity) : null;
-    if (!s || !Panel.isOn(t.entity)) { if (box) box.remove(); el.querySelectorAll('.tmr-bar').forEach(x => x.remove()); el.classList.remove('has-tmr', 'tmr-end'); return; }
+    const s = mode === 'up' || mode === 'down' ? Panel.state(id) : null;
+    if (!s || !Panel.isOn(id)) { if (box) box.remove(); el.querySelectorAll('.tmr-bar').forEach(x => x.remove()); el.classList.remove('has-tmr', 'tmr-end'); return; }
     const total = Math.max(1, parseFloat(t.timerMin) || 60) * 60000, gone = Math.max(0, Date.now() - (s.changed || Date.now()));
     const ms = mode === 'down' ? Math.max(0, total - gone) : gone, sec = Math.floor(ms / 1000);
     const hh = Math.floor(sec / 3600), mm = Math.floor(sec / 60) % 60, ss = sec % 60, two = n => String(n).padStart(2, '0');
-    const text = (hh ? hh + ':' + two(mm) : mm) + ':' + two(ss);
-    if (!box) { box = document.createElement('div'); box.className = 'tmr keep'; (el.querySelector('.tx') || el).append(box); }
-    box.textContent = text;
+    const dd = Math.floor(hh / 24);
+    const text = t.timerFmt === 'words'
+      ? (dd ? dd + ' d' + (hh % 24 ? ' ' + hh % 24 + ' h' : '') : hh ? hh + ' h' + (mm ? ' ' + mm + ' min' : '') : sec < 60 ? (mode === 'down' ? sec + ' s' : '< 1 min') : mm + ' min')
+      : (hh ? hh + ':' + two(mm) : mm) + ':' + two(ss);
+    if (!box) { box = document.createElement('div'); box.className = 'tmr keep'; box.innerHTML = '<span class="tmr-p"></span><span class="tmr-v"></span>'; (el.querySelector('.tx') || el).append(box); }
+    const pre = String(t.timerText || '').trim();
+    box.firstChild.textContent = pre ? pre + ' ' : '';
+    box.lastChild.textContent = text;
     el.classList.add('has-tmr');
     // Ostatnia minuta odliczania miga.
     el.classList.toggle('tmr-end', mode === 'down' && ms < 60000);

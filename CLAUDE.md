@@ -216,6 +216,11 @@ Zgłoszenie: „mam najnowszą wersję, ale wielu funkcji nie mam w edytorze”.
 - Przesuwanie stron: przy widocznym pasku gest „Wybrana strona”/„Strona główna” w poziomie idzie do sąsiedniej kropki (`kindOf()` w panel.js); na stronie głównej „Wybrana strona” dalej skacze do celu (stoi obok w `navOrder`). Wcześniej np. z lewej strony paska ← skakało na stronę z prawej, a z niej ← nic nie robiło.
 - Na prawej krawędzi ekranu (ok. 1294,188, 99×99 px) wisi nakładka eWeLink (TYPE_APPLICATION_OVERLAY, uchwyt „(”) i przechwytuje dotyk w tym miejscu.
 
+### v0.1.32
+
+- Licznik czasu (z 0.1.27) rozszerzony: `tile.timerEntity` (licz według innej encji, np. kontaktron bramy przy kafelku z przekaźnikiem; dodane do `ENTITY_FIELDS`), `tile.timerText` (napis przed czasem, `.tmr-p`), `tile.timerFmt = 'words'` („7 min”, „2 h 5 min”, „1 d 3 h”). Pole dostępne też w kafelkach bez encji (`noEntity`), bez sekcji. Liczy, gdy `Panel.isOn` (on/open/opening/unlocked/heat…).
+- Zaproponowano asystenta z modelem językowym przez Assist w HA (kafelek „Asystent”); czeka na decyzję.
+
 ## Instalacja przez HACS
 
 Właściciel chce instalować PanelPilot z GitHuba przez HACS. To **integracja**, nie dodatek Supervisora. HACS nie widzi prywatnych repozytoriów. Kiedy właściciel się zgodzi:
